@@ -31,6 +31,9 @@ export type TournamentStatus =
   | "completed"
   | "cancelled";
 
+/** Number of simultaneous competition arenas (gelanggang) */
+export type ArenaCount = 1 | 2 | 3 | 4;
+
 export interface Tournament {
   id: string;
   name: string;
@@ -42,6 +45,13 @@ export interface Tournament {
   status: TournamentStatus;
   /** User ID of the admin who owns this tournament */
   organiserId: string;
+  /** Number of active arenas (gelanggang) for this tournament */
+  arenaCount: ArenaCount;
+  /**
+   * Maps arena number (string "1"–"4") to an ordered list of competitor IDs.
+   * Only arenas 1..arenaCount are meaningful.
+   */
+  arenaAssignments: Record<string, string[]>;
   createdAt: string;
   updatedAt: string;
 }
