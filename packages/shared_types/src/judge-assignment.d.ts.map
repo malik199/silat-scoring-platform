@@ -1,0 +1,1 @@
+{"version":3,"file":"judge-assignment.d.ts","sourceRoot":"","sources":["judge-assignment.ts"],"names":[],"mappings":"AAAA;;;;;GAKG;AACH,MAAM,WAAW,eAAe;IAC9B,EAAE,EAAE,MAAM,CAAC;IACX,OAAO,EAAE,MAAM,CAAC;IAChB,OAAO,EAAE,MAAM,CAAC;IAChB,wCAAwC;IACxC,IAAI,EAAE,CAAC,GAAG,CAAC,GAAG,CAAC,CAAC;IAChB,kDAAkD;IAClD,UAAU,EAAE,MAAM,CAAC;IACnB,UAAU,EAAE,MAAM,CAAC;CACpB"}

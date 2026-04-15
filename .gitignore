@@ -1,0 +1,46 @@
+# ─── Dependencies ───────────────────────────────────────────────────────────
+node_modules/
+
+# ─── Build output ────────────────────────────────────────────────────────────
+dist/
+.next/
+out/
+build/
+
+# ─── Environment variables ───────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+# Keep examples in version control
+!.env.example
+!.env.local.example
+
+# ─── Firebase ────────────────────────────────────────────────────────────────
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+database-debug.log
+
+# ─── TypeScript ──────────────────────────────────────────────────────────────
+*.tsbuildinfo
+
+# ─── OS / Editor ─────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ─── Logs ────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ─── Flutter (apps/flutter_judge_app) ───────────────────────────────────────
+**/flutter_judge_app/.dart_tool/
+**/flutter_judge_app/.flutter-plugins
+**/flutter_judge_app/.flutter-plugins-dependencies
+**/flutter_judge_app/.packages
+**/flutter_judge_app/build/
+**/flutter_judge_app/pubspec.lock
