@@ -28,6 +28,8 @@ export interface Judge {
   id: string;
   firstName: string;
   lastName: string;
+  /** Email used to log in to the Flutter scoring app */
+  email: string;
   experience: JudgeExperience;
   createdAt: string;
 }
@@ -91,10 +93,10 @@ export function parseJudgeCsv(text: string): JudgeCsvParseResult {
   }
 
   const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
-  if (!headers.includes("first_name") || !headers.includes("last_name")) {
+  if (!headers.includes("first_name") || !headers.includes("last_name") || !headers.includes("email")) {
     return {
       valid: [],
-      errors: [{ row: 0, message: "CSV must have at least first_name and last_name columns." }],
+      errors: [{ row: 0, message: "CSV must have at least first_name, last_name and email columns." }],
     };
   }
 
@@ -108,10 +110,15 @@ export function parseJudgeCsv(text: string): JudgeCsvParseResult {
 
     const firstName  = cells[idx("first_name")]  ?? "";
     const lastName   = cells[idx("last_name")]   ?? "";
+    const email      = cells[idx("email")]?.toLowerCase() ?? "";
     const expRaw     = (headers.includes("experience") ? cells[idx("experience")] ?? "" : "").toLowerCase();
 
     if (!firstName) { errors.push({ row, message: "Missing first_name" }); continue; }
     if (!lastName)  { errors.push({ row, message: "Missing last_name" });  continue; }
+    if (!email)     { errors.push({ row, message: "Missing email" });       continue; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errors.push({ row, message: `Invalid email "${email}"` }); continue;
+    }
 
     if (/[0-9]/.test(firstName)) { errors.push({ row, message: `first_name "${firstName}" must not contain numbers` }); continue; }
     if (/[0-9]/.test(lastName))  { errors.push({ row, message: `last_name "${lastName}" must not contain numbers` });  continue; }
@@ -123,7 +130,7 @@ export function parseJudgeCsv(text: string): JudgeCsvParseResult {
     }
     if (expRaw) experience = expRaw as JudgeExperience;
 
-    valid.push({ firstName, lastName, experience });
+    valid.push({ firstName, lastName, email, experience });
   }
 
   return { valid, errors };

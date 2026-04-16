@@ -40,6 +40,7 @@ function ExperienceBadge({ level }: { level: JudgeExperience }) {
 const EMPTY_FORM: JudgeInput = {
   firstName:  "",
   lastName:   "",
+  email:      "",
   experience: "beginner",
 };
 
@@ -52,7 +53,7 @@ function JudgeModal({ existing, onClose }: JudgeModalProps) {
   const isEdit = Boolean(existing);
   const [form, setForm] = useState<JudgeInput>(
     existing
-      ? { firstName: existing.firstName, lastName: existing.lastName, experience: existing.experience }
+      ? { firstName: existing.firstName, lastName: existing.lastName, email: existing.email, experience: existing.experience }
       : EMPTY_FORM
   );
   const [saving, setSaving] = useState(false);
@@ -66,6 +67,14 @@ function JudgeModal({ existing, onClose }: JudgeModalProps) {
     e.preventDefault();
     if (!form.firstName.trim() || !form.lastName.trim()) {
       setError("First and last name are required.");
+      return;
+    }
+    if (!form.email.trim()) {
+      setError("Email address is required.");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      setError("Enter a valid email address.");
       return;
     }
     setSaving(true);
@@ -131,6 +140,21 @@ function JudgeModal({ existing, onClose }: JudgeModalProps) {
                   className="w-full bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-primary placeholder-muted focus:outline-none focus:border-accent transition-colors"
                 />
               </div>
+            </div>
+
+            {/* Email */}
+            <div>
+              <label className="block text-xs font-semibold text-secondary uppercase tracking-widest mb-1.5">
+                Email <span className="text-danger">*</span>
+              </label>
+              <input
+                type="email"
+                value={form.email}
+                onChange={(e) => set("email", e.target.value.toLowerCase())}
+                placeholder="judge@example.com"
+                className="w-full bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-primary placeholder-muted focus:outline-none focus:border-accent transition-colors"
+              />
+              <p className="text-xs text-muted mt-1">Used to log in to the scoring app.</p>
             </div>
 
             {/* Experience */}
@@ -233,7 +257,8 @@ function CsvModal({ onClose }: CsvModalProps) {
           <h2 className="text-base font-semibold text-primary">Upload Judges CSV</h2>
           <p className="text-xs text-secondary mt-1">
             Required columns: <code className="bg-elevated px-1 rounded text-accent">first_name</code>,{" "}
-            <code className="bg-elevated px-1 rounded text-accent">last_name</code>.{" "}
+            <code className="bg-elevated px-1 rounded text-accent">last_name</code>,{" "}
+            <code className="bg-elevated px-1 rounded text-accent">email</code>.{" "}
             Optional: <code className="bg-elevated px-1 rounded text-accent">experience</code>{" "}
             (beginner / intermediate / advanced — defaults to Beginner if blank).
           </p>
@@ -291,6 +316,7 @@ function CsvModal({ onClose }: CsvModalProps) {
                       <thead>
                         <tr className="border-b border-border">
                           <th className="text-left px-3 py-2 text-muted font-semibold">Name</th>
+                          <th className="text-left px-3 py-2 text-muted font-semibold">Email</th>
                           <th className="text-left px-3 py-2 text-muted font-semibold">Experience</th>
                         </tr>
                       </thead>
@@ -298,6 +324,7 @@ function CsvModal({ onClose }: CsvModalProps) {
                         {result.valid.slice(0, 5).map((j, i) => (
                           <tr key={i} className={i < Math.min(result.valid.length, 5) - 1 ? "border-b border-border" : ""}>
                             <td className="px-3 py-2 text-primary">{j.firstName} {j.lastName}</td>
+                            <td className="px-3 py-2 text-secondary">{j.email}</td>
                             <td className="px-3 py-2 text-secondary capitalize">{j.experience}</td>
                           </tr>
                         ))}
@@ -390,8 +417,8 @@ export default function JudgesPage() {
 
       {/* Table */}
       <div className="bg-surface border border-border rounded-xl overflow-hidden">
-        <div className="grid grid-cols-[1fr_1fr_1fr_40px] gap-4 px-5 py-3 border-b border-border">
-          {["Name", "Experience", "Added", ""].map((h, i) => (
+        <div className="grid grid-cols-[1fr_1.5fr_1fr_1fr_40px] gap-4 px-5 py-3 border-b border-border">
+          {["Name", "Email", "Experience", "Added", ""].map((h, i) => (
             <span key={i} className="text-xs font-semibold uppercase tracking-widest text-muted">{h}</span>
           ))}
         </div>
@@ -409,13 +436,14 @@ export default function JudgesPage() {
             {judges.map((j, i) => (
               <li
                 key={j.id}
-                className={`grid grid-cols-[1fr_1fr_1fr_40px] gap-4 px-5 py-3.5 items-center group ${
+                className={`grid grid-cols-[1fr_1.5fr_1fr_1fr_40px] gap-4 px-5 py-3.5 items-center group ${
                   i < judges.length - 1 ? "border-b border-border" : ""
                 }`}
               >
                 <span className="text-sm font-medium text-primary">
                   {j.firstName} {j.lastName}
                 </span>
+                <span className="text-sm text-secondary truncate">{j.email || "—"}</span>
                 <ExperienceBadge level={j.experience} />
                 <span className="text-sm text-muted">
                   {j.createdAt
