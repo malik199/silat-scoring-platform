@@ -51,7 +51,7 @@ export default function LoginPage() {
             src="/logo.svg"
             alt="Silat Score"
             className="mx-auto mb-2"
-            style={{ height: 120, width: "auto" }}
+            style={{ height: 360, width: "auto" }}
           />
         </div>
 
