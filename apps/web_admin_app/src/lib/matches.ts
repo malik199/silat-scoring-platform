@@ -118,3 +118,7 @@ export async function swapMatchOrder(
 export async function startMatch(id: string): Promise<void> {
   await updateDoc(doc(db, COL, id), { status: "in_progress" });
 }
+
+export async function endMatch(id: string): Promise<void> {
+  await updateDoc(doc(db, COL, id), { status: "completed" });
+}

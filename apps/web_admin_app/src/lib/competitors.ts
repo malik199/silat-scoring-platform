@@ -162,6 +162,16 @@ export async function updateCompetitor(
   await updateDoc(doc(db, COL, id), { ...input, updatedAt: serverTimestamp() });
 }
 
+export function subscribeCompetitor(
+  id: string,
+  cb: (competitor: Competitor | null) => void
+): Unsubscribe {
+  return onSnapshot(doc(db, COL, id), (snap) => {
+    if (!snap.exists()) { cb(null); return; }
+    cb({ id: snap.id, ...(snap.data() as Omit<Competitor, "id">) });
+  }, () => cb(null));
+}
+
 export async function addCompetitor(input: CompetitorInput): Promise<string> {
   const ref = await addDoc(collection(db, COL), {
     ...input,

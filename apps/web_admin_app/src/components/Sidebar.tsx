@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { signOut } from "@/lib/auth";
+import { subscribeActiveTournament, type Tournament } from "@/lib/tournaments";
 
 const NAV = [
   { label: "Dashboard",   href: "/",            icon: "▣" },
@@ -17,6 +19,15 @@ export function Sidebar() {
   const pathname = usePathname();
   const router   = useRouter();
   const { user } = useAuth();
+
+  const [tournament, setTournament] = useState<Tournament | null | undefined>(undefined);
+
+  useEffect(() => {
+    if (!user) return;
+    return subscribeActiveTournament(user.uid, setTournament);
+  }, [user]);
+
+  const arenaCount = tournament?.arenaCount ?? 0;
 
   const initials = user?.email
     ? user.email.slice(0, 2).toUpperCase()
@@ -48,7 +59,7 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         <p className="px-3 mb-2 text-xs font-semibold uppercase tracking-widest text-muted">
           Main
         </p>
@@ -69,6 +80,29 @@ export function Sidebar() {
             </Link>
           );
         })}
+
+        {/* Arenas — only shown when there is an active tournament with arenas */}
+        {arenaCount > 0 && (
+          <div className="pt-3">
+            <p className="px-3 mb-2 text-xs font-semibold uppercase tracking-widest text-muted">
+              Arenas
+            </p>
+            <div className="ml-2 border-l border-border pl-2 space-y-0.5">
+              {Array.from({ length: arenaCount }, (_, i) => i + 1).map((n) => (
+                <a
+                  key={n}
+                  href={`/arena/${n}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-secondary hover:bg-elevated hover:text-primary transition-colors"
+                >
+                  <span className="text-xs leading-none text-muted">↗</span>
+                  Arena {n} Screen
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* Sign out */}

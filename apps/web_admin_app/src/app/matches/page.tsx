@@ -12,6 +12,7 @@ import {
   deleteMatch,
   swapMatchOrder,
   startMatch,
+  endMatch,
   MATCH_STATUS_LABELS,
   MATCH_STATUS_COLOR,
   type Match,
@@ -195,12 +196,13 @@ interface MatchRowProps {
   onMoveDown: () => void;
   onDelete:   () => void;
   onStart:    () => void;
+  onEnd:      () => void;
 }
 
 function MatchRow({
   match, matchNumber, isFirst, isLast,
   redName, blueName, arenaBlocked, allMatches,
-  onMoveUp, onMoveDown, onDelete, onStart,
+  onMoveUp, onMoveDown, onDelete, onStart, onEnd,
 }: MatchRowProps) {
   const isPending    = match.status === "pending";
   const isRunning    = match.status === "in_progress";
@@ -248,9 +250,12 @@ function MatchRow({
           </button>
         )}
         {isRunning && (
-          <span className="px-2.5 py-1 rounded-md bg-warn/10 border border-warn/30 text-warn text-xs font-semibold">
-            Running
-          </span>
+          <button
+            onClick={onEnd}
+            className="px-2.5 py-1 rounded-md bg-danger text-white text-xs font-semibold hover:bg-danger/80 transition-colors"
+          >
+            End Match
+          </button>
         )}
         {isFinished && (
           <span className="px-2.5 py-1 rounded-md bg-elevated text-muted text-xs font-medium">
@@ -358,6 +363,11 @@ export default function MatchesPage() {
     await startMatch(match.id);
   }
 
+  async function handleEnd(match: Match) {
+    if (!confirm(`End Match #${match.order}? This cannot be undone — the match cannot be restarted.`)) return;
+    await endMatch(match.id);
+  }
+
   return (
     <Shell title="Matches">
       <ActiveTournamentBanner />
@@ -428,6 +438,7 @@ export default function MatchesPage() {
                   onMoveDown={() => handleMoveDown(m)}
                   onDelete={() => handleDelete(m)}
                   onStart={() => handleStart(m)}
+                  onEnd={() => handleEnd(m)}
                 />
               );
             })}
