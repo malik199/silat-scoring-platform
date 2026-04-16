@@ -8,6 +8,7 @@ import {
   onSnapshot,
   query,
   orderBy,
+  where,
   serverTimestamp,
   type Unsubscribe,
 } from "firebase/firestore";
@@ -30,12 +31,22 @@ export interface Tournament {
   status: TournamentStatus;
   organiserId: string;
   arenaCount: ArenaCount;
+  /** arena number → competitor IDs */
   arenaAssignments: Record<string, string[]>;
+  /** arena number → judge IDs (max 3 per arena) */
+  judgeAssignments: Record<string, string[]>;
   createdAt: string;
   updatedAt: string;
 }
 
 const COL = "tournaments";
+
+/** Statuses that count as "active" — only one may exist per organiser at a time. */
+export const ACTIVE_STATUSES: TournamentStatus[] = ["draft", "registration_open", "in_progress"];
+
+export function isActiveTournament(t: Tournament): boolean {
+  return ACTIVE_STATUSES.includes(t.status);
+}
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -46,6 +57,22 @@ export interface CreateTournamentInput {
 }
 
 // ─── Listeners ───────────────────────────────────────────────────────────────
+
+export function subscribeActiveTournament(
+  organiserId: string,
+  cb: (tournament: Tournament | null) => void
+): Unsubscribe {
+  const q = query(
+    collection(db, COL),
+    where("organiserId", "==", organiserId),
+    where("status", "in", ACTIVE_STATUSES)
+  );
+  return onSnapshot(q, (snap) => {
+    if (snap.empty) { cb(null); return; }
+    const doc = snap.docs[0];
+    cb({ id: doc.id, ...(doc.data() as Omit<Tournament, "id">) });
+  }, () => cb(null));
+}
 
 export function subscribeTournaments(
   cb: (tournaments: Tournament[]) => void
@@ -77,6 +104,7 @@ export async function createTournament(input: CreateTournamentInput): Promise<st
     name: input.name,
     arenaCount: input.arenaCount,
     arenaAssignments: buildEmptyAssignments(input.arenaCount),
+    judgeAssignments: buildEmptyAssignments(input.arenaCount),
     status: "draft",
     organiserId: input.organiserId,
     location: "",
@@ -86,6 +114,13 @@ export async function createTournament(input: CreateTournamentInput): Promise<st
     updatedAt: serverTimestamp(),
   });
   return ref.id;
+}
+
+export async function archiveTournament(tournamentId: string): Promise<void> {
+  await updateDoc(doc(db, COL, tournamentId), {
+    status: "completed",
+    updatedAt: serverTimestamp(),
+  });
 }
 
 export async function updateTournamentName(
@@ -105,6 +140,17 @@ export async function assignCompetitorToArena(
 ): Promise<void> {
   await updateDoc(doc(db, COL, tournamentId), {
     [`arenaAssignments.${arenaNumber}`]: competitorIds,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function assignJudgesToArena(
+  tournamentId: string,
+  arenaNumber: number,
+  judgeIds: string[]
+): Promise<void> {
+  await updateDoc(doc(db, COL, tournamentId), {
+    [`judgeAssignments.${arenaNumber}`]: judgeIds,
     updatedAt: serverTimestamp(),
   });
 }

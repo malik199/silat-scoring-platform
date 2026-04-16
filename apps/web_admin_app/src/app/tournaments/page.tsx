@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import {
   subscribeTournaments,
   createTournament,
+  isActiveTournament,
   type Tournament,
   type ArenaCount,
 } from "@/lib/tournaments";
@@ -184,6 +185,9 @@ export default function TournamentsPage() {
     return unsub;
   }, []);
 
+  const activeTournament = tournaments.find(isActiveTournament) ?? null;
+  const canCreate = !loading && !activeTournament;
+
   return (
     <Shell title="Tournaments">
       {/* Header row */}
@@ -197,12 +201,21 @@ export default function TournamentsPage() {
               : `${tournaments.length} tournament${tournaments.length !== 1 ? "s" : ""}`}
           </p>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="px-4 py-2 rounded-lg bg-accent text-black text-sm font-semibold hover:bg-accent-hover transition-colors"
-        >
-          + New Tournament
-        </button>
+        <div className="flex items-center gap-3">
+          {activeTournament && (
+            <p className="text-xs text-muted hidden sm:block">
+              Archive &ldquo;{activeTournament.name}&rdquo; to create a new one
+            </p>
+          )}
+          <button
+            onClick={() => canCreate && setShowModal(true)}
+            disabled={!canCreate}
+            title={activeTournament ? `Archive "${activeTournament.name}" first` : undefined}
+            className="px-4 py-2 rounded-lg bg-accent text-black text-sm font-semibold hover:bg-accent-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            + New Tournament
+          </button>
+        </div>
       </div>
 
       {/* Table */}

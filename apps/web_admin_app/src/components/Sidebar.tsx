@@ -6,10 +6,11 @@ import { useAuth } from "@/context/AuthContext";
 import { signOut } from "@/lib/auth";
 
 const NAV = [
-  { label: "Dashboard",  href: "/",         icon: "▣" },
-  { label: "Matches",    href: "/matches",   icon: "⚔" },
-  { label: "Tournaments",href: "/tournaments",icon: "🏆" },
-  { label: "Competitors",href: "/competitors",icon: "👤" },
+  { label: "Dashboard",   href: "/",            icon: "▣" },
+  { label: "Matches",     href: "/matches",     icon: "⚔" },
+  { label: "Tournament",  href: "/tournaments", icon: "🏆" },
+  { label: "Competitors", href: "/competitors", icon: "👤" },
+  { label: "Judges",      href: "/judges",      icon: "⚖" },
 ];
 
 export function Sidebar() {
@@ -30,7 +31,7 @@ export function Sidebar() {
     <aside className="flex flex-col w-64 min-h-screen bg-surface border-r border-border flex-shrink-0">
       {/* Logo */}
       <div className="flex items-center justify-center px-5 py-4 border-b border-border">
-        <img src="/logo.svg" alt="Silat Score" className="h-14 w-auto" />
+        <img src="/logo.svg" alt="Silat Score" className="h-[168px] w-auto" />
       </div>
 
       {/* User header */}
