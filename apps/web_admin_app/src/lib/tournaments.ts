@@ -78,9 +78,14 @@ export function subscribeActiveTournament(
 }
 
 export function subscribeTournaments(
+  organiserId: string,
   cb: (tournaments: Tournament[]) => void
 ): Unsubscribe {
-  const q = query(collection(db, COL), orderBy("createdAt", "desc"));
+  const q = query(
+    collection(db, COL),
+    where("organiserId", "==", organiserId),
+    orderBy("createdAt", "desc")
+  );
   return onSnapshot(q, (snap) => {
     const tournaments = snap.docs.map((d) => ({
       id: d.id,

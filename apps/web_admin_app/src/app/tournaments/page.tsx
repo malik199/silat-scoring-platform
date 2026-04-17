@@ -178,12 +178,13 @@ export default function TournamentsPage() {
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
-    const unsub = subscribeTournaments((data) => {
+    if (!user) return;
+    const unsub = subscribeTournaments(user.uid, (data) => {
       setTournaments(data);
       setLoading(false);
     });
     return unsub;
-  }, []);
+  }, [user?.uid]);
 
   const activeTournament = tournaments.find(isActiveTournament) ?? null;
   const canCreate = !loading && !activeTournament;
