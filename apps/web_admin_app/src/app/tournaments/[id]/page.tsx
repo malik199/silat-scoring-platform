@@ -83,11 +83,30 @@ function PickListModal({
         <div className="px-6 pt-6 pb-4 border-b border-border flex-shrink-0">
           <h2 className="text-base font-semibold text-primary">{title}</h2>
           <p className="text-xs text-secondary mt-1">{subtitle}</p>
-          {maxSelect && (
-            <p className="text-xs text-muted mt-1">
-              Max {maxSelect} · {selected.size} selected
-            </p>
-          )}
+          <div className="flex items-center justify-between mt-1">
+            {maxSelect ? (
+              <p className="text-xs text-muted">Max {maxSelect} · {selected.size} selected</p>
+            ) : (
+              <p className="text-xs text-muted">{selected.size} selected</p>
+            )}
+            {items.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  const allSelected = items.every((item) => selected.has(item.id));
+                  if (allSelected) {
+                    setSelected(new Set());
+                  } else {
+                    const toSelect = maxSelect ? items.slice(0, maxSelect) : items;
+                    setSelected(new Set(toSelect.map((i) => i.id)));
+                  }
+                }}
+                className="text-xs font-medium text-accent hover:underline"
+              >
+                {items.every((item) => selected.has(item.id)) ? "Deselect All" : "Select All"}
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-3">
