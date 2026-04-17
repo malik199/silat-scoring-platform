@@ -8,6 +8,7 @@ import {
   writeBatch,
   onSnapshot,
   query,
+  where,
   orderBy,
   serverTimestamp,
   type Unsubscribe,
@@ -31,6 +32,8 @@ export interface Judge {
   /** Email used to log in to the Flutter scoring app */
   email: string;
   experience: JudgeExperience;
+  /** True while the judge has the Flutter app open and is logged in */
+  isOnline?: boolean;
   createdAt: string;
 }
 
@@ -42,6 +45,15 @@ export const MAX_JUDGES_PER_ARENA = 3;
 // ─── Firestore ────────────────────────────────────────────────────────────────
 
 const COL = "judges";
+
+export function subscribeActiveJudges(cb: (judges: Judge[]) => void): Unsubscribe {
+  const q = query(collection(db, COL), where("isOnline", "==", true));
+  return onSnapshot(
+    q,
+    (snap) => cb(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Judge, "id">) }))),
+    () => cb([])
+  );
+}
 
 export function subscribeJudges(cb: (judges: Judge[]) => void): Unsubscribe {
   const q = query(collection(db, COL), orderBy("lastName", "asc"));

@@ -9,6 +9,7 @@ import {
   assignJudgesToArena,
   updateTournamentName,
   archiveTournament,
+  regenerateArenaPin,
   isActiveTournament,
   type Tournament,
 } from "@/lib/tournaments";
@@ -151,15 +152,17 @@ interface ArenaCardProps {
   arenaNumber: number;
   competitorIds: string[];
   judgeIds: string[];
+  pin: string;
   competitors: Competitor[];
   judges: Judge[];
   onAssignCompetitors: (n: number) => void;
   onAssignJudges: (n: number) => void;
+  onRegeneratePin: (n: number) => void;
 }
 
 function ArenaCard({
-  arenaNumber, competitorIds, judgeIds, competitors, judges,
-  onAssignCompetitors, onAssignJudges,
+  arenaNumber, competitorIds, judgeIds, pin, competitors, judges,
+  onAssignCompetitors, onAssignJudges, onRegeneratePin,
 }: ArenaCardProps) {
   const compMap  = new Map(competitors.map((c) => [c.id, c]));
   const judgeMap = new Map(judges.map((j) => [j.id, j]));
@@ -174,6 +177,20 @@ function ArenaCard({
           {arenaNumber}
         </div>
         <p className="text-sm font-semibold text-primary flex-1">{arenaLabel(arenaNumber)}</p>
+        {/* Judge app PIN */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 bg-elevated border border-border rounded-lg px-3 py-1.5">
+            <span className="text-xs text-muted font-medium">PIN</span>
+            <span className="text-base font-black text-primary tracking-widest">{pin || "—"}</span>
+          </div>
+          <button
+            onClick={() => onRegeneratePin(arenaNumber)}
+            title="Generate new PIN"
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-muted hover:text-primary hover:bg-elevated transition-colors text-sm"
+          >
+            ↻
+          </button>
+        </div>
       </div>
 
       {/* Competitors section */}
@@ -339,6 +356,12 @@ export default function TournamentDetailPage() {
   const handleAssignCompetitors = useCallback((n: number) => setAssigningCompArena(n), []);
   const handleAssignJudges      = useCallback((n: number) => setAssigningJudgeArena(n), []);
 
+  async function handleRegeneratePin(arenaNumber: number) {
+    if (!tournament) return;
+    if (!confirm(`Generate a new PIN for Arena ${arenaNumber}? The old PIN will stop working immediately.`)) return;
+    await regenerateArenaPin(tournament.id, arenaNumber);
+  }
+
   async function saveCompetitors(selected: Set<string>) {
     if (!tournament || assigningCompArena === null) return;
     setSavingComp(true);
@@ -457,10 +480,12 @@ export default function TournamentDetailPage() {
             arenaNumber={n}
             competitorIds={tournament.arenaAssignments?.[String(n)] ?? []}
             judgeIds={tournament.judgeAssignments?.[String(n)] ?? []}
+            pin={tournament.arenaPins?.[String(n)] ?? ""}
             competitors={competitors}
             judges={judges}
             onAssignCompetitors={handleAssignCompetitors}
             onAssignJudges={handleAssignJudges}
+            onRegeneratePin={handleRegeneratePin}
           />
         ))}
       </div>

@@ -12,9 +12,9 @@ import { subscribeMatches, type Match } from "@/lib/matches";
 export default function DashboardPage() {
   const { user } = useAuth();
 
-  const [tournament,       setTournament]       = useState<Tournament | null | undefined>(undefined);
-  const [competitorCount,  setCompetitorCount]  = useState<number | null>(null);
-  const [matches,          setMatches]          = useState<Match[] | null>(null);
+  const [tournament,      setTournament]      = useState<Tournament | null | undefined>(undefined);
+  const [competitorCount, setCompetitorCount] = useState<number | null>(null);
+  const [matches,         setMatches]         = useState<Match[] | null>(null);
 
   useEffect(() => {
     if (!user) return;

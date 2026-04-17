@@ -4,6 +4,7 @@ import {
   collection,
   doc,
   addDoc,
+  getDocs,
   updateDoc,
   onSnapshot,
   query,
@@ -35,6 +36,8 @@ export interface Tournament {
   arenaAssignments: Record<string, string[]>;
   /** arena number → judge IDs (max 3 per arena) */
   judgeAssignments: Record<string, string[]>;
+  /** arena number → 4-digit PIN string used by the judge app */
+  arenaPins: Record<string, string>;
   createdAt: string;
   updatedAt: string;
 }
@@ -100,11 +103,13 @@ export function subscribeTournament(
 // ─── Writes ──────────────────────────────────────────────────────────────────
 
 export async function createTournament(input: CreateTournamentInput): Promise<string> {
+  const takenPins = await fetchActivePins();
   const ref = await addDoc(collection(db, COL), {
     name: input.name,
     arenaCount: input.arenaCount,
     arenaAssignments: buildEmptyAssignments(input.arenaCount),
     judgeAssignments: buildEmptyAssignments(input.arenaCount),
+    arenaPins: buildArenaPins(input.arenaCount, takenPins),
     status: "draft",
     organiserId: input.organiserId,
     location: "",
@@ -114,6 +119,17 @@ export async function createTournament(input: CreateTournamentInput): Promise<st
     updatedAt: serverTimestamp(),
   });
   return ref.id;
+}
+
+export async function regenerateArenaPin(
+  tournamentId: string,
+  arenaNumber: number
+): Promise<void> {
+  const takenPins = await fetchActivePins(tournamentId);
+  await updateDoc(doc(db, COL, tournamentId), {
+    [`arenaPins.${arenaNumber}`]: generateUniquePin(takenPins),
+    updatedAt: serverTimestamp(),
+  });
 }
 
 export async function archiveTournament(tournamentId: string): Promise<void> {
@@ -160,5 +176,33 @@ export async function assignJudgesToArena(
 function buildEmptyAssignments(count: ArenaCount): Record<string, string[]> {
   const result: Record<string, string[]> = {};
   for (let i = 1; i <= count; i++) result[String(i)] = [];
+  return result;
+}
+
+/** Fetch all PINs currently in use across active tournaments.
+ *  Pass excludeTournamentId to skip the tournament being regenerated. */
+async function fetchActivePins(excludeTournamentId?: string): Promise<Set<string>> {
+  const snap = await getDocs(
+    query(collection(db, COL), where("status", "in", ACTIVE_STATUSES))
+  );
+  const taken = new Set<string>();
+  for (const d of snap.docs) {
+    if (d.id === excludeTournamentId) continue;
+    const pins = (d.data().arenaPins ?? {}) as Record<string, string>;
+    Object.values(pins).forEach((p) => taken.add(p));
+  }
+  return taken;
+}
+
+function generateUniquePin(taken: Set<string>): string {
+  let pin: string;
+  do { pin = String(Math.floor(1000 + Math.random() * 9000)); } while (taken.has(pin));
+  taken.add(pin); // reserve it immediately for subsequent calls in the same batch
+  return pin;
+}
+
+function buildArenaPins(count: ArenaCount, taken: Set<string>): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (let i = 1; i <= count; i++) result[String(i)] = generateUniquePin(taken);
   return result;
 }
