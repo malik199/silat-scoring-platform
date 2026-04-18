@@ -30,11 +30,12 @@ interface NewMatchModalProps {
 function NewMatchModal({ tournament, competitors, currentCount, onClose }: NewMatchModalProps) {
   const arenas = Array.from({ length: tournament.arenaCount }, (_, i) => i + 1);
 
-  const [arenaNumber, setArenaNumber] = useState<number>(arenas[0]);
-  const [redId,       setRedId]       = useState("");
-  const [blueId,      setBlueId]      = useState("");
-  const [saving,      setSaving]      = useState(false);
-  const [error,       setError]       = useState("");
+  const [arenaNumber,          setArenaNumber]          = useState<number>(arenas[0]);
+  const [redId,                setRedId]                = useState("");
+  const [blueId,               setBlueId]               = useState("");
+  const [roundDurationSeconds, setRoundDurationSeconds] = useState<110 | 120>(120);
+  const [saving,               setSaving]               = useState(false);
+  const [error,                setError]                = useState("");
 
   const arenaCompetitorIds = new Set(tournament.arenaAssignments?.[String(arenaNumber)] ?? []);
   const arenaCompetitors   = competitors.filter((c) => arenaCompetitorIds.has(c.id));
@@ -66,6 +67,7 @@ function NewMatchModal({ tournament, competitors, currentCount, onClose }: NewMa
         arenaNumber,
         redCornerCompetitorId: redId,
         blueCornerCompetitorId: blueId,
+        roundDurationSeconds,
         currentCount,
       });
       onClose();
@@ -156,6 +158,27 @@ function NewMatchModal({ tournament, competitors, currentCount, onClose }: NewMa
                 </div>
               </>
             )}
+
+            {/* Round duration */}
+            <div>
+              <label className="block text-xs font-semibold text-secondary uppercase tracking-widest mb-1.5">Round Duration</label>
+              <div className="grid grid-cols-2 gap-2">
+                {([120, 110] as const).map((secs) => (
+                  <button
+                    key={secs}
+                    type="button"
+                    onClick={() => setRoundDurationSeconds(secs)}
+                    className={`py-2.5 rounded-lg text-sm font-semibold border transition-colors ${
+                      roundDurationSeconds === secs
+                        ? "bg-accent/10 border-accent text-accent"
+                        : "bg-elevated border-border text-secondary hover:text-primary hover:bg-elevated/80"
+                    }`}
+                  >
+                    {secs === 120 ? "2:00" : "1:50"}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             {error && (
               <div className="flex items-start gap-2 bg-danger/5 border border-danger/30 rounded-lg px-3 py-2.5">

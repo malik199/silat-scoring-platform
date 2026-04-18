@@ -44,6 +44,8 @@ export interface Match {
   status: MatchStatus;
   /** 1-based position within the tournament — determines display order */
   order: number;
+  /** Duration of each round in seconds — either 110 (1:50) or 120 (2:00) */
+  roundDurationSeconds: 110 | 120;
   createdAt: string;
 }
 
@@ -53,6 +55,7 @@ export interface CreateMatchInput {
   arenaNumber: number;
   redCornerCompetitorId: string;
   blueCornerCompetitorId: string;
+  roundDurationSeconds: 110 | 120;
   /** Pass current match count so order = count + 1 */
   currentCount: number;
 }
