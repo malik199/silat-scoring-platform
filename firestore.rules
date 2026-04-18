@@ -22,6 +22,16 @@ service cloud.firestore {
     match /matches/{matchId} {
       allow read: if true;
       allow write: if request.auth != null;
+
+      match /scoreEvents/{eventId} {
+        allow read: if true;
+        allow create: if true; // judges write anonymously from the judge app
+      }
+
+      match /adminEvents/{eventId} {
+        allow read: if true;
+        allow write: if request.auth != null; // admin only
+      }
     }
 
     // Deny everything else until explicitly opened.

@@ -103,6 +103,34 @@ export function Sidebar() {
             </div>
           </div>
         )}
+
+        {/* Dewan — live judge scoring per arena */}
+        {arenaCount > 0 && (
+          <div className="pt-3">
+            <p className="px-3 mb-2 text-xs font-semibold uppercase tracking-widest text-muted">
+              Dewan
+            </p>
+            <div className="ml-2 border-l border-border pl-2 space-y-0.5">
+              {Array.from({ length: arenaCount }, (_, i) => i + 1).map((n) => {
+                const active = pathname === `/dewan/${n}`;
+                return (
+                  <Link
+                    key={n}
+                    href={`/dewan/${n}`}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      active
+                        ? "bg-accent text-black"
+                        : "text-secondary hover:bg-elevated hover:text-primary"
+                    }`}
+                  >
+                    <span className="text-xs leading-none">⚖</span>
+                    Dewan {n}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* Sign out */}
