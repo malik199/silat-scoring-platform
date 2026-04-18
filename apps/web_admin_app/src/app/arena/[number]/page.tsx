@@ -8,6 +8,8 @@ import {
   subscribeScoreEvents,
   subscribeAdminEvents,
   computeConfirmedScores,
+  computeRemainingSeconds,
+  formatTime,
   type Match,
   type ScoreEvent,
   type AdminEvent,
@@ -260,6 +262,9 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
   const [recentAdminRed,  setRecentAdminRed]  = useState<RecentAdminAction | null>(null);
   const [recentAdminBlue, setRecentAdminBlue] = useState<RecentAdminAction | null>(null);
 
+  // ── Timer display ────────────────────────────────────────────────────────
+  const [remaining, setRemaining] = useState<number>(120);
+
   // Firestore subscriptions
   useEffect(() => {
     if (!user) return;
@@ -346,6 +351,14 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
     return () => clearInterval(id);
   }, []);
 
+  // Tick timer from runningMatch
+  useEffect(() => {
+    if (!runningMatch) return;
+    setRemaining(computeRemainingSeconds(runningMatch));
+    const id = setInterval(() => setRemaining(computeRemainingSeconds(runningMatch)), 100);
+    return () => clearInterval(id);
+  }, [runningMatch]);
+
   // Stable judge order (first-seen)
   const judgeOrder = useMemo(() => {
     const seen = new Set<string>();
@@ -406,10 +419,12 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
 
         {/* Timer + Round — right */}
         <div className="flex items-center gap-4">
-          <p className="text-9xl font-black text-white/60 tabular-nums tracking-tight">2:00</p>
+          <p className="text-9xl font-black tabular-nums tracking-tight" style={{ color: remaining <= 10 ? "rgba(255,80,80,0.85)" : "rgba(255,255,255,0.6)" }}>
+            {formatTime(remaining)}
+          </p>
           <div className="flex flex-col items-center justify-center border border-white/20 rounded-xl px-5 py-3 min-w-[96px]">
             <p className="text-xs font-semibold uppercase tracking-widest text-white/30">Round</p>
-            <p className="text-7xl font-black text-white/60 leading-none">1</p>
+            <p className="text-7xl font-black text-white/60 leading-none">{runningMatch?.currentRound ?? 1}</p>
           </div>
         </div>
       </div>

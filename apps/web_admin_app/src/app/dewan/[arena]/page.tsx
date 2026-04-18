@@ -13,6 +13,12 @@ import {
   addAdminEvent,
   deleteAdminEvent,
   computeConfirmedScores,
+  computeRemainingSeconds,
+  formatTime,
+  timerStart,
+  timerStop,
+  timerReset,
+  advanceRound,
   type Match,
   type ScoreEvent,
   type AdminEvent,
@@ -52,13 +58,14 @@ function adminTotals(events: AdminEvent[]): { red: number; blue: number } {
 // ─── Admin action button ──────────────────────────────────────────────────────
 
 function AdminBtn({
-  label, sublabel, onClick, variant, className = "",
+  label, sublabel, onClick, variant, className = "", disabled = false,
 }: {
   label: string;
   sublabel?: string;
   onClick: () => void;
   variant: "red-positive" | "red-penalty" | "blue-positive" | "blue-penalty";
   className?: string;
+  disabled?: boolean;
 }) {
   const styles = {
     "red-positive":  "bg-danger text-white hover:bg-danger/80",
@@ -71,7 +78,8 @@ function AdminBtn({
     <button
       type="button"
       onClick={onClick}
-      className={`flex flex-col items-center justify-center rounded-xl font-bold py-3 transition-all duration-75 active:scale-95 active:brightness-75 select-none ${styles} ${className}`}
+      disabled={disabled}
+      className={`flex flex-col items-center justify-center rounded-xl font-bold py-3 transition-all duration-75 active:scale-95 active:brightness-75 select-none disabled:opacity-30 disabled:cursor-not-allowed disabled:active:scale-100 ${styles} ${className}`}
     >
       <span className="text-2xl font-black">{label}</span>
       {sublabel && <span className="text-xs opacity-70 mt-0.5">{sublabel}</span>}
@@ -92,6 +100,7 @@ export default function DewanPage() {
   const [competitors,   setCompetitors]   = useState<Competitor[]>([]);
   const [scoreEvents,   setScoreEvents]   = useState<ScoreEvent[]>([]);
   const [adminEvents,   setAdminEvents]   = useState<AdminEvent[]>([]);
+  const [remaining,     setRemaining]     = useState<number>(120);
 
   useEffect(() => {
     if (!user) return;
@@ -112,6 +121,14 @@ export default function DewanPage() {
   }, [match?.id]);
 
   useEffect(() => subscribeCompetitors(setCompetitors), []);
+
+  // Tick timer display
+  useEffect(() => {
+    if (!match) return;
+    setRemaining(computeRemainingSeconds(match));
+    const id = setInterval(() => setRemaining(computeRemainingSeconds(match)), 100);
+    return () => clearInterval(id);
+  }, [match]);
 
   const compMap  = new Map(competitors.map((c) => [c.id, c]));
   const redComp  = match ? compMap.get(match.redCornerCompetitorId)  : undefined;
@@ -138,6 +155,35 @@ export default function DewanPage() {
     const last = [...adminEvents].reverse().find((e) => e.side === side);
     if (last) await deleteAdminEvent(match.id, last.id);
   }
+
+  const isRunning    = match?.timerRunning ?? false;
+  const currentRound = match?.currentRound ?? 1;
+  const isLastRound  = currentRound >= 3;
+  const isExpired    = remaining <= 0;
+
+  const [confirmNextRound, setConfirmNextRound] = useState(false);
+
+  async function handleNextRoundConfirmed() {
+    if (!match || isLastRound) return;
+    await advanceRound(match.id, currentRound + 1);
+    setConfirmNextRound(false);
+  }
+
+  async function handleTimerStart() {
+    if (!match || isRunning) return;
+    await timerStart(match.id);
+  }
+
+  async function handleTimerStop() {
+    if (!match || !isRunning) return;
+    await timerStop(match.id, (match.roundDurationSeconds ?? 120) - remaining);
+  }
+
+  async function handleTimerReset() {
+    if (!match) return;
+    await timerReset(match.id);
+  }
+
 
   return (
     <Shell
@@ -185,8 +231,10 @@ export default function DewanPage() {
                   <div
                     key={r}
                     className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-colors ${
-                      r === 1
+                      r === currentRound
                         ? "border-accent bg-accent/10 text-accent"
+                        : r < currentRound
+                        ? "border-border text-muted line-through"
                         : "border-border text-muted"
                     }`}
                   >
@@ -195,14 +243,58 @@ export default function DewanPage() {
                 ))}
               </div>
               {/* Timer */}
-              <p className="text-5xl font-black text-primary tabular-nums tracking-tight">2:00</p>
+              <p className={`text-5xl font-black tabular-nums tracking-tight ${isExpired ? "text-danger" : "text-primary"}`}>
+                {formatTime(remaining)}
+              </p>
               {/* Start / Stop / Reset */}
               <div className="flex gap-2 w-full px-6">
-                <button type="button" disabled className="flex-1 py-3 rounded-xl text-sm font-bold bg-accent/10 text-accent border border-accent/30 opacity-40 cursor-not-allowed select-none">▶ Start</button>
-                <button type="button" disabled className="flex-1 py-3 rounded-xl text-sm font-bold bg-danger/10 text-danger border border-danger/30 opacity-40 cursor-not-allowed select-none">■ Stop</button>
-                <button type="button" disabled className="flex-1 py-3 rounded-xl text-sm font-bold bg-elevated text-muted border border-border opacity-40 cursor-not-allowed select-none">↺ Reset</button>
+                <button
+                  type="button"
+                  onClick={handleTimerStart}
+                  disabled={isRunning || isExpired}
+                  className="flex-1 py-3 rounded-xl text-sm font-bold bg-accent/10 text-accent border border-accent/30 transition-all duration-75 active:scale-95 active:brightness-75 select-none disabled:opacity-30 disabled:cursor-not-allowed disabled:active:scale-100"
+                >▶ Start</button>
+                <button
+                  type="button"
+                  onClick={handleTimerStop}
+                  disabled={!isRunning}
+                  className="flex-1 py-3 rounded-xl text-sm font-bold bg-danger/10 text-danger border border-danger/30 transition-all duration-75 active:scale-95 active:brightness-75 select-none disabled:opacity-30 disabled:cursor-not-allowed disabled:active:scale-100"
+                >■ Stop</button>
+                <button
+                  type="button"
+                  onClick={handleTimerReset}
+                  disabled={isRunning}
+                  className="flex-1 py-3 rounded-xl text-sm font-bold bg-elevated text-muted border border-border transition-all duration-75 active:scale-95 active:brightness-75 select-none disabled:opacity-30 disabled:cursor-not-allowed disabled:active:scale-100"
+                >↺ Reset</button>
               </div>
-              <button type="button" disabled className="px-4 py-2 rounded-lg text-sm font-semibold text-muted border border-border opacity-40 cursor-not-allowed select-none">Next Round →</button>
+              {!isLastRound && !confirmNextRound && (
+                <button
+                  type="button"
+                  onClick={() => setConfirmNextRound(true)}
+                  disabled={isRunning}
+                  className="px-4 py-2 rounded-lg text-sm font-semibold text-muted border border-border transition-all duration-75 active:scale-95 active:brightness-75 select-none disabled:opacity-30 disabled:cursor-not-allowed disabled:active:scale-100"
+                >Next Round →</button>
+              )}
+              {!isLastRound && confirmNextRound && (
+                <div className="flex flex-col items-center gap-2 px-4 py-3 rounded-lg border border-warn/40 bg-warn/5 w-full">
+                  <p className="text-xs font-semibold text-warn text-center">Move to Round {currentRound + 1}? Cannot go back.</p>
+                  <div className="flex gap-2 w-full">
+                    <button
+                      type="button"
+                      onClick={() => setConfirmNextRound(false)}
+                      className="flex-1 py-1.5 rounded-lg text-xs font-semibold text-muted border border-border transition-all duration-75 active:scale-95 select-none"
+                    >Cancel</button>
+                    <button
+                      type="button"
+                      onClick={handleNextRoundConfirmed}
+                      className="flex-1 py-1.5 rounded-lg text-xs font-bold text-warn border border-warn/50 bg-warn/10 transition-all duration-75 active:scale-95 select-none"
+                    >Yes, Round {currentRound + 1}</button>
+                  </div>
+                </div>
+              )}
+              {isLastRound && (
+                <p className="text-xs font-semibold text-muted">Final Round</p>
+              )}
             </div>
             <div className={`flex flex-col items-center justify-center py-6 ${winner === "blue" ? "bg-blue-500/10" : ""}`}>
               <p className="text-xs font-semibold uppercase tracking-widest text-blue-400 mb-1">Blue</p>
@@ -218,6 +310,12 @@ export default function DewanPage() {
         </div>
 
         {/* ── Admin action buttons ── */}
+        {isRunning && (
+          <div className="flex items-center gap-2 mb-3 px-4 py-2.5 rounded-lg bg-warn/10 border border-warn/30">
+            <span className="w-1.5 h-1.5 rounded-full bg-warn animate-pulse flex-shrink-0" />
+            <p className="text-xs font-semibold text-warn">Pause the timer to add takedowns or penalties.</p>
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-3 mb-4">
           {/* Red corner */}
           <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
@@ -236,19 +334,21 @@ export default function DewanPage() {
                 onClick={() => apply("red", 3)}
                 variant="red-positive"
                 className="col-span-4"
+                disabled={isRunning}
               />
               {([-1, -2, -5, -10] as const).map((pts) => (
                 <AdminBtn
                   key={pts} label={String(pts)} sublabel="Penalty"
                   onClick={() => apply("red", pts)}
                   variant="red-penalty"
+                  disabled={isRunning}
                 />
               ))}
             </div>
             <button
               type="button"
               onClick={() => undoLast("red")}
-              disabled={!adminEvents.some((e) => e.side === "red")}
+              disabled={isRunning || !adminEvents.some((e) => e.side === "red")}
               className="w-full py-2 rounded-lg text-xs font-semibold text-muted border border-border hover:text-danger hover:border-danger/40 hover:bg-danger/5 transition-all duration-75 active:scale-95 active:brightness-75 select-none disabled:opacity-30 disabled:cursor-not-allowed disabled:active:scale-100"
             >
               ↩ Undo last red action
@@ -272,19 +372,21 @@ export default function DewanPage() {
                 onClick={() => apply("blue", 3)}
                 variant="blue-positive"
                 className="col-span-4"
+                disabled={isRunning}
               />
               {([-1, -2, -5, -10] as const).map((pts) => (
                 <AdminBtn
                   key={pts} label={String(pts)} sublabel="Penalty"
                   onClick={() => apply("blue", pts)}
                   variant="blue-penalty"
+                  disabled={isRunning}
                 />
               ))}
             </div>
             <button
               type="button"
               onClick={() => undoLast("blue")}
-              disabled={!adminEvents.some((e) => e.side === "blue")}
+              disabled={isRunning || !adminEvents.some((e) => e.side === "blue")}
               className="w-full py-2 rounded-lg text-xs font-semibold text-muted border border-border hover:text-blue-400 hover:border-blue-400/40 hover:bg-blue-500/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             >
               ↩ Undo last blue action

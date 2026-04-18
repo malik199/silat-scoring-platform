@@ -46,7 +46,32 @@ export interface Match {
   order: number;
   /** Duration of each round in seconds — either 110 (1:50) or 120 (2:00) */
   roundDurationSeconds: 110 | 120;
+  /** Current round number (1–3) */
+  currentRound: number;
+  /** Whether the timer is currently counting down */
+  timerRunning: boolean;
+  /** Server timestamp of the last timer start */
+  timerStartedAt: { seconds: number } | null;
+  /** Seconds already elapsed before the last start */
+  timerElapsedSeconds: number;
   createdAt: string;
+}
+
+// ─── Timer helpers ────────────────────────────────────────────────────────────
+
+/** Compute remaining seconds for the current round. Safe to call in a render loop. */
+export function computeRemainingSeconds(match: Match): number {
+  const duration = match.roundDurationSeconds ?? 120;
+  const base     = match.timerElapsedSeconds ?? 0;
+  const extra    = match.timerRunning && match.timerStartedAt
+    ? Date.now() / 1000 - match.timerStartedAt.seconds
+    : 0;
+  return Math.max(0, duration - (base + extra));
+}
+
+export function formatTime(totalSeconds: number): string {
+  const s = Math.floor(totalSeconds);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
 export interface CreateMatchInput {
@@ -88,6 +113,10 @@ export async function createMatch(input: CreateMatchInput): Promise<string> {
     ...rest,
     order: currentCount + 1,
     status: "pending",
+    currentRound: 1,
+    timerRunning: false,
+    timerStartedAt: null,
+    timerElapsedSeconds: 0,
     createdAt: serverTimestamp(),
   });
   return ref.id;
@@ -125,6 +154,40 @@ export async function startMatch(id: string): Promise<void> {
 
 export async function endMatch(id: string): Promise<void> {
   await updateDoc(doc(db, COL, id), { status: "completed" });
+}
+
+// ─── Timer controls ───────────────────────────────────────────────────────────
+
+export async function timerStart(id: string): Promise<void> {
+  await updateDoc(doc(db, COL, id), {
+    timerRunning:    true,
+    timerStartedAt:  serverTimestamp(),
+  });
+}
+
+export async function timerStop(id: string, elapsedSeconds: number): Promise<void> {
+  await updateDoc(doc(db, COL, id), {
+    timerRunning:         false,
+    timerStartedAt:       null,
+    timerElapsedSeconds:  elapsedSeconds,
+  });
+}
+
+export async function timerReset(id: string): Promise<void> {
+  await updateDoc(doc(db, COL, id), {
+    timerRunning:        false,
+    timerStartedAt:      null,
+    timerElapsedSeconds: 0,
+  });
+}
+
+export async function advanceRound(id: string, nextRound: number): Promise<void> {
+  await updateDoc(doc(db, COL, id), {
+    currentRound:        nextRound,
+    timerRunning:        false,
+    timerStartedAt:      null,
+    timerElapsedSeconds: 0,
+  });
 }
 
 // ─── Score events ─────────────────────────────────────────────────────────────
