@@ -65,11 +65,15 @@ Future<List<TournamentDoc>> fetchTournaments() async {
 }
 
 class MatchDoc {
-  final String id;
-  final String redCompetitorId;
-  final String blueCompetitorId;
-  final String status;
-  final bool   timerRunning;
+  final String    id;
+  final String    redCompetitorId;
+  final String    blueCompetitorId;
+  final String    status;
+  final bool      timerRunning;
+  final DateTime? timerStartedAt;       // null when timer is stopped
+  final double    timerElapsedSeconds;  // seconds accumulated before last start
+  final int       roundDurationSeconds; // 110 or 120
+  final int       currentRound;         // 1-based
 
   const MatchDoc({
     required this.id,
@@ -77,6 +81,10 @@ class MatchDoc {
     required this.blueCompetitorId,
     required this.status,
     required this.timerRunning,
+    required this.timerStartedAt,
+    required this.timerElapsedSeconds,
+    required this.roundDurationSeconds,
+    required this.currentRound,
   });
 }
 
@@ -116,13 +124,19 @@ Future<MatchDoc?> fetchActiveMatch(String tournamentId, int arenaNumber) async {
     final status = _str(fields, 'status');
     debugPrint('  doc: tId=$tId arena=$arena status=$status');
     if (tId == tournamentId && arena == arenaNumber && status == 'in_progress') {
-      final timerRunning = (fields['timerRunning'] as Map?)?['booleanValue'] as bool? ?? false;
+      final timerRunning    = (fields['timerRunning'] as Map?)?['booleanValue'] as bool? ?? false;
+      final tsRaw           = (fields['timerStartedAt'] as Map?)?['timestampValue'] as String?;
+      final timerStartedAt  = tsRaw != null ? DateTime.tryParse(tsRaw)?.toUtc() : null;
       return MatchDoc(
-        id:               (doc['name'] as String).split('/').last,
-        redCompetitorId:  _str(fields, 'redCornerCompetitorId'),
-        blueCompetitorId: _str(fields, 'blueCornerCompetitorId'),
-        status:           status,
-        timerRunning:     timerRunning,
+        id:                  (doc['name'] as String).split('/').last,
+        redCompetitorId:     _str(fields, 'redCornerCompetitorId'),
+        blueCompetitorId:    _str(fields, 'blueCornerCompetitorId'),
+        status:              status,
+        timerRunning:        timerRunning,
+        timerStartedAt:      timerStartedAt,
+        timerElapsedSeconds: _dbl(fields, 'timerElapsedSeconds'),
+        roundDurationSeconds: _int(fields, 'roundDurationSeconds', fallback: 120),
+        currentRound:        _int(fields, 'currentRound',         fallback: 1),
       );
     }
   }
@@ -212,12 +226,80 @@ Future<void> postScoreEvent({
   }
 }
 
-// ── field helpers ────────────────────────────────────────────────────────────
+// ── Timer control functions ───────────────────────────────────────────────────
+
+Future<void> timerStart(String matchId) async {
+  final now = DateTime.now().toUtc().toIso8601String();
+  await _patchMatch(matchId, {
+    'timerRunning':   {'booleanValue': true},
+    'timerStartedAt': {'timestampValue': now},
+  }, ['timerRunning', 'timerStartedAt']);
+}
+
+Future<void> timerStop(String matchId, double elapsedSeconds) async {
+  await _patchMatch(matchId, {
+    'timerRunning':        {'booleanValue': false},
+    'timerStartedAt':      {'nullValue': null},
+    'timerElapsedSeconds': {'doubleValue': elapsedSeconds},
+  }, ['timerRunning', 'timerStartedAt', 'timerElapsedSeconds']);
+}
+
+Future<void> timerReset(String matchId) async {
+  await _patchMatch(matchId, {
+    'timerRunning':        {'booleanValue': false},
+    'timerStartedAt':      {'nullValue': null},
+    'timerElapsedSeconds': {'doubleValue': 0.0},
+  }, ['timerRunning', 'timerStartedAt', 'timerElapsedSeconds']);
+}
+
+Future<void> advanceRound(String matchId, int nextRound) async {
+  await _patchMatch(matchId, {
+    'currentRound':        {'integerValue': '$nextRound'},
+    'timerRunning':        {'booleanValue': false},
+    'timerStartedAt':      {'nullValue': null},
+    'timerElapsedSeconds': {'doubleValue': 0.0},
+  }, ['currentRound', 'timerRunning', 'timerStartedAt', 'timerElapsedSeconds']);
+}
+
+Future<void> _patchMatch(
+    String matchId, Map<String, dynamic> fields, List<String> mask) async {
+  try {
+    final query = mask.map((f) => 'updateMask.fieldPaths=$f').join('&');
+    final uri   = Uri.parse('$_base/matches/$matchId?$query');
+    final headers = {
+      'Content-Type': 'application/json',
+      ...await _authHeaders(),
+    };
+    await http.patch(uri, headers: headers, body: jsonEncode({'fields': fields}));
+  } catch (_) {
+    // Ignore — caller will re-fetch match state
+  }
+}
+
+// ── Field helpers ─────────────────────────────────────────────────────────────
 
 String _str(Map<String, dynamic> fields, String key) =>
     (fields[key] as Map?)?['stringValue'] as String? ?? '';
 
 Map<String, String> _strMap(Map<String, dynamic> fields, String key) {
   final inner = ((fields[key] as Map?)?['mapValue'] as Map?)?['fields'] as Map? ?? {};
-  return inner.map((k, v) => MapEntry(k.toString(), (v as Map?)? ['stringValue']?.toString() ?? ''));
+  return inner.map((k, v) => MapEntry(k.toString(), (v as Map?)?['stringValue']?.toString() ?? ''));
+}
+
+/// Reads a numeric field that may be stored as integerValue or doubleValue.
+double _dbl(Map<String, dynamic> fields, String key) {
+  final f = fields[key] as Map?;
+  if (f == null) return 0.0;
+  if (f.containsKey('doubleValue'))  return (f['doubleValue']  as num).toDouble();
+  if (f.containsKey('integerValue')) return double.parse(f['integerValue'].toString());
+  return 0.0;
+}
+
+/// Reads an integer field (stored as integerValue string in Firestore REST).
+int _int(Map<String, dynamic> fields, String key, {int fallback = 0}) {
+  final f = fields[key] as Map?;
+  if (f == null) return fallback;
+  if (f.containsKey('integerValue')) return int.tryParse(f['integerValue'].toString()) ?? fallback;
+  if (f.containsKey('doubleValue'))  return (f['doubleValue'] as num).toInt();
+  return fallback;
 }

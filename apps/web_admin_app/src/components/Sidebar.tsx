@@ -103,28 +103,7 @@ export function Sidebar() {
           </div>
         )}
 
-        {/* Timekeeper — timer control per arena */}
-        {arenaCount > 0 && (
-          <div className="pt-3">
-            <p className="px-3 mb-2 text-xs font-semibold uppercase tracking-widest text-muted">
-              Timekeeper
-            </p>
-            <div className="ml-2 border-l border-border pl-2 space-y-0.5">
-              {Array.from({ length: arenaCount }, (_, i) => i + 1).map((n) => (
-                <a
-                  key={n}
-                  href={`/timekeeper/${n}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-secondary hover:bg-elevated hover:text-primary transition-colors"
-                >
-                  <span className="text-xs leading-none text-muted">↗</span>
-                  Timekeeper {n}
-                </a>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Timekeeper links hidden from nav — pages still exist at /timekeeper/[n] */}
 
         {/* Dewan — live judge scoring per arena */}
         {arenaCount > 0 && (

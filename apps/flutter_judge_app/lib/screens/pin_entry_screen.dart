@@ -1,7 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../firestore_rest.dart';
-import 'tournament_scoring_screen.dart';
+import 'role_selection_screen.dart';
 
 class PinEntryScreen extends StatefulWidget {
   const PinEntryScreen({super.key});
@@ -43,7 +44,7 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
       setState(() => _loading = false);
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => TournamentScoringScreen(
+          builder: (_) => RoleSelectionScreen(
             arenaNumber:    match.arenaNumber,
             tournamentId:   match.tournamentId,
             tournamentName: match.tournamentName,
@@ -72,17 +73,37 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
 
-                    // Back button
-                    GestureDetector(
-                      onTap: () => Navigator.of(context).pop(),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.arrow_back_ios, color: Colors.white54, size: 16),
-                          SizedBox(width: 4),
-                          Text('Back', style: TextStyle(color: Colors.white54, fontSize: 13)),
-                        ],
-                      ),
+                                    // Back + Sign out row
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        GestureDetector(
+                          onTap: () => Navigator.of(context).pop(),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.arrow_back_ios, color: Colors.white54, size: 16),
+                              SizedBox(width: 4),
+                              Text('Back', style: TextStyle(color: Colors.white54, fontSize: 13)),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 24),
+                        GestureDetector(
+                          onTap: () async {
+                            await FirebaseAuth.instance.signOut();
+                            if (context.mounted) Navigator.of(context).pop();
+                          },
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.logout, color: Colors.white24, size: 16),
+                              SizedBox(width: 4),
+                              Text('Sign out', style: TextStyle(color: Colors.white24, fontSize: 13)),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 24),
 
