@@ -1,0 +1,17 @@
+runConfig:
+  runtime: nodejs20
+  cpu: 1
+  memoryMiB: 512
+  concurrency: 80
+
+env:
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    secret: FIREBASE_API_KEY
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: tanding-scoring.firebaseapp.com
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: tanding-scoring
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: 1:191446392057:web:51c0f0cd3b63b8aa90d628
+  - variable: NEXT_PUBLIC_USE_FIREBASE_EMULATORS
+    value: "false"

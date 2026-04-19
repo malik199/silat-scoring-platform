@@ -1,4 +1,8 @@
 {
+  "app_distribution": {
+    "app": "1:191446392057:android:9b727e33e70b052c90d628",
+    "groups": "judges"
+  },
   "emulators": {
     "auth": {
       "port": 9099
