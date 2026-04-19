@@ -90,7 +90,7 @@ export function parseCsv(text: string): CsvParseResult {
   }
 
   const idx = (h: string) => headers.indexOf(h);
-  const valid: CompetitorInput[] = [];
+  const valid: CsvCompetitorRow[] = [];
   const errors: { row: number; message: string }[] = [];
 
   for (let i = 1; i < lines.length; i++) {
