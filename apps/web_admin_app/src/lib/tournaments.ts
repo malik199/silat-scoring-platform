@@ -92,6 +92,9 @@ export function subscribeTournaments(
       ...(d.data() as Omit<Tournament, "id">),
     }));
     cb(tournaments);
+  }, (err) => {
+    console.error("subscribeTournaments error:", err);
+    cb([]);
   });
 }
 
