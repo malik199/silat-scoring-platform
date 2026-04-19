@@ -39,7 +39,10 @@ export default function TimekeeperPage() {
     return subscribeActiveMatch(tournamentId, arenaNumber, setMatch);
   }, [tournamentId, arenaNumber]);
 
-  useEffect(() => subscribeCompetitors(setCompetitors), []);
+  useEffect(() => {
+    if (!user) return;
+    return subscribeCompetitors(user.uid, setCompetitors);
+  }, [user]);
 
   // Tick the display every 100 ms
   useEffect(() => {

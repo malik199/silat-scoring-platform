@@ -23,6 +23,14 @@
         { "fieldPath": "tournamentId", "order": "ASCENDING" },
         { "fieldPath": "order",        "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "competitors",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "organiserId", "order": "ASCENDING" },
+        { "fieldPath": "lastName",    "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

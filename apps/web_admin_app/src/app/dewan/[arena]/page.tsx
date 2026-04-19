@@ -120,7 +120,10 @@ export default function DewanPage() {
     return () => { unsubScore(); unsubAdmin(); };
   }, [match?.id]);
 
-  useEffect(() => subscribeCompetitors(setCompetitors), []);
+  useEffect(() => {
+    if (!user) return;
+    return subscribeCompetitors(user.uid, setCompetitors);
+  }, [user]);
 
   // Tick timer display
   useEffect(() => {

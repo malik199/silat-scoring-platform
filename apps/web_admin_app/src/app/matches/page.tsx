@@ -337,7 +337,7 @@ export default function MatchesPage() {
   useEffect(() => {
     if (!user) return;
     const unsubT = subscribeActiveTournament(user.uid, setTournament);
-    const unsubC = subscribeCompetitors(setCompetitors);
+    const unsubC = subscribeCompetitors(user.uid, setCompetitors);
     return () => { unsubT(); unsubC(); };
   }, [user]);
 

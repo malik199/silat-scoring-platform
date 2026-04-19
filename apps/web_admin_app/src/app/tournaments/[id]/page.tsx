@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Shell } from "@/components/Shell";
+import { useAuth } from "@/context/AuthContext";
 import {
   subscribeTournament,
   assignCompetitorToArena,
@@ -314,6 +315,7 @@ const STATUS_COLOR: Record<string, string> = {
 export default function TournamentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router  = useRouter();
+  const { user } = useAuth();
 
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [competitors, setCompetitors] = useState<Competitor[]>([]);
@@ -337,10 +339,11 @@ export default function TournamentDetailPage() {
 
   useEffect(() => {
     const unsubT = subscribeTournament(id, (t) => { setTournament(t); setLoading(false); });
-    const unsubC = subscribeCompetitors(setCompetitors);
     const unsubJ = subscribeJudges(setJudges);
+    if (!user) return () => { unsubT(); unsubJ(); };
+    const unsubC = subscribeCompetitors(user.uid, setCompetitors);
     return () => { unsubT(); unsubC(); unsubJ(); };
-  }, [id]);
+  }, [id, user]);
 
   async function handleArchive() {
     if (!tournament) return;

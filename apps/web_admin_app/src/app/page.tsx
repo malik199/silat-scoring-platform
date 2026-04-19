@@ -19,7 +19,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!user) return;
     const unsubT = subscribeActiveTournament(user.uid, setTournament);
-    const unsubC = subscribeCompetitors((c) => setCompetitorCount(c.length));
+    const unsubC = subscribeCompetitors(user.uid, (c) => setCompetitorCount(c.length));
     return () => { unsubT(); unsubC(); };
   }, [user]);
 

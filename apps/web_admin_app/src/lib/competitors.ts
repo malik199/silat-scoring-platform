@@ -8,6 +8,7 @@ import {
   writeBatch,
   onSnapshot,
   query,
+  where,
   orderBy,
   serverTimestamp,
   type Unsubscribe,
@@ -34,6 +35,7 @@ export const EXPERIENCE_DESCRIPTIONS: Record<ExperienceLevel, string> = {
 
 export interface Competitor {
   id: string;
+  organiserId: string;
   firstName: string;
   lastName: string;
   /** ISO date string "YYYY-MM-DD" */
@@ -62,8 +64,11 @@ const EXPECTED_HEADERS = [
   "experience",
 ] as const;
 
+/** Row data from CSV — organiserId is added by the caller before writing to Firestore */
+export type CsvCompetitorRow = Omit<CompetitorInput, "organiserId">;
+
 export interface CsvParseResult {
-  valid: CompetitorInput[];
+  valid: CsvCompetitorRow[];
   errors: { row: number; message: string }[];
 }
 
@@ -139,9 +144,14 @@ export function parseCsv(text: string): CsvParseResult {
 const COL = "competitors";
 
 export function subscribeCompetitors(
+  organiserId: string,
   cb: (competitors: Competitor[]) => void
 ): Unsubscribe {
-  const q = query(collection(db, COL), orderBy("lastName", "asc"));
+  const q = query(
+    collection(db, COL),
+    where("organiserId", "==", organiserId),
+    orderBy("lastName", "asc")
+  );
   return onSnapshot(
     q,
     (snap) => {
@@ -180,8 +190,9 @@ export async function addCompetitor(input: CompetitorInput): Promise<string> {
   return ref.id;
 }
 
-export async function bulkAddCompetitors(inputs: CompetitorInput[]): Promise<void> {
-  // Firestore batch limit is 500 writes
+export async function bulkAddCompetitors(
+  inputs: CompetitorInput[],
+): Promise<void> {
   const CHUNK = 500;
   for (let i = 0; i < inputs.length; i += CHUNK) {
     const batch = writeBatch(db);

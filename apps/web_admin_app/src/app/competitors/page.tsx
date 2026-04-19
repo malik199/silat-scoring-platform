@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Shell } from "@/components/Shell";
+import { useAuth } from "@/context/AuthContext";
 import { COUNTRIES } from "@/lib/countries";
 import {
   subscribeCompetitors,
@@ -40,7 +41,9 @@ function ExperienceBadge({ level }: { level: ExperienceLevel }) {
 
 // ─── Manual Entry Modal ───────────────────────────────────────────────────────
 
-const EMPTY_FORM: CompetitorInput = {
+type FormData = Omit<CompetitorInput, "organiserId">;
+
+const EMPTY_FORM: FormData = {
   firstName: "",
   lastName: "",
   dateOfBirth: "",
@@ -54,12 +57,13 @@ const EMPTY_FORM: CompetitorInput = {
 interface ManualModalProps {
   /** Pass an existing competitor to edit, or undefined to add new. */
   existing?: Competitor;
+  organiserId: string;
   onClose: () => void;
 }
 
-function ManualModal({ existing, onClose }: ManualModalProps) {
+function ManualModal({ existing, organiserId, onClose }: ManualModalProps) {
   const isEdit = Boolean(existing);
-  const [form, setForm] = useState<CompetitorInput>(
+  const [form, setForm] = useState<FormData>(
     existing
       ? {
           firstName:   existing.firstName,
@@ -76,7 +80,7 @@ function ManualModal({ existing, onClose }: ManualModalProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  function set<K extends keyof CompetitorInput>(key: K, value: CompetitorInput[K]) {
+  function set<K extends keyof FormData>(key: K, value: FormData[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
@@ -97,10 +101,11 @@ function ManualModal({ existing, onClose }: ManualModalProps) {
     setSaving(true);
     setError("");
     try {
-      const payload = {
+      const payload: CompetitorInput = {
         ...form,
-        firstName: form.firstName.trim(),
-        lastName:  form.lastName.trim(),
+        organiserId,
+        firstName:  form.firstName.trim(),
+        lastName:   form.lastName.trim(),
         schoolName: form.schoolName.trim(),
       };
       if (isEdit && existing) {
@@ -316,10 +321,11 @@ function ManualModal({ existing, onClose }: ManualModalProps) {
 // ─── CSV Upload Modal ─────────────────────────────────────────────────────────
 
 interface CsvModalProps {
+  organiserId: string;
   onClose: () => void;
 }
 
-function CsvModal({ onClose }: CsvModalProps) {
+function CsvModal({ organiserId, onClose }: CsvModalProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [result, setResult] = useState<CsvParseResult | null>(null);
   const [fileName, setFileName] = useState("");
@@ -342,7 +348,7 @@ function CsvModal({ onClose }: CsvModalProps) {
     if (!result || result.valid.length === 0) return;
     setSaving(true);
     try {
-      await bulkAddCompetitors(result.valid);
+      await bulkAddCompetitors(result.valid.map((c) => ({ ...c, organiserId })));
       setDone(true);
     } catch {
       setSaving(false);
@@ -508,6 +514,7 @@ function CsvModal({ onClose }: CsvModalProps) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function CompetitorsPage() {
+  const { user } = useAuth();
   const [competitors, setCompetitors] = useState<Competitor[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<"manual" | "csv" | null>(null);
@@ -515,12 +522,13 @@ export default function CompetitorsPage() {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    const unsub = subscribeCompetitors((data) => {
+    if (!user) return;
+    const unsub = subscribeCompetitors(user.uid, (data) => {
       setCompetitors(data);
       setLoading(false);
     });
     return unsub;
-  }, []);
+  }, [user]);
 
   const filtered = competitors.filter((c) => {
     const q = search.toLowerCase();
@@ -643,15 +651,16 @@ export default function CompetitorsPage() {
         )}
       </div>
 
-      {modal === "manual" && (
-        <ManualModal onClose={() => setModal(null)} />
+      {modal === "manual" && user && (
+        <ManualModal organiserId={user.uid} onClose={() => setModal(null)} />
       )}
-      {modal === "csv" && (
-        <CsvModal onClose={() => setModal(null)} />
+      {modal === "csv" && user && (
+        <CsvModal organiserId={user.uid} onClose={() => setModal(null)} />
       )}
-      {editingCompetitor && (
+      {editingCompetitor && user && (
         <ManualModal
           existing={editingCompetitor}
+          organiserId={user.uid}
           onClose={() => setEditingCompetitor(null)}
         />
       )}
