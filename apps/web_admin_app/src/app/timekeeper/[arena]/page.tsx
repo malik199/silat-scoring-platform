@@ -81,6 +81,7 @@ export default function TimekeeperPage() {
 
   async function handleReset() {
     if (!match) return;
+    if (!confirm("Reset the timer? This will clear the current round time.")) return;
     await timerReset(match.id);
   }
 

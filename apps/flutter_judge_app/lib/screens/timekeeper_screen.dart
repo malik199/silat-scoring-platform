@@ -111,6 +111,54 @@ class _TimekeeperScreenState extends State<TimekeeperScreen> {
 
   Future<void> _handleReset() async {
     if (_match == null || _match!.timerRunning || _busy) return;
+
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: const Color(0xFF1A1A1A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 36),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
+          const SizedBox(height: 20),
+          const Text('Reset timer?', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          const Text('This will clear the current round time.', style: TextStyle(color: Colors.white38, fontSize: 13)),
+          const SizedBox(height: 28),
+          Row(children: [
+            Expanded(child: GestureDetector(
+              onTap: () => Navigator.pop(context, false),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                ),
+                child: const Text('Cancel', textAlign: TextAlign.center, style: TextStyle(color: Colors.white54, fontSize: 15, fontWeight: FontWeight.bold)),
+              ),
+            )),
+            const SizedBox(width: 12),
+            Expanded(child: GestureDetector(
+              onTap: () => Navigator.pop(context, true),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                ),
+                child: const Text('Reset', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+              ),
+            )),
+          ]),
+        ]),
+      ),
+    );
+
+    if (confirmed != true) return;
     setState(() => _busy = true);
     await timerReset(_match!.id);
     await _fetchMatch();
