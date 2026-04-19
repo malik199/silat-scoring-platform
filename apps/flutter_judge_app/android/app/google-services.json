@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "191446392057",
+    "firebase_url": "https://tanding-scoring-default-rtdb.firebaseio.com",
+    "project_id": "tanding-scoring",
+    "storage_bucket": "tanding-scoring.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:191446392057:android:9b727e33e70b052c90d628",
+        "android_client_info": {
+          "package_name": "com.visdevelop.silatscore"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "191446392057-16pt9ml1r1q89f13bhpveu7qbb7brcg8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAjjtwzyM86hMHdw1U9xvRlQvrowAahmS0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "191446392057-0ikioqc10bc29qkrmk7hj6pqb161riio.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "191446392057-19acvidjf3n2mncmg6qm02d1qd0h35t6.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.fireFuncFlutter"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
