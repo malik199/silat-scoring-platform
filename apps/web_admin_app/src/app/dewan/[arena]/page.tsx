@@ -26,7 +26,7 @@ import {
 
 // ─── Raw per-judge tallies ────────────────────────────────────────────────────
 
-interface JudgeTotals { red: number; blue: number }
+interface JudgeTotals { red: number; blue: number; name: string; email: string; }
 
 function rawPerJudge(events: ScoreEvent[]): {
   byJudge: Map<string, JudgeTotals>;
@@ -36,7 +36,7 @@ function rawPerJudge(events: ScoreEvent[]): {
   const judgeOrder: string[] = [];
   for (const e of events) {
     if (!byJudge.has(e.judgeId)) {
-      byJudge.set(e.judgeId, { red: 0, blue: 0 });
+      byJudge.set(e.judgeId, { red: 0, blue: 0, name: e.judgeName ?? '', email: e.judgeEmail ?? '' });
       judgeOrder.push(e.judgeId);
     }
     const t = byJudge.get(e.judgeId)!;
@@ -426,8 +426,14 @@ export default function DewanPage() {
                             <div className="w-6 h-6 rounded-full bg-accent/10 border border-accent/30 flex items-center justify-center text-xs font-bold text-accent flex-shrink-0">
                               {i + 1}
                             </div>
-                            <span className="text-sm font-medium text-primary">Judge {i + 1}</span>
-                            <span className="text-xs text-muted font-mono hidden sm:inline">{judgeId.slice(-6)}</span>
+                            <div className="flex flex-col min-w-0">
+                              <span className="text-sm font-medium text-primary truncate">
+                                {t.name || t.email || `Judge ${i + 1}`}
+                              </span>
+                              {t.name && t.email && (
+                                <span className="text-xs text-muted truncate">{t.email}</span>
+                              )}
+                            </div>
                           </div>
                         </td>
                         <td className="px-5 py-3 text-center"><span className="text-lg font-bold text-danger">{t.red}</span></td>

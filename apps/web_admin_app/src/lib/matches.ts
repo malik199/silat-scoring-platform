@@ -230,6 +230,8 @@ export function computeConfirmedScores(events: ScoreEvent[]): { red: number; blu
 export interface ScoreEvent {
   id: string;
   judgeId: string;
+  judgeName?: string;
+  judgeEmail?: string;
   side: "red" | "blue";
   points: number;
   createdAt: { seconds: number } | null;

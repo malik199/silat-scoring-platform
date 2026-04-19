@@ -1,15 +1,29 @@
 import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'config.dart';
 
 const _projectId = 'tanding-scoring';
-String get _base => 'http://$emulatorHost:8080/v1/projects/$_projectId/databases/(default)/documents';
 
-/// Unique ID for this judge's session — generated once at app startup.
-/// Used to group score events by judge in the Dewan view.
-final String judgeSessionId = 'j${DateTime.now().millisecondsSinceEpoch}';
+String get _base => useEmulator
+    ? 'http://$emulatorHost:8080/v1/projects/$_projectId/databases/(default)/documents'
+    : 'https://firestore.googleapis.com/v1/projects/$_projectId/databases/(default)/documents';
+
+/// Returns auth headers for the current signed-in user, or empty if not signed in.
+Future<Map<String, String>> _authHeaders() async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return {};
+  final token = await user.getIdToken();
+  return {'Authorization': 'Bearer $token'};
+}
+
+/// Returns the current judge's Firebase UID, or a fallback session ID.
+String get judgeSessionId {
+  final user = FirebaseAuth.instance.currentUser;
+  return user?.uid ?? 'j${DateTime.now().millisecondsSinceEpoch}';
+}
 
 
 /// A single tournament document with just the fields we need.
@@ -175,15 +189,21 @@ Future<void> postScoreEvent({
 }) async {
   try {
     final uri = Uri.parse('$_base/matches/$matchId/scoreEvents');
+    final headers = {
+      'Content-Type': 'application/json',
+      ...await _authHeaders(),
+    };
     await http.post(
       uri,
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: jsonEncode({
         'fields': {
-          'judgeId':   {'stringValue': judgeSessionId},
-          'side':      {'stringValue': side},
-          'points':    {'integerValue': points.toString()},
-          'createdAt': {'timestampValue': DateTime.now().toUtc().toIso8601String()},
+          'judgeId':    {'stringValue': judgeSessionId},
+          'judgeName':  {'stringValue': FirebaseAuth.instance.currentUser?.displayName ?? ''},
+          'judgeEmail': {'stringValue': FirebaseAuth.instance.currentUser?.email ?? ''},
+          'side':       {'stringValue': side},
+          'points':     {'integerValue': points.toString()},
+          'createdAt':  {'timestampValue': DateTime.now().toUtc().toIso8601String()},
         },
       }),
     );
