@@ -116,20 +116,48 @@ export default function TimekeeperPage() {
       style={{ backgroundColor: urgentBg ? "#3b0000" : "#0a0a0a" }}
     >
       {/* ── Header ── */}
-      <div className="flex items-center px-10 py-5 border-b border-white/10" style={{ backgroundColor: "#111" }}>
+      <div className="flex items-center px-10 py-4 border-b border-white/10" style={{ backgroundColor: "#111" }}>
+        {/* Left: arena label */}
         <div className="flex-1">
           <p className="text-xs font-semibold uppercase tracking-widest text-white/30">Timekeeper</p>
           <p className="text-xl font-bold text-white/80 mt-0.5">Arena {arenaNumber}</p>
         </div>
 
-        {match && (
-          <div className="text-right">
-            <p className="text-sm font-bold text-white/60 truncate max-w-xs">
-              {redComp ? `${redComp.firstName} ${redComp.lastName}` : "Red"} vs {blueComp ? `${blueComp.firstName} ${blueComp.lastName}` : "Blue"}
-            </p>
-            <p className="text-xs text-white/30 mt-0.5">{match.roundDurationSeconds === 110 ? "1:50" : "2:00"} rounds</p>
-          </div>
-        )}
+        {/* Centre: round pips — only shown when a match is active */}
+        <div className="flex gap-5">
+          {match && Array.from({ length: TOTAL_ROUNDS }, (_, i) => i + 1).map((r) => (
+            <div key={r} className="flex flex-col items-center gap-1">
+              <div
+                className="w-11 h-11 rounded-full border-2 flex items-center justify-center text-base font-black transition-all duration-300"
+                style={{
+                  borderColor: r === currentRound ? "rgba(255,255,255,0.7)" : r < currentRound ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.1)",
+                  background:  r === currentRound ? "rgba(255,255,255,0.12)" : "transparent",
+                  color:       r === currentRound ? "rgba(255,255,255,0.9)"  : r < currentRound ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.15)",
+                }}
+              >
+                {r < currentRound ? "✓" : r}
+              </div>
+              <p
+                className="text-[10px] font-semibold uppercase tracking-widest"
+                style={{ color: r === currentRound ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.1)" }}
+              >
+                {r === currentRound ? "Now" : r < currentRound ? "Done" : ""}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        {/* Right: competitor names */}
+        <div className="flex-1 flex justify-end">
+          {match && (
+            <div className="text-right">
+              <p className="text-sm font-bold text-white/60 truncate max-w-xs">
+                {redComp ? `${redComp.firstName} ${redComp.lastName}` : "Red"} vs {blueComp ? `${blueComp.firstName} ${blueComp.lastName}` : "Blue"}
+              </p>
+              <p className="text-xs text-white/30 mt-0.5">{match.roundDurationSeconds === 110 ? "1:50" : "2:00"} rounds</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ── Body ── */}
@@ -149,33 +177,6 @@ export default function TimekeeperPage() {
 
       {match && (
         <div className="flex-1 flex flex-col items-center justify-center gap-10 px-8">
-
-          {/* Round pips */}
-          <div className="flex gap-4">
-            {Array.from({ length: TOTAL_ROUNDS }, (_, i) => i + 1).map((r) => (
-              <div
-                key={r}
-                className="flex flex-col items-center gap-1.5"
-              >
-                <div
-                  className="w-14 h-14 rounded-full border-2 flex items-center justify-center text-xl font-black transition-all duration-300"
-                  style={{
-                    borderColor: r === currentRound ? "rgba(255,255,255,0.7)" : r < currentRound ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.1)",
-                    background:  r === currentRound ? "rgba(255,255,255,0.12)" : "transparent",
-                    color:       r === currentRound ? "rgba(255,255,255,0.9)"  : r < currentRound ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.15)",
-                  }}
-                >
-                  {r < currentRound ? "✓" : r}
-                </div>
-                <p
-                  className="text-xs font-semibold uppercase tracking-widest"
-                  style={{ color: r === currentRound ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.1)" }}
-                >
-                  {r === currentRound ? "Current" : r < currentRound ? "Done" : ""}
-                </p>
-              </div>
-            ))}
-          </div>
 
           {/* Timer display */}
           <div className="flex flex-col items-center gap-2">
