@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../firestore_rest.dart';
@@ -27,9 +28,9 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
   bool            _loadingMatch = true;
   Timer?          _pollTimer;
 
-  // ── Scores ──────────────────────────────────────────────────────────────────
-  int _redScore  = 0;
-  int _blueScore = 0;
+  // ── Event logs ──────────────────────────────────────────────────────────────
+  List<int> _redEvents  = [];
+  List<int> _blueEvents = [];
 
   @override
   void initState() {
@@ -56,7 +57,7 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
       }
 
       if (match.id != _match?.id) {
-        // New match — reload competitors and reset scores
+        // New match — reload competitors and reset event logs
         final red  = await fetchCompetitor(match.redCompetitorId);
         final blue = await fetchCompetitor(match.blueCompetitorId);
         if (!mounted) return;
@@ -64,8 +65,8 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
           _match        = match;
           _red          = red;
           _blue         = blue;
-          _redScore     = 0;
-          _blueScore    = 0;
+          _redEvents    = [];
+          _blueEvents   = [];
           _loadingMatch = false;
         });
       } else {
@@ -78,14 +79,14 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
   }
 
   void _addRed(int pts) {
-    setState(() => _redScore += pts);
+    setState(() => _redEvents.add(pts));
     if (_match != null) {
       postScoreEvent(matchId: _match!.id, side: 'red', points: pts);
     }
   }
 
   void _addBlue(int pts) {
-    setState(() => _blueScore += pts);
+    setState(() => _blueEvents.add(pts));
     if (_match != null) {
       postScoreEvent(matchId: _match!.id, side: 'blue', points: pts);
     }
@@ -97,9 +98,22 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: const Color(0xFF111111),
-        title: Text(
-          '${widget.tournamentName}  •  Arena ${widget.arenaNumber}',
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
+        toolbarHeight: 70,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${widget.tournamentName}  •  Arena ${widget.arenaNumber}',
+              style: const TextStyle(fontSize: 12, color: Colors.white38),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              FirebaseAuth.instance.currentUser?.displayName
+                  ?? FirebaseAuth.instance.currentUser?.email
+                  ?? 'Judge',
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+            ),
+          ],
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: Colors.white54, size: 18),
@@ -141,23 +155,18 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Red side
         Expanded(child: _buildSide(
           color:      Colors.red,
           competitor: _red,
-          score:      _redScore,
+          events:     _redEvents,
           onAdd:      _addRed,
           alignment:  CrossAxisAlignment.start,
         )),
-
-        // Divider
         Container(width: 1, color: Colors.white10),
-
-        // Blue side
         Expanded(child: _buildSide(
           color:      Colors.blue,
           competitor: _blue,
-          score:      _blueScore,
+          events:     _blueEvents,
           onAdd:      _addBlue,
           alignment:  CrossAxisAlignment.end,
         )),
@@ -168,55 +177,67 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
   Widget _buildSide({
     required Color color,
     required CompetitorDoc? competitor,
-    required int score,
+    required List<int> events,
     required void Function(int)? onAdd,
     required CrossAxisAlignment alignment,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Competitor info + score on same row
+        // Competitor info + event log
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           color: color.withValues(alpha: 0.1),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+          child: Column(
+            crossAxisAlignment: alignment,
             children: [
-              if (alignment == CrossAxisAlignment.start) ...[
-                Text('$score', style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: color)),
-                const SizedBox(width: 12),
-              ],
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: alignment,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      competitor?.fullName ?? '—',
-                      style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if ((competitor?.schoolName ?? '').isNotEmpty || (competitor?.country ?? '').isNotEmpty)
-                      Text(
-                        [
-                          if ((competitor?.schoolName ?? '').isNotEmpty) competitor!.schoolName,
-                          if ((competitor?.country ?? '').isNotEmpty) competitor!.country,
-                        ].join(' · '),
-                        style: TextStyle(color: color.withValues(alpha: 0.7), fontSize: 11),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                  ],
-                ),
+              // Competitor name
+              Text(
+                competitor?.fullName ?? '—',
+                style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold),
+                overflow: TextOverflow.ellipsis,
               ),
-              if (alignment == CrossAxisAlignment.end) ...[
-                const SizedBox(width: 12),
-                Text('$score', style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: color)),
+              if ((competitor?.schoolName ?? '').isNotEmpty || (competitor?.country ?? '').isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(
+                  [
+                    if ((competitor?.schoolName ?? '').isNotEmpty) competitor!.schoolName,
+                    if ((competitor?.country ?? '').isNotEmpty) competitor!.country,
+                  ].join(' · '),
+                  style: TextStyle(color: color.withValues(alpha: 0.7), fontSize: 12),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
+              const SizedBox(height: 10),
+              // Event chips
+              events.isEmpty
+                  ? Text('No scores yet', style: TextStyle(color: color.withValues(alpha: 0.3), fontSize: 13))
+                  : Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      alignment: alignment == CrossAxisAlignment.end ? WrapAlignment.end : WrapAlignment.start,
+                      children: events.map((pts) => Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: color.withValues(alpha: 0.25),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: color.withValues(alpha: 0.5)),
+                        ),
+                        child: Text(
+                          '$pts',
+                          style: TextStyle(
+                            color: color,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      )).toList(),
+                    ),
             ],
           ),
         ),
 
-        // Buttons — take up remaining ~50% of height
+        // Score buttons
         Expanded(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
