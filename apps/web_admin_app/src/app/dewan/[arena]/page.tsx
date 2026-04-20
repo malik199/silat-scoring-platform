@@ -422,6 +422,68 @@ export default function DewanPage() {
           </div>
         </div>
 
+        {/* ── Score breakdown (tie-breaker) ── */}
+        {(() => {
+          const ACTIONS: { pts: number; label: string; sublabel: string }[] = [
+            { pts:  3, label: "+3", sublabel: "Takedown / Sweep" },
+            { pts: -1, label: "−1", sublabel: "Minor penalty"    },
+            { pts: -2, label: "−2", sublabel: "Warning"          },
+            { pts: -5, label: "−5", sublabel: "Major penalty"    },
+            { pts:-10, label: "−10",sublabel: "Disqualification" },
+          ];
+          const count = (side: "red" | "blue", pts: number) =>
+            adminEvents.filter((e) => e.side === side && e.points === pts).length;
+          const isTied = totalRed === totalBlue;
+          const anyEvents = adminEvents.length > 0;
+          if (!anyEvents && !isTied) return null;
+          return (
+            <div className={`bg-surface border rounded-xl overflow-hidden mb-4 ${isTied ? "border-warn/50" : "border-border"}`}>
+              <div className={`px-5 py-2.5 border-b flex items-center justify-between ${isTied ? "border-warn/30 bg-warn/5" : "border-border"}`}>
+                <p className="text-xs font-semibold uppercase tracking-widest text-muted">Score Breakdown</p>
+                {isTied && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-warn" />
+                    <span className="text-xs font-bold text-warn">Tiebreaker active</span>
+                  </div>
+                )}
+              </div>
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="px-5 py-2 text-center text-xs font-semibold uppercase tracking-widest text-danger w-1/3">Red</th>
+                    <th className="px-5 py-2 text-center text-xs font-semibold uppercase tracking-widest text-muted">Action</th>
+                    <th className="px-5 py-2 text-center text-xs font-semibold uppercase tracking-widest text-blue-400 w-1/3">Blue</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ACTIONS.map(({ pts, label, sublabel }) => {
+                    const r = count("red",  pts);
+                    const b = count("blue", pts);
+                    const highlight = isTied && (r !== b);
+                    return (
+                      <tr
+                        key={pts}
+                        className={`border-b border-border last:border-b-0 ${highlight ? (pts > 0 ? "bg-accent/5" : "bg-warn/5") : ""}`}
+                      >
+                        <td className="px-5 py-3 text-center">
+                          <span className={`text-xl font-black ${r > 0 ? "text-danger" : "text-muted/30"}`}>{r}</span>
+                        </td>
+                        <td className="px-5 py-3 text-center">
+                          <p className={`text-sm font-bold ${highlight ? (pts > 0 ? "text-accent" : "text-warn") : "text-secondary"}`}>{label}</p>
+                          <p className="text-xs text-muted">{sublabel}</p>
+                        </td>
+                        <td className="px-5 py-3 text-center">
+                          <span className={`text-xl font-black ${b > 0 ? "text-blue-400" : "text-muted/30"}`}>{b}</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          );
+        })()}
+
         {/* ── Judge taps (raw) ── */}
         <div className="bg-surface border border-border rounded-xl overflow-hidden">
           {judgeOrder.length === 0 ? (
