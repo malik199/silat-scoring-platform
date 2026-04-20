@@ -124,7 +124,8 @@ class _RoleCardState extends State<_RoleCard> {
             ),
           ),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisSize: MainAxisSize.max,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(widget.icon, color: widget.color, size: 52),
               const SizedBox(height: 16),

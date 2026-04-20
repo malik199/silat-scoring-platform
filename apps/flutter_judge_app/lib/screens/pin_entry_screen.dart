@@ -58,137 +58,200 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final user        = FirebaseAuth.instance.currentUser;
+    final displayName = user?.displayName ?? '';
+    final email       = user?.email ?? '';
+    final initials    = displayName.isNotEmpty
+        ? displayName.trim().split(' ').map((w) => w[0]).take(2).join().toUpperCase()
+        : email.isNotEmpty ? email[0].toUpperCase() : '?';
+
+    final screenH = MediaQuery.of(context).size.height;
+
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0A),
-      body: Row(
+      body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // ── Left panel: branding ──────────────────────────────────────────
-          // ── Left panel: branding + PIN display ───────────────────────────
-          Expanded(
-            child: Container(
-              color: const Color(0xFF111111),
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
 
-                                    // Back + Sign out row
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        GestureDetector(
-                          onTap: () => Navigator.of(context).pop(),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.arrow_back_ios, color: Colors.white54, size: 16),
-                              SizedBox(width: 4),
-                              Text('Back', style: TextStyle(color: Colors.white54, fontSize: 13)),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 24),
-                        GestureDetector(
-                          onTap: () async {
-                            await FirebaseAuth.instance.signOut();
-                            if (context.mounted) Navigator.of(context).pop();
-                          },
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.logout, color: Colors.white24, size: 16),
-                              SizedBox(width: 4),
-                              Text('Sign out', style: TextStyle(color: Colors.white24, fontSize: 13)),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-
-                    // PIN title
-                    const Text(
-                      'Enter Arena PIN',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+          // ── Top bar: user identity (30% of screen height) ─────────────────
+          Container(
+            height: screenH * 0.30,
+            color: const Color(0xFF111111),
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Row(
+              children: [
+                // Avatar
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.08),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 2),
+                  ),
+                  child: Center(
+                    child: Text(
+                      initials,
+                      style: const TextStyle(
                         color: Colors.white,
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Ask your admin for the 4-digit PIN',
-                      style: TextStyle(fontSize: 11, color: Colors.white38),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // PIN dots
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(4, (i) {
-                        final filled = i < _pin.length;
-                        return Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 6),
-                          width: 48,
-                          height: 56,
-                          decoration: BoxDecoration(
-                            color: filled
-                                ? Colors.white.withValues(alpha: 0.12)
-                                : Colors.white.withValues(alpha: 0.04),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: filled
-                                  ? Colors.white.withValues(alpha: 0.5)
-                                  : Colors.white.withValues(alpha: 0.1),
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Center(
-                            child: filled
-                                ? Text(
-                                    _pin[i],
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  )
-                                : null,
-                          ),
-                        );
-                      }),
-                    ),
-
-                    // Error
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 200),
-                      child: _error != null
-                          ? Padding(
-                              key: ValueKey(_error),
-                              padding: const EdgeInsets.only(top: 12),
-                              child: Text(
-                                _error!,
-                                style: const TextStyle(color: Colors.redAccent, fontSize: 12),
-                                textAlign: TextAlign.center,
-                              ),
-                            )
-                          : const SizedBox(height: 12),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+                const SizedBox(width: 24),
+
+                // Name + email
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (displayName.isNotEmpty)
+                        Text(
+                          displayName,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                      const SizedBox(height: 4),
+                      Text(
+                        email,
+                        style: const TextStyle(
+                          color: Colors.white54,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Sign out
+                GestureDetector(
+                  onTap: () async {
+                    await FirebaseAuth.instance.signOut();
+                    if (context.mounted) Navigator.of(context).pop();
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.logout, color: Colors.white38, size: 18),
+                        SizedBox(width: 8),
+                        Text('Sign out', style: TextStyle(color: Colors.white38, fontSize: 14)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
 
-          // ── Right panel: number pad ───────────────────────────────────────
+          // ── Body: PIN entry (remaining 70%) ───────────────────────────────
           Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _loading
-                    ? const CircularProgressIndicator(color: Colors.white54)
-                    : _NumberPad(onKey: _onKey, onDelete: _onDelete, onClear: _onClear),
+
+                // Left panel: PIN display
+                Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'Enter Arena PIN',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Ask your admin for the 4-digit PIN',
+                          style: TextStyle(fontSize: 12, color: Colors.white38),
+                        ),
+                        const SizedBox(height: 24),
+
+                        // PIN dots
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(4, (i) {
+                            final filled = i < _pin.length;
+                            return Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 6),
+                              width: 52,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                color: filled
+                                    ? Colors.white.withValues(alpha: 0.12)
+                                    : Colors.white.withValues(alpha: 0.04),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: filled
+                                      ? Colors.white.withValues(alpha: 0.5)
+                                      : Colors.white.withValues(alpha: 0.1),
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Center(
+                                child: filled
+                                    ? Text(
+                                        _pin[i],
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      )
+                                    : null,
+                              ),
+                            );
+                          }),
+                        ),
+
+                        // Error
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 200),
+                          child: _error != null
+                              ? Padding(
+                                  key: ValueKey(_error),
+                                  padding: const EdgeInsets.only(top: 14),
+                                  child: Text(
+                                    _error!,
+                                    style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                )
+                              : const SizedBox(height: 14),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Right panel: number pad
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _loading
+                          ? const CircularProgressIndicator(color: Colors.white54)
+                          : _NumberPad(onKey: _onKey, onDelete: _onDelete, onClear: _onClear),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),

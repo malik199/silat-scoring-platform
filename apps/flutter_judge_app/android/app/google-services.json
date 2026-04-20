@@ -3,7 +3,7 @@
     "project_number": "191446392057",
     "firebase_url": "https://tanding-scoring-default-rtdb.firebaseio.com",
     "project_id": "tanding-scoring",
-    "storage_bucket": "tanding-scoring.appspot.com"
+    "storage_bucket": "tanding-scoring.firebasestorage.app"
   },
   "client": [
     {
@@ -14,6 +14,22 @@
         }
       },
       "oauth_client": [
+        {
+          "client_id": "191446392057-fra47eleuhk9r88nsk264j2uifn85jlp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.visdevelop.silatscore",
+            "certificate_hash": "d7d21e2589a6e1a4d088e68f349ae7784137cee2"
+          }
+        },
+        {
+          "client_id": "191446392057-remr1p4j81800dc9bf1l0ds2qduhga3b.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.visdevelop.silatscore",
+            "certificate_hash": "36d21d9baf8f8e12e7da27c49592ff82ca4a263c"
+          }
+        },
         {
           "client_id": "191446392057-16pt9ml1r1q89f13bhpveu7qbb7brcg8.apps.googleusercontent.com",
           "client_type": 3
@@ -32,10 +48,10 @@
               "client_type": 3
             },
             {
-              "client_id": "191446392057-19acvidjf3n2mncmg6qm02d1qd0h35t6.apps.googleusercontent.com",
+              "client_id": "191446392057-5dt98pd0fqa1ach2f1ushpgn7ovfhj5q.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "com.example.fireFuncFlutter"
+                "bundle_id": "com.example.silatScoring2024"
               }
             }
           ]
