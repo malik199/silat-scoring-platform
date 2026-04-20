@@ -32,6 +32,9 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
   List<int> _redEvents  = [];
   List<int> _blueEvents = [];
 
+  final _redScroll  = ScrollController();
+  final _blueScroll = ScrollController();
+
   @override
   void initState() {
     super.initState();
@@ -43,7 +46,21 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
   @override
   void dispose() {
     _pollTimer?.cancel();
+    _redScroll.dispose();
+    _blueScroll.dispose();
     super.dispose();
+  }
+
+  void _scrollToEnd(ScrollController controller) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (controller.hasClients) {
+        controller.animateTo(
+          controller.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   Future<void> _fetchMatch() async {
@@ -80,6 +97,7 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
 
   void _addRed(int pts) {
     setState(() => _redEvents.add(pts));
+    _scrollToEnd(_redScroll);
     if (_match != null) {
       postScoreEvent(matchId: _match!.id, side: 'red', points: pts);
     }
@@ -87,6 +105,7 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
 
   void _addBlue(int pts) {
     setState(() => _blueEvents.add(pts));
+    _scrollToEnd(_blueScroll);
     if (_match != null) {
       postScoreEvent(matchId: _match!.id, side: 'blue', points: pts);
     }
@@ -163,6 +182,7 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
             competitor: _red,
             events:     _redEvents,
             onAdd:      _addRed,
+            scrollCtrl: _redScroll,
           )),
           const SizedBox(width: 12),
           Expanded(child: _buildSide(
@@ -171,6 +191,7 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
             competitor: _blue,
             events:     _blueEvents,
             onAdd:      _addBlue,
+            scrollCtrl: _blueScroll,
           )),
         ],
       ),
@@ -183,6 +204,7 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
     required CompetitorDoc? competitor,
     required List<int> events,
     required void Function(int)? onAdd,
+    required ScrollController scrollCtrl,
   }) {
     final school  = competitor?.schoolName ?? '';
     final country = competitor?.country    ?? '';
@@ -269,43 +291,9 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
                 ),
               ],
 
-              // Divider
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Divider(color: color.withValues(alpha: 0.15), height: 1),
-              ),
+              const SizedBox(height: 10),
 
-              // Scores header
-              Row(
-                children: [
-                  Text(
-                    'SCORES',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.3),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.4,
-                    ),
-                  ),
-                  if (events.isNotEmpty) ...[
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        '${events.length}',
-                        style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 8),
-
-              // Event chips — fixed height, scrollable, newest first
+              // Event chips — fixed height, scrollable, newest at end
               SizedBox(
                 height: 82,
                 child: events.isEmpty
@@ -316,6 +304,7 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
                         ),
                       )
                     : SingleChildScrollView(
+                        controller: scrollCtrl,
                         child: Wrap(
                           spacing: 6,
                           runSpacing: 6,

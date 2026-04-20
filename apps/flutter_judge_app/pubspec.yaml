@@ -1,7 +1,7 @@
 name: silat_judge
 description: "Pencak Silat judge scoring app"
 publish_to: 'none'
-version: 2.0.3+5
+version: 2.0.4+6
 
 environment:
   sdk: '>=3.2.3 <4.0.0'
