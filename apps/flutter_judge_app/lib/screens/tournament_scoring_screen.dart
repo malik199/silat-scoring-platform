@@ -152,89 +152,179 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
 
   // ── Scoring screen ───────────────────────────────────────────────────────────
   Widget _buildScoring() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(child: _buildSide(
-          color:      Colors.red,
-          competitor: _red,
-          events:     _redEvents,
-          onAdd:      _addRed,
-          alignment:  CrossAxisAlignment.start,
-        )),
-        Container(width: 1, color: Colors.white10),
-        Expanded(child: _buildSide(
-          color:      Colors.blue,
-          competitor: _blue,
-          events:     _blueEvents,
-          onAdd:      _addBlue,
-          alignment:  CrossAxisAlignment.end,
-        )),
-      ],
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: _buildSide(
+            label:      'RED CORNER',
+            color:      const Color(0xFFEF5350),
+            competitor: _red,
+            events:     _redEvents,
+            onAdd:      _addRed,
+          )),
+          const SizedBox(width: 12),
+          Expanded(child: _buildSide(
+            label:      'BLUE CORNER',
+            color:      const Color(0xFF42A5F5),
+            competitor: _blue,
+            events:     _blueEvents,
+            onAdd:      _addBlue,
+          )),
+        ],
+      ),
     );
   }
 
   Widget _buildSide({
+    required String label,
     required Color color,
     required CompetitorDoc? competitor,
     required List<int> events,
     required void Function(int)? onAdd,
-    required CrossAxisAlignment alignment,
   }) {
+    final school  = competitor?.schoolName ?? '';
+    final country = competitor?.country    ?? '';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Competitor info + event log
+
+        // ── Info card ──────────────────────────────────────────────────────
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          color: color.withValues(alpha: 0.1),
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
+          ),
           child: Column(
-            crossAxisAlignment: alignment,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+
+              // Corner label
+              Text(
+                label,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.4,
+                ),
+              ),
+              const SizedBox(height: 6),
+
               // Competitor name
               Text(
                 competitor?.fullName ?? '—',
-                style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  height: 1.1,
+                ),
                 overflow: TextOverflow.ellipsis,
               ),
-              if ((competitor?.schoolName ?? '').isNotEmpty || (competitor?.country ?? '').isNotEmpty) ...[
-                const SizedBox(height: 2),
-                Text(
-                  [
-                    if ((competitor?.schoolName ?? '').isNotEmpty) competitor!.schoolName,
-                    if ((competitor?.country ?? '').isNotEmpty) competitor!.country,
-                  ].join(' · '),
-                  style: TextStyle(color: color.withValues(alpha: 0.7), fontSize: 12),
-                  overflow: TextOverflow.ellipsis,
+
+              // Perguruan + country
+              if (school.isNotEmpty || country.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    if (school.isNotEmpty) ...[
+                      Text(
+                        'Perguruan',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.3),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          school,
+                          style: TextStyle(color: color.withValues(alpha: 0.8), fontSize: 13),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ] else
+                      Expanded(
+                        child: Text(
+                          country,
+                          style: TextStyle(color: color.withValues(alpha: 0.8), fontSize: 13),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    if (school.isNotEmpty && country.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      Text(
+                        country,
+                        style: TextStyle(color: Colors.white.withValues(alpha: 0.25), fontSize: 12),
+                      ),
+                    ],
+                  ],
                 ),
               ],
-              const SizedBox(height: 10),
+
+              // Divider
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Divider(color: color.withValues(alpha: 0.15), height: 1),
+              ),
+
+              // Scores header
+              Row(
+                children: [
+                  Text(
+                    'SCORES',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.3),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.4,
+                    ),
+                  ),
+                  if (events.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '${events.length}',
+                        style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 8),
+
               // Event chips — fixed height, scrollable, newest first
               SizedBox(
                 height: 82,
                 child: events.isEmpty
-                    ? Align(
-                        alignment: alignment == CrossAxisAlignment.end
-                            ? Alignment.centerRight
-                            : Alignment.centerLeft,
+                    ? Center(
                         child: Text(
                           'No scores yet',
-                          style: TextStyle(color: color.withValues(alpha: 0.3), fontSize: 13),
+                          style: TextStyle(color: color.withValues(alpha: 0.25), fontSize: 13),
                         ),
                       )
                     : SingleChildScrollView(
                         child: Wrap(
                           spacing: 6,
                           runSpacing: 6,
-                          alignment: alignment == CrossAxisAlignment.end
-                              ? WrapAlignment.end
-                              : WrapAlignment.start,
                           children: events.reversed.map((pts) => Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                              color: color.withValues(alpha: 0.25),
+                              color: color.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: color.withValues(alpha: 0.5)),
+                              border: Border.all(color: color.withValues(alpha: 0.4)),
                             ),
                             child: Text(
                               '$pts',
@@ -252,18 +342,17 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
           ),
         ),
 
-        // Score buttons
+        const SizedBox(height: 12),
+
+        // ── Score buttons ──────────────────────────────────────────────────
         Expanded(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(child: _ScoreButton(label: '1', color: color, onTap: onAdd != null ? () => onAdd(1) : null)),
-                const SizedBox(width: 10),
-                Expanded(child: _ScoreButton(label: '2', color: color, onTap: onAdd != null ? () => onAdd(2) : null)),
-              ],
-            ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: _ScoreButton(label: '1', sublabel: '1 pt',  color: color, onTap: onAdd != null ? () => onAdd(1) : null)),
+              const SizedBox(width: 10),
+              Expanded(child: _ScoreButton(label: '2', sublabel: '2 pts', color: color, onTap: onAdd != null ? () => onAdd(2) : null)),
+            ],
           ),
         ),
       ],
@@ -275,10 +364,11 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
 
 class _ScoreButton extends StatefulWidget {
   final String label;
+  final String? sublabel;
   final Color color;
   final VoidCallback? onTap;
 
-  const _ScoreButton({required this.label, required this.color, required this.onTap});
+  const _ScoreButton({required this.label, this.sublabel, required this.color, required this.onTap});
 
   @override
   State<_ScoreButton> createState() => _ScoreButtonState();
@@ -304,15 +394,31 @@ class _ScoreButtonState extends State<_ScoreButton> {
             color: _pressed ? widget.color.withValues(alpha: 0.7) : widget.color,
             borderRadius: BorderRadius.circular(16),
           ),
-          child: Center(
-            child: Text(
-              widget.label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 80,
-                fontWeight: FontWeight.bold,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                widget.label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 80,
+                  fontWeight: FontWeight.bold,
+                  height: 1.0,
+                ),
               ),
-            ),
+              if (widget.sublabel != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  widget.sublabel!,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
       ),
