@@ -319,7 +319,7 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
                         child: Wrap(
                           spacing: 6,
                           runSpacing: 6,
-                          children: events.reversed.map((pts) => Container(
+                          children: events.map((pts) => Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
                               color: color.withValues(alpha: 0.15),
