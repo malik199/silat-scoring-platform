@@ -209,30 +209,45 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
                 ),
               ],
               const SizedBox(height: 10),
-              // Event chips
-              events.isEmpty
-                  ? Text('No scores yet', style: TextStyle(color: color.withValues(alpha: 0.3), fontSize: 13))
-                  : Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      alignment: alignment == CrossAxisAlignment.end ? WrapAlignment.end : WrapAlignment.start,
-                      children: events.map((pts) => Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: color.withValues(alpha: 0.25),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: color.withValues(alpha: 0.5)),
-                        ),
+              // Event chips — fixed height, scrollable, newest first
+              SizedBox(
+                height: 82,
+                child: events.isEmpty
+                    ? Align(
+                        alignment: alignment == CrossAxisAlignment.end
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
                         child: Text(
-                          '$pts',
-                          style: TextStyle(
-                            color: color,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          'No scores yet',
+                          style: TextStyle(color: color.withValues(alpha: 0.3), fontSize: 13),
                         ),
-                      )).toList(),
-                    ),
+                      )
+                    : SingleChildScrollView(
+                        child: Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          alignment: alignment == CrossAxisAlignment.end
+                              ? WrapAlignment.end
+                              : WrapAlignment.start,
+                          children: events.reversed.map((pts) => Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: color.withValues(alpha: 0.25),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: color.withValues(alpha: 0.5)),
+                            ),
+                            child: Text(
+                              '$pts',
+                              style: TextStyle(
+                                color: color,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          )).toList(),
+                        ),
+                      ),
+              ),
             ],
           ),
         ),
