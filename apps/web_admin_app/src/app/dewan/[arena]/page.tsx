@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Shell } from "@/components/Shell";
 import { useAuth } from "@/context/AuthContext";
-import { subscribeActiveTournament } from "@/lib/tournaments";
+import { subscribeActiveTournament, type Tournament } from "@/lib/tournaments";
 import { subscribeCompetitors, type Competitor } from "@/lib/competitors";
 import {
   subscribeActiveMatch,
@@ -95,7 +95,9 @@ export default function DewanPage() {
   const { user } = useAuth();
 
   const [openSide, setOpenSide] = useState<"red" | "blue" | null>(null);
+  const [tournament,    setTournament]    = useState<Tournament | null>(null);
   const [tournamentId,  setTournamentId]  = useState<string | null>(null);
+  const [pinVisible,    setPinVisible]    = useState(false);
   const [match,         setMatch]         = useState<Match | null | undefined>(undefined);
   const [competitors,   setCompetitors]   = useState<Competitor[]>([]);
   const [scoreEvents,   setScoreEvents]   = useState<ScoreEvent[]>([]);
@@ -104,7 +106,10 @@ export default function DewanPage() {
 
   useEffect(() => {
     if (!user) return;
-    return subscribeActiveTournament(user.uid, (t) => setTournamentId(t?.id ?? null));
+    return subscribeActiveTournament(user.uid, (t) => {
+      setTournament(t ?? null);
+      setTournamentId(t?.id ?? null);
+    });
   }, [user]);
 
   useEffect(() => {
@@ -159,6 +164,8 @@ export default function DewanPage() {
     if (last) await deleteAdminEvent(match.id, last.id);
   }
 
+  const arenaPin = tournament?.arenaPins?.[String(arenaNumber)] ?? null;
+
   const isRunning    = match?.timerRunning ?? false;
   const currentRound = match?.currentRound ?? 1;
   const isLastRound  = currentRound >= 3;
@@ -191,12 +198,30 @@ export default function DewanPage() {
   return (
     <Shell
       title={`Dewan — Arena ${arenaNumber}`}
-      badge={match ? (
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-warn/10 border border-warn/30">
-          <span className="w-1.5 h-1.5 rounded-full bg-warn animate-pulse" />
-          <span className="text-xs font-semibold text-warn">Live</span>
+      badge={
+        <div className="flex items-center gap-2">
+          {match && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-warn/10 border border-warn/30">
+              <span className="w-1.5 h-1.5 rounded-full bg-warn animate-pulse" />
+              <span className="text-xs font-semibold text-warn">Live</span>
+            </div>
+          )}
+          {arenaPin && (
+            <button
+              type="button"
+              onClick={() => setPinVisible((v) => !v)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-elevated border border-border hover:border-accent/50 transition-colors select-none"
+              title={pinVisible ? "Hide PIN" : "Reveal PIN"}
+            >
+              <span className="text-xs text-muted">PIN</span>
+              <span className="text-xs font-mono font-bold text-primary tracking-widest">
+                {pinVisible ? arenaPin : "••••"}
+              </span>
+              <span className="text-xs text-muted">{pinVisible ? "🙈" : "👁"}</span>
+            </button>
+          )}
         </div>
-      ) : undefined}
+      }
     >
 
       {match === undefined && (
