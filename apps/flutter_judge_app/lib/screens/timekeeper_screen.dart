@@ -327,7 +327,7 @@ class _TimekeeperScreenState extends State<TimekeeperScreen> {
     );
   }
 
-  // ── Main controls ────────────────────────────────────────────────────────────
+  // ── Main controls — 3-column layout ─────────────────────────────────────────
 
   Widget _buildControls(
       bool isRunning, int currentRound, bool isLastRound, bool isExpired) {
@@ -335,167 +335,209 @@ class _TimekeeperScreenState extends State<TimekeeperScreen> {
         ? const Color(0xFFFF5050)
         : isRunning && _remaining <= 30
             ? const Color(0xFFFFB43C)
-            : Colors.white.withValues(alpha: 0.9);
+            : Colors.white;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 28, 20, 32),
-      child: Column(
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // ── Round pips ────────────────────────────────────────────────────
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(_totalRounds, (i) {
-              final r         = i + 1;
-              final isCurrent = r == currentRound;
-              final isDone    = r < currentRound;
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: Column(children: [
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    width: 52, height: 52,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isCurrent
-                          ? Colors.white.withValues(alpha: 0.12)
-                          : Colors.transparent,
-                      border: Border.all(
-                        color: isCurrent
-                            ? Colors.white.withValues(alpha: 0.7)
-                            : isDone
-                                ? Colors.white.withValues(alpha: 0.15)
-                                : Colors.white.withValues(alpha: 0.1),
-                        width: 2,
-                      ),
-                    ),
-                    child: Center(
-                      child: Text(
-                        isDone ? '✓' : '$r',
-                        style: TextStyle(
-                          color: isCurrent
-                              ? Colors.white.withValues(alpha: 0.9)
-                              : isDone
-                                  ? Colors.white.withValues(alpha: 0.25)
-                                  : Colors.white.withValues(alpha: 0.15),
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    isCurrent ? 'Current' : isDone ? 'Done' : '',
-                    style: TextStyle(
-                      color: isCurrent
-                          ? Colors.white.withValues(alpha: 0.4)
-                          : Colors.white.withValues(alpha: 0.1),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ]),
-              );
-            }),
-          ),
 
-          const SizedBox(height: 28),
-
-          // ── Timer display ─────────────────────────────────────────────────
-          Text(
-            _fmt(_remaining),
-            style: TextStyle(
-              color: timerColor,
-              fontSize: 110,
-              fontWeight: FontWeight.w900,
-              height: 1,
-            ),
-          ),
-          if (isExpired)
-            const Padding(
-              padding: EdgeInsets.only(top: 8),
-              child: Text(
-                "TIME'S UP",
-                style: TextStyle(
-                    color: Colors.redAccent,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2),
-              ),
-            ),
-
-          const SizedBox(height: 32),
-
-          // ── Start / Stop / Reset ──────────────────────────────────────────
-          Row(children: [
-            Expanded(child: _CtrlButton(
-              label: 'Start', icon: '▶',
-              color: const Color(0xFF00C850),
+          // ── LEFT: START ───────────────────────────────────────────────────
+          Expanded(
+            flex: 5,
+            child: _BigButton(
+              label: 'START',
+              icon: Icons.play_arrow_rounded,
+              color: const Color(0xFF1E88E5),
               enabled: !isRunning && !isExpired && !_busy,
               onTap: _handleStart,
-            )),
-            const SizedBox(width: 10),
-            Expanded(child: _CtrlButton(
-              label: 'Stop', icon: '■',
-              color: const Color(0xFFDC3232),
-              enabled: isRunning && !_busy,
-              onTap: _handleStop,
-            )),
-            const SizedBox(width: 10),
-            Expanded(child: _CtrlButton(
-              label: 'Reset', icon: '↺',
-              color: Colors.white54,
-              enabled: !isRunning && !_busy,
-              onTap: _handleReset,
-            )),
-          ]),
-
-          const SizedBox(height: 20),
-
-          // ── Next round / Final round ───────────────────────────────────────
-          if (!isLastRound && !_confirmNext)
-            _NextRoundButton(
-              label: 'Next Round → Round ${currentRound + 1}',
-              enabled: !isRunning && !_busy,
-              onTap: () => setState(() => _confirmNext = true),
             ),
+          ),
 
-          if (!isLastRound && _confirmNext)
-            _ConfirmRow(
-              nextRound: currentRound + 1,
-              onCancel:  () => setState(() => _confirmNext = false),
-              onConfirm: _handleNextRound,
-            ),
+          const SizedBox(width: 10),
 
-          if (isLastRound)
-            const Padding(
-              padding: EdgeInsets.only(top: 4),
-              child: Text(
-                'FINAL ROUND',
-                style: TextStyle(
-                    color: Colors.white24,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.5),
-              ),
+          // ── CENTRE: timer + reset + round pips ───────────────────────────
+          Expanded(
+            flex: 4,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Timer
+                Expanded(
+                  child: Center(
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          _fmt(_remaining),
+                          style: TextStyle(
+                            color: timerColor,
+                            fontSize: 100,
+                            fontWeight: FontWeight.w900,
+                            height: 1,
+                          ),
+                        ),
+                      ),
+                      if (isExpired)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 6),
+                          child: Text("TIME'S UP",
+                              style: TextStyle(
+                                  color: Colors.redAccent,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.5)),
+                        ),
+                    ]),
+                  ),
+                ),
+
+                // Reset button
+                _ResetButton(
+                  enabled: !isRunning && !_busy,
+                  onTap: _handleReset,
+                ),
+
+                const SizedBox(height: 12),
+
+                // Round pips
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(_totalRounds, (i) {
+                    final r         = i + 1;
+                    final isCurrent = r == currentRound;
+                    final isDone    = r < currentRound;
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Column(children: [
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          width: 34, height: 34,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isCurrent
+                                ? Colors.white.withValues(alpha: 0.12)
+                                : Colors.transparent,
+                            border: Border.all(
+                              color: isCurrent
+                                  ? Colors.white.withValues(alpha: 0.7)
+                                  : isDone
+                                      ? Colors.white.withValues(alpha: 0.3)
+                                      : Colors.white.withValues(alpha: 0.15),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              isDone ? '✓' : '$r',
+                              style: TextStyle(
+                                color: isCurrent
+                                    ? Colors.white
+                                    : isDone
+                                        ? Colors.white.withValues(alpha: 0.4)
+                                        : Colors.white.withValues(alpha: 0.2),
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          isCurrent ? 'NOW' : isDone ? 'DONE' : '',
+                          style: TextStyle(
+                            color: isCurrent
+                                ? Colors.white.withValues(alpha: 0.5)
+                                : Colors.white.withValues(alpha: 0.2),
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ]),
+                    );
+                  }),
+                ),
+
+                const SizedBox(height: 2),
+              ],
             ),
+          ),
+
+          const SizedBox(width: 10),
+
+          // ── RIGHT: STOP + Next Round ──────────────────────────────────────
+          Expanded(
+            flex: 5,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // STOP
+                Expanded(
+                  child: _BigButton(
+                    label: 'STOP',
+                    icon: Icons.stop_rounded,
+                    color: const Color(0xFFE53935),
+                    enabled: isRunning && !_busy,
+                    onTap: _handleStop,
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // Next Round / Confirm / Final Round
+                if (!isLastRound && !_confirmNext)
+                  _NextRoundButton(
+                    nextRound: currentRound + 1,
+                    enabled: !isRunning && !_busy,
+                    onTap: () => setState(() => _confirmNext = true),
+                  ),
+
+                if (!isLastRound && _confirmNext)
+                  _ConfirmNextRound(
+                    nextRound: currentRound + 1,
+                    onCancel:  () => setState(() => _confirmNext = false),
+                    onConfirm: _handleNextRound,
+                  ),
+
+                if (isLastRound)
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.04),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Text(
+                      'FINAL ROUND',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: Colors.white24,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.5),
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-// ── Reusable widgets ─────────────────────────────────────────────────────────
+// ── Widgets ──────────────────────────────────────────────────────────────────
 
-class _CtrlButton extends StatefulWidget {
+/// Large full-height action button (START / STOP).
+class _BigButton extends StatefulWidget {
   final String       label;
-  final String       icon;
+  final IconData     icon;
   final Color        color;
   final bool         enabled;
   final VoidCallback onTap;
 
-  const _CtrlButton({
+  const _BigButton({
     required this.label,
     required this.icon,
     required this.color,
@@ -504,10 +546,65 @@ class _CtrlButton extends StatefulWidget {
   });
 
   @override
-  State<_CtrlButton> createState() => _CtrlButtonState();
+  State<_BigButton> createState() => _BigButtonState();
 }
 
-class _CtrlButtonState extends State<_CtrlButton> {
+class _BigButtonState extends State<_BigButton> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap:       widget.enabled ? widget.onTap : null,
+      onTapDown:   widget.enabled ? (_) => setState(() => _pressed = true) : null,
+      onTapUp:     (_) => setState(() => _pressed = false),
+      onTapCancel: ()  => setState(() => _pressed = false),
+      child: AnimatedScale(
+        scale: _pressed ? 0.96 : 1.0,
+        duration: const Duration(milliseconds: 80),
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 150),
+          opacity: widget.enabled ? 1.0 : 0.35,
+          child: Container(
+            decoration: BoxDecoration(
+              color: widget.color,
+              borderRadius: BorderRadius.circular(22),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(widget.icon, color: Colors.white, size: 52),
+                const SizedBox(height: 14),
+                Text(
+                  widget.label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Small dark Reset button shown below the timer.
+class _ResetButton extends StatefulWidget {
+  final bool         enabled;
+  final VoidCallback onTap;
+
+  const _ResetButton({required this.enabled, required this.onTap});
+
+  @override
+  State<_ResetButton> createState() => _ResetButtonState();
+}
+
+class _ResetButtonState extends State<_ResetButton> {
   bool _pressed = false;
 
   @override
@@ -520,129 +617,141 @@ class _CtrlButtonState extends State<_CtrlButton> {
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 100),
         opacity: widget.enabled ? 1.0 : 0.3,
-        child: AnimatedScale(
-          scale: _pressed ? 0.93 : 1.0,
+        child: AnimatedContainer(
           duration: const Duration(milliseconds: 80),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 22),
-            decoration: BoxDecoration(
-              color:         widget.color.withValues(alpha: _pressed ? 0.18 : 0.10),
-              borderRadius:  BorderRadius.circular(18),
-              border: Border.all(
-                color: widget.color.withValues(alpha: _pressed ? 0.8 : 0.45),
-                width: 2,
-              ),
-            ),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Text(widget.icon,
-                  style: TextStyle(color: widget.color, fontSize: 26)),
-              const SizedBox(height: 6),
-              Text(widget.label,
-                  style: TextStyle(
-                      color: widget.color,
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold)),
-            ]),
+          padding: const EdgeInsets.symmetric(vertical: 13),
+          decoration: BoxDecoration(
+            color: _pressed ? const Color(0xFF2A2A2A) : const Color(0xFF1C1C1C),
+            borderRadius: BorderRadius.circular(14),
           ),
+          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Icon(Icons.refresh_rounded,
+                color: Colors.white.withValues(alpha: 0.7), size: 18),
+            const SizedBox(width: 6),
+            Text('Reset',
+                style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.7),
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold)),
+          ]),
         ),
       ),
     );
   }
 }
 
-class _NextRoundButton extends StatelessWidget {
-  final String       label;
+/// "Next Round → Round N" button shown bottom-right.
+class _NextRoundButton extends StatefulWidget {
+  final int          nextRound;
   final bool         enabled;
   final VoidCallback onTap;
 
   const _NextRoundButton(
-      {required this.label, required this.enabled, required this.onTap});
+      {required this.nextRound, required this.enabled, required this.onTap});
+
+  @override
+  State<_NextRoundButton> createState() => _NextRoundButtonState();
+}
+
+class _NextRoundButtonState extends State<_NextRoundButton> {
+  bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: enabled ? onTap : null,
+      onTap:       widget.enabled ? widget.onTap : null,
+      onTapDown:   widget.enabled ? (_) => setState(() => _pressed = true) : null,
+      onTapUp:     (_) => setState(() => _pressed = false),
+      onTapCancel: ()  => setState(() => _pressed = false),
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 100),
-        opacity: enabled ? 1.0 : 0.2,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 16),
+        opacity: widget.enabled ? 1.0 : 0.25,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 80),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.05),
+            color: _pressed
+                ? Colors.white.withValues(alpha: 0.08)
+                : Colors.white.withValues(alpha: 0.04),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
           ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-                color: Colors.white60, fontSize: 15, fontWeight: FontWeight.bold),
-          ),
+          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Container(
+              width: 22, height: 22,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white54, width: 1.5),
+              ),
+              child: const Icon(Icons.arrow_forward_rounded,
+                  color: Colors.white54, size: 13),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Next Round → Round ${widget.nextRound}',
+              style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold),
+            ),
+          ]),
         ),
       ),
     );
   }
 }
 
-class _ConfirmRow extends StatelessWidget {
+/// Confirmation UI replacing the Next Round button.
+class _ConfirmNextRound extends StatelessWidget {
   final int          nextRound;
   final VoidCallback onCancel;
   final VoidCallback onConfirm;
 
-  const _ConfirmRow(
+  const _ConfirmNextRound(
       {required this.nextRound, required this.onCancel, required this.onConfirm});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16),
+        color: Colors.amber.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
       ),
-      child: Column(children: [
-        Text(
-          'Move to Round $nextRound? You cannot go back.',
-          style: const TextStyle(color: Colors.white70, fontSize: 14),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 14),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Text('Round $nextRound?',
+            style: const TextStyle(
+                color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
         Row(children: [
           Expanded(child: GestureDetector(
             onTap: onCancel,
             child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 13),
+              padding: const EdgeInsets.symmetric(vertical: 10),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
+                color: Colors.white.withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
               ),
               child: const Text('Cancel',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                      color: Colors.white38,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold)),
+                      color: Colors.white38, fontSize: 13, fontWeight: FontWeight.bold)),
             ),
           )),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           Expanded(child: GestureDetector(
             onTap: onConfirm,
             child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 13),
+              padding: const EdgeInsets.symmetric(vertical: 10),
               decoration: BoxDecoration(
-                color: Colors.amber.withValues(alpha: 0.12),
+                color: Colors.amber.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
               ),
-              child: Text('Round $nextRound',
+              child: const Text('Confirm',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      color: Colors.amber,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold)),
+                  style: TextStyle(
+                      color: Colors.amber, fontSize: 13, fontWeight: FontWeight.bold)),
             ),
           )),
         ]),

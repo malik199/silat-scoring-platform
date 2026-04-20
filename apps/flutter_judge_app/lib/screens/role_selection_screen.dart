@@ -32,25 +32,10 @@ class RoleSelectionScreen extends StatelessWidget {
         elevation: 0,
       ),
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 40),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Select your role',
-              style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Arena $arenaNumber  ·  $tournamentName',
-              style: const TextStyle(fontSize: 13, color: Colors.white38),
-            ),
-            const SizedBox(height: 52),
-
-            // Role cards
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
                 Expanded(
                   child: _RoleCard(
                     icon: Icons.timer_outlined,
@@ -86,8 +71,6 @@ class RoleSelectionScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-              ],
-            ),
           ],
         ),
       ),
