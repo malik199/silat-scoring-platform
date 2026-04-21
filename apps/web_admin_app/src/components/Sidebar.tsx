@@ -64,19 +64,38 @@ export function Sidebar() {
         </p>
         {NAV.map(({ label, href, icon }) => {
           const active = pathname === href;
+          const isTournaments = href === "/tournaments";
+          const activeTournamentHref = tournament ? `/tournaments/${tournament.id}` : null;
+          const subActive = activeTournamentHref ? pathname === activeTournamentHref : false;
           return (
-            <Link
-              key={href}
-              href={href}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                active
-                  ? "bg-accent text-black"
-                  : "text-secondary hover:bg-elevated hover:text-primary"
-              }`}
-            >
-              <span className="text-base leading-none">{icon}</span>
-              {label}
-            </Link>
+            <div key={href}>
+              <Link
+                href={href}
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  active
+                    ? "bg-accent text-black"
+                    : "text-secondary hover:bg-elevated hover:text-primary"
+                }`}
+              >
+                <span className="text-base leading-none">{icon}</span>
+                {label}
+              </Link>
+              {isTournaments && tournament && (
+                <div className="ml-2 border-l border-border pl-2 mt-0.5">
+                  <Link
+                    href={`/tournaments/${tournament.id}`}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors truncate ${
+                      subActive
+                        ? "bg-accent text-black"
+                        : "text-secondary hover:bg-elevated hover:text-primary"
+                    }`}
+                  >
+                    <span className="text-xs leading-none text-muted">▶</span>
+                    <span className="truncate">{tournament.name}</span>
+                  </Link>
+                </div>
+              )}
+            </div>
           );
         })}
 
