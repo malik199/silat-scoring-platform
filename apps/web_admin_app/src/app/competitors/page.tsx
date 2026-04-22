@@ -637,8 +637,8 @@ export default function CompetitorsPage() {
       {/* Table */}
       <div className="bg-surface border border-border rounded-xl overflow-hidden">
         {/* Column headers */}
-        <div className="grid grid-cols-[1fr_1fr_80px_80px_1fr_1fr_1fr_40px] gap-4 px-5 py-3 border-b border-border">
-          {["Name", "Date of Birth", "Weight", "Gender", "Country", "School", "Experience", ""].map((h, i) => (
+        <div className="grid grid-cols-[1fr_1fr_80px_80px_80px_1fr_1fr_1fr_40px] gap-4 px-5 py-3 border-b border-border">
+          {["Name", "Date of Birth", "kg", "lbs", "Gender", "Country", "School", "Experience", ""].map((h, i) => (
             <span key={i} className="text-xs font-semibold uppercase tracking-widest text-muted">
               {h}
             </span>
@@ -674,7 +674,7 @@ export default function CompetitorsPage() {
             {filtered.map((c, i) => (
               <li
                 key={c.id}
-                className={`grid grid-cols-[1fr_1fr_80px_80px_1fr_1fr_1fr_40px] gap-4 px-5 py-3.5 items-center group ${
+                className={`grid grid-cols-[1fr_1fr_80px_80px_80px_1fr_1fr_1fr_40px] gap-4 px-5 py-3.5 items-center group ${
                   i < filtered.length - 1 ? "border-b border-border" : ""
                 }`}
               >
@@ -688,7 +688,8 @@ export default function CompetitorsPage() {
                       })
                     : "—"}
                 </span>
-                <span className="text-sm text-secondary">{c.weightKg} kg</span>
+                <span className="text-sm text-secondary">{c.weightKg}</span>
+                <span className="text-sm text-secondary">{(c.weightKg * 2.20462).toFixed(1)}</span>
                 <span className="text-sm text-secondary capitalize">{c.gender}</span>
                 <span className="text-sm text-secondary truncate">{c.country || "—"}</span>
                 <span className="text-sm text-secondary truncate">{c.schoolName || "—"}</span>
