@@ -81,6 +81,17 @@ function ManualModal({ existing, organiserId, onClose }: ManualModalProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [weightUnit, setWeightUnit] = useState<"kg" | "lbs">("kg");
+
+  const displayWeight = weightUnit === "lbs" && form.weightKg
+    ? parseFloat((form.weightKg * 2.20462).toFixed(1))
+    : form.weightKg;
+
+  function handleWeightChange(raw: string) {
+    const val = parseFloat(raw) || 0;
+    const kg = weightUnit === "lbs" ? parseFloat((val / 2.20462).toFixed(2)) : val;
+    set("weightKg", kg);
+  }
 
   function set<K extends keyof FormData>(key: K, value: FormData[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -206,17 +217,35 @@ function ManualModal({ existing, organiserId, onClose }: ManualModalProps) {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-secondary uppercase tracking-widest mb-1.5">
-                  Weight (kg) <span className="text-danger">*</span>
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-semibold text-secondary uppercase tracking-widest">
+                    Weight <span className="text-danger">*</span>
+                  </label>
+                  <div className="flex rounded-md overflow-hidden border border-border text-xs font-semibold">
+                    {(["kg", "lbs"] as const).map((u) => (
+                      <button
+                        key={u}
+                        type="button"
+                        onClick={() => setWeightUnit(u)}
+                        className={`px-2 py-0.5 transition-colors ${
+                          weightUnit === u
+                            ? "bg-accent text-black"
+                            : "bg-elevated text-secondary hover:text-primary"
+                        }`}
+                      >
+                        {u}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <input
                   type="number"
                   min={1}
-                  max={200}
+                  max={weightUnit === "lbs" ? 440 : 200}
                   step={0.1}
-                  value={form.weightKg || ""}
-                  onChange={(e) => set("weightKg", parseFloat(e.target.value) || 0)}
-                  placeholder="65"
+                  value={displayWeight || ""}
+                  onChange={(e) => handleWeightChange(e.target.value)}
+                  placeholder={weightUnit === "lbs" ? "143" : "65"}
                   className="w-full bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-primary placeholder-muted focus:outline-none focus:border-accent transition-colors"
                 />
               </div>
