@@ -426,9 +426,9 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
           <p className="text-9xl font-black tabular-nums tracking-tight" style={{ color: remaining <= 10 ? "rgba(255,80,80,0.85)" : "rgba(255,255,255,0.6)" }}>
             {formatTime(remaining)}
           </p>
-          <div className="flex flex-col items-center justify-center border border-white/20 rounded-xl px-8 py-4 min-w-[140px]">
-            <p className="text-sm font-semibold uppercase tracking-widest text-white/30">Round</p>
-            <p className="text-9xl font-black text-white/60 leading-none">{runningMatch?.currentRound ?? 1}</p>
+          <div className="flex flex-col items-center justify-center border border-white/20 rounded-xl px-5 py-3 min-w-[96px]">
+            <p className="text-xs font-semibold uppercase tracking-widest text-white/30">Round</p>
+            <p className="text-7xl font-black text-white/60 leading-none">{runningMatch?.currentRound ?? 1}</p>
           </div>
         </div>
       </div>
