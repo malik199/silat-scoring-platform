@@ -10,7 +10,7 @@ import { subscribeActiveTournament, type Tournament } from "@/lib/tournaments";
 const NAV = [
   { label: "Tournament",  href: "/tournaments", icon: "🏆" },
   { label: "Competitors", href: "/competitors", icon: "👤" },
-  { label: "Matches",     href: "/matches",     icon: "⚔" },
+  { label: "Matches",     href: "/matches",     icon: "🤼" },
 ];
 
 export function Sidebar() {
