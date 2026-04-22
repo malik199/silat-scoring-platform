@@ -410,12 +410,16 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
       {/* Top bar */}
       <div className="flex items-center px-10 py-6 border-b border-white/10" style={{ backgroundColor: "#0a0a0a" }}>
         {/* Arena / tournament name — left */}
-        <p className="flex-1 text-xl font-bold uppercase tracking-[0.3em] text-white/70">
-          Arena {arenaNumber}
+        <div className="flex-1 flex flex-col justify-center">
+          <p className="text-xs font-bold uppercase tracking-[0.3em] text-white/40">
+            Arena {arenaNumber}
+          </p>
           {tournament?.name && (
-            <><span className="mx-4 text-white/30">·</span><span>{tournament.name}</span></>
+            <p className="text-3xl font-black text-white/80 leading-tight">
+              {tournament.name}
+            </p>
           )}
-        </p>
+        </div>
 
         {/* Timer + Round — right */}
         <div className="flex items-center gap-4">
