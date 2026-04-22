@@ -8,6 +8,7 @@ import {
   subscribeCompetitors,
   addCompetitor,
   updateCompetitor,
+  deleteCompetitor,
   bulkAddCompetitors,
   parseCsv,
   EXPERIENCE_LABELS,
@@ -79,6 +80,7 @@ function ManualModal({ existing, organiserId, onClose }: ManualModalProps) {
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   function set<K extends keyof FormData>(key: K, value: FormData[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -297,20 +299,44 @@ function ManualModal({ existing, organiserId, onClose }: ManualModalProps) {
 
           {/* Footer */}
           <div className="px-6 py-4 border-t border-border flex gap-3 flex-shrink-0">
+            {isEdit && !confirmDelete && (
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(true)}
+                className="px-4 py-2.5 rounded-lg border border-danger/40 text-sm font-medium text-danger hover:bg-danger/10 transition-colors"
+              >
+                Delete
+              </button>
+            )}
+            {isEdit && confirmDelete && (
+              <button
+                type="button"
+                onClick={async () => {
+                  setSaving(true);
+                  await deleteCompetitor(existing!.id);
+                  onClose();
+                }}
+                className="px-4 py-2.5 rounded-lg bg-danger text-white text-sm font-semibold hover:bg-danger/80 transition-colors"
+              >
+                Confirm Delete
+              </button>
+            )}
             <button
               type="button"
-              onClick={onClose}
+              onClick={confirmDelete ? () => setConfirmDelete(false) : onClose}
               className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-primary hover:bg-elevated transition-colors"
             >
-              Cancel
+              {confirmDelete ? "No, keep" : "Cancel"}
             </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex-1 px-4 py-2.5 rounded-lg bg-accent text-black text-sm font-semibold hover:bg-accent-hover transition-colors disabled:opacity-50"
-            >
-              {saving ? "Saving…" : isEdit ? "Save Changes" : "Add Competitor"}
-            </button>
+            {!confirmDelete && (
+              <button
+                type="submit"
+                disabled={saving}
+                className="flex-1 px-4 py-2.5 rounded-lg bg-accent text-black text-sm font-semibold hover:bg-accent-hover transition-colors disabled:opacity-50"
+              >
+                {saving ? "Saving…" : isEdit ? "Save Changes" : "Add Competitor"}
+              </button>
+            )}
           </div>
         </form>
       </div>

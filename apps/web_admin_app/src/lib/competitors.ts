@@ -5,6 +5,7 @@ import {
   doc,
   addDoc,
   updateDoc,
+  deleteDoc,
   writeBatch,
   onSnapshot,
   query,
@@ -170,6 +171,10 @@ export async function updateCompetitor(
   input: CompetitorInput
 ): Promise<void> {
   await updateDoc(doc(db, COL, id), { ...input, updatedAt: serverTimestamp() });
+}
+
+export async function deleteCompetitor(id: string): Promise<void> {
+  await deleteDoc(doc(db, COL, id));
 }
 
 export function subscribeCompetitor(
