@@ -8,10 +8,9 @@ import { signOut } from "@/lib/auth";
 import { subscribeActiveTournament, type Tournament } from "@/lib/tournaments";
 
 const NAV = [
-  { label: "Dashboard",   href: "/",            icon: "▣" },
-  { label: "Matches",     href: "/matches",     icon: "⚔" },
   { label: "Tournament",  href: "/tournaments", icon: "🏆" },
   { label: "Competitors", href: "/competitors", icon: "👤" },
+  { label: "Matches",     href: "/matches",     icon: "⚔" },
 ];
 
 export function Sidebar() {
