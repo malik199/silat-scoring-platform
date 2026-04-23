@@ -72,7 +72,7 @@ class MatchDoc {
   final bool      timerRunning;
   final DateTime? timerStartedAt;       // null when timer is stopped
   final double    timerElapsedSeconds;  // seconds accumulated before last start
-  final int       roundDurationSeconds; // 110 or 120
+  final int       roundDurationSeconds; // 90 or 120
   final int       currentRound;         // 1-based
 
   const MatchDoc({

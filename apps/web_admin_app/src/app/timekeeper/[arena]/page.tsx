@@ -155,7 +155,7 @@ export default function TimekeeperPage() {
               <p className="text-sm font-bold text-white/60 truncate max-w-xs">
                 {redComp ? `${redComp.firstName} ${redComp.lastName}` : "Red"} vs {blueComp ? `${blueComp.firstName} ${blueComp.lastName}` : "Blue"}
               </p>
-              <p className="text-xs text-white/30 mt-0.5">{match.roundDurationSeconds === 110 ? "1:50" : "2:00"} rounds</p>
+              <p className="text-xs text-white/30 mt-0.5">{match.roundDurationSeconds === 90 ? "1:30" : "2:00"} rounds</p>
             </div>
           )}
         </div>
