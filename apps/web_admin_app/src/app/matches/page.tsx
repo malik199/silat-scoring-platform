@@ -308,8 +308,8 @@ function MatchRow({
           </>
         )}
 
-        {/* Delete — only pending */}
-        {isPending && (
+        {/* Delete — available for all statuses except in_progress */}
+        {!isRunning && (
           <button
             onClick={onDelete}
             title="Delete match"
