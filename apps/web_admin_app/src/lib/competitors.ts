@@ -54,11 +54,11 @@ export type CompetitorInput = Omit<Competitor, "id" | "createdAt">;
 
 // ─── CSV ─────────────────────────────────────────────────────────────────────
 
+// weight_kg OR weight_lbs must be present — checked manually below
 const EXPECTED_HEADERS = [
   "first_name",
   "last_name",
   "date_of_birth",
-  "weight_kg",
   "gender",
   "country",
   "school_name",
@@ -89,6 +89,14 @@ export function parseCsv(text: string): CsvParseResult {
       errors: [{ row: 0, message: `Missing columns: ${missing.join(", ")}` }],
     };
   }
+  const hasWeightKg  = headers.includes("weight_kg");
+  const hasWeightLbs = headers.includes("weight_lbs");
+  if (!hasWeightKg && !hasWeightLbs) {
+    return {
+      valid: [],
+      errors: [{ row: 0, message: "Missing weight column: include weight_kg or weight_lbs (or both)" }],
+    };
+  }
 
   const idx = (h: string) => headers.indexOf(h);
   const valid: CsvCompetitorRow[] = [];
@@ -101,7 +109,6 @@ export function parseCsv(text: string): CsvParseResult {
     const firstName  = cells[idx("first_name")]  ?? "";
     const lastName   = cells[idx("last_name")]   ?? "";
     const dob        = cells[idx("date_of_birth")] ?? "";
-    const weightRaw  = cells[idx("weight_kg")]   ?? "";
     const genderRaw  = cells[idx("gender")]?.toLowerCase()   ?? "";
     const country    = cells[idx("country")]     ?? "";
     const schoolName = cells[idx("school_name")] ?? "";
@@ -110,9 +117,21 @@ export function parseCsv(text: string): CsvParseResult {
     if (!firstName) { errors.push({ row, message: "Missing first_name" }); continue; }
     if (!lastName)  { errors.push({ row, message: "Missing last_name" });  continue; }
 
-    const weightKg = parseFloat(weightRaw);
-    if (isNaN(weightKg) || weightKg <= 0) {
-      errors.push({ row, message: `Invalid weight_kg: "${weightRaw}"` }); continue;
+    // weight_kg takes priority; fall back to weight_lbs converted to kg
+    const weightKgRaw  = hasWeightKg  ? cells[idx("weight_kg")]  ?? "" : "";
+    const weightLbsRaw = hasWeightLbs ? cells[idx("weight_lbs")] ?? "" : "";
+    let weightKg: number;
+    if (weightKgRaw) {
+      weightKg = parseFloat(weightKgRaw);
+      if (isNaN(weightKg) || weightKg <= 0) {
+        errors.push({ row, message: `Invalid weight_kg: "${weightKgRaw}"` }); continue;
+      }
+    } else {
+      const lbs = parseFloat(weightLbsRaw);
+      if (isNaN(lbs) || lbs <= 0) {
+        errors.push({ row, message: `Invalid weight_lbs: "${weightLbsRaw}"` }); continue;
+      }
+      weightKg = parseFloat((lbs / 2.20462).toFixed(2));
     }
 
     if (genderRaw !== "male" && genderRaw !== "female") {

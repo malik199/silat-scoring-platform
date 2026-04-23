@@ -442,10 +442,13 @@ function CsvModal({ organiserId, onClose }: CsvModalProps) {
                   first_name, last_name, date_of_birth, weight_kg, gender, country, school_name, experience
                 </code>
                 <p className="text-xs text-muted mt-1.5">
-                  Gender values: <span className="text-secondary">male · female</span>
+                  Use <span className="text-secondary">weight_kg</span> or <span className="text-secondary">weight_lbs</span> (or both — kg takes priority). Values are always stored as kg.
                 </p>
                 <p className="text-xs text-muted mt-1">
-                  Experience values: <span className="text-secondary">beginner · intermediate · advanced · pro</span>
+                  Gender: <span className="text-secondary">male · female</span>
+                </p>
+                <p className="text-xs text-muted mt-1">
+                  Experience: <span className="text-secondary">beginner · intermediate · advanced · pro</span>
                 </p>
               </div>
 
