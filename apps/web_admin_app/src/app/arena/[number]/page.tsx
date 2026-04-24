@@ -264,6 +264,14 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
 
   // ── Timer display ────────────────────────────────────────────────────────
   const [remaining, setRemaining] = useState<number>(120);
+  // Track when we locally observed timerRunning become true.
+  // The arena screen is a remote display — it only sees Firestore snapshots
+  // AFTER the server confirms them, which can be several seconds after Start
+  // is pressed. Using local elapsed time avoids an immediate jump (e.g. 2:00→1:54).
+  const localRunStartRef  = useRef<number | null>(null); // seconds (Date.now()/1000)
+  const localBaseRef      = useRef<number>(0);           // timerElapsedSeconds at local-start
+  const prevRunningRef    = useRef(false);
+  const prevMatchKeyRef   = useRef("");                  // matchId+round
 
   // Firestore subscriptions
   useEffect(() => {
@@ -351,11 +359,51 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
     return () => clearInterval(id);
   }, []);
 
-  // Tick timer from runningMatch
+  // Tick timer from runningMatch.
+  // Uses local elapsed time when timerRunning first becomes true so the arena
+  // display starts from 2:00 instead of jumping to e.g. 1:54 due to the few
+  // seconds of Firestore propagation delay to this remote display device.
   useEffect(() => {
-    if (!runningMatch) return;
-    setRemaining(computeRemainingSeconds(runningMatch));
-    const id = setInterval(() => setRemaining(computeRemainingSeconds(runningMatch)), 100);
+    if (!runningMatch) {
+      prevRunningRef.current  = false;
+      prevMatchKeyRef.current = "";
+      localRunStartRef.current = null;
+      return;
+    }
+
+    const matchKey = `${runningMatch.id}-${runningMatch.currentRound}`;
+    const keyChanged = matchKey !== prevMatchKeyRef.current;
+
+    if (keyChanged) {
+      // New match or new round — reset local tracking
+      localRunStartRef.current  = null;
+      prevRunningRef.current    = false;
+      prevMatchKeyRef.current   = matchKey;
+    }
+
+    if (runningMatch.timerRunning && !prevRunningRef.current) {
+      // Timer just became running locally — record this moment
+      localRunStartRef.current = Date.now() / 1000;
+      localBaseRef.current     = runningMatch.timerElapsedSeconds ?? 0;
+    } else if (!runningMatch.timerRunning) {
+      localRunStartRef.current = null;
+    }
+    prevRunningRef.current = runningMatch.timerRunning;
+
+    const duration = runningMatch.roundDurationSeconds ?? 120;
+
+    function computeDisplay(): number {
+      const localStart = localRunStartRef.current;
+      if (runningMatch!.timerRunning && localStart !== null) {
+        // Count from local observation time — avoids propagation-delay jump
+        const elapsed = Date.now() / 1000 - localStart;
+        return Math.max(0, duration - localBaseRef.current - elapsed);
+      }
+      return computeRemainingSeconds(runningMatch!);
+    }
+
+    setRemaining(computeDisplay());
+    const id = setInterval(() => setRemaining(computeDisplay()), 100);
     return () => clearInterval(id);
   }, [runningMatch]);
 
