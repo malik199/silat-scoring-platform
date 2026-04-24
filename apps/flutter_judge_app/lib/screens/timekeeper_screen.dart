@@ -35,6 +35,9 @@ class _TimekeeperScreenState extends State<TimekeeperScreen> {
   // ── Button debounce ──────────────────────────────────────────────────────────
   bool _busy = false;
 
+  // ── Auto-stop guard (prevent firing more than once per round) ────────────────
+  bool _autoStopFired = false;
+
   // ── Confirm next-round dialog ────────────────────────────────────────────────
   bool _confirmNext = false;
 
@@ -69,6 +72,10 @@ class _TimekeeperScreenState extends State<TimekeeperScreen> {
     try {
       final match = await fetchActiveMatch(widget.tournamentId, widget.arenaNumber);
       if (!mounted) return;
+      // Reset auto-stop guard when match or round changes
+      if (_match?.id != match?.id || _match?.currentRound != match?.currentRound) {
+        _autoStopFired = false;
+      }
       setState(() { _match = match; _loadingMatch = false; });
     } catch (_) {
       if (mounted) setState(() => _loadingMatch = false);
@@ -77,7 +84,13 @@ class _TimekeeperScreenState extends State<TimekeeperScreen> {
 
   void _tick() {
     if (!mounted || _match == null) return;
-    setState(() => _remaining = _computeRemaining(_match!));
+    final newRemaining = _computeRemaining(_match!);
+    setState(() => _remaining = newRemaining);
+    // Auto-stop when the round timer reaches zero
+    if (newRemaining <= 0 && _match!.timerRunning && !_busy && !_autoStopFired) {
+      _autoStopFired = true;
+      _handleStop();
+    }
   }
 
   double _computeRemaining(MatchDoc m) {
@@ -160,6 +173,7 @@ class _TimekeeperScreenState extends State<TimekeeperScreen> {
 
     if (confirmed != true) return;
     setState(() => _busy = true);
+    _autoStopFired = false;
     await timerReset(_match!.id);
     await _fetchMatch();
     if (mounted) setState(() { _busy = false; _confirmNext = false; });

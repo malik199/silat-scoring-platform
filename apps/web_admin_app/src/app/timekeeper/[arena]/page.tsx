@@ -44,11 +44,22 @@ export default function TimekeeperPage() {
     return subscribeCompetitors(user.uid, setCompetitors);
   }, [user]);
 
-  // Tick the display every 100 ms
+  // Auto-stop guard — reset when match or round changes
+  const autoStopFiredRef = useRef(false);
+  useEffect(() => { autoStopFiredRef.current = false; }, [match?.id, match?.currentRound]);
+
+  // Tick the display every 100 ms + auto-stop when round expires
   useEffect(() => {
     if (!match) return;
     setRemaining(computeRemainingSeconds(match));
-    const id = setInterval(() => setRemaining(computeRemainingSeconds(match)), 100);
+    const id = setInterval(() => {
+      const rem = computeRemainingSeconds(match);
+      setRemaining(rem);
+      if (rem <= 0 && match.timerRunning && !autoStopFiredRef.current) {
+        autoStopFiredRef.current = true;
+        timerStop(match.id, match.roundDurationSeconds ?? 120);
+      }
+    }, 100);
     return () => clearInterval(id);
   }, [match]);
 

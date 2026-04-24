@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { Shell } from "@/components/Shell";
 import { useAuth } from "@/context/AuthContext";
@@ -130,11 +130,22 @@ export default function DewanPage() {
     return subscribeCompetitors(user.uid, setCompetitors);
   }, [user]);
 
-  // Tick timer display
+  // Auto-stop guard — reset when match or round changes
+  const autoStopFiredRef = useRef(false);
+  useEffect(() => { autoStopFiredRef.current = false; }, [match?.id, match?.currentRound]);
+
+  // Tick timer display + auto-stop when round expires
   useEffect(() => {
     if (!match) return;
     setRemaining(computeRemainingSeconds(match));
-    const id = setInterval(() => setRemaining(computeRemainingSeconds(match)), 100);
+    const id = setInterval(() => {
+      const rem = computeRemainingSeconds(match);
+      setRemaining(rem);
+      if (rem <= 0 && match.timerRunning && !autoStopFiredRef.current) {
+        autoStopFiredRef.current = true;
+        timerStop(match.id, match.roundDurationSeconds ?? 120);
+      }
+    }, 100);
     return () => clearInterval(id);
   }, [match]);
 
