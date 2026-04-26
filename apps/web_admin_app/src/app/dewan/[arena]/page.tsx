@@ -182,7 +182,9 @@ export default function DewanPage() {
   const isLastRound  = currentRound >= 3;
   const isExpired    = remaining <= 0;
 
-  const [confirmNextRound, setConfirmNextRound] = useState(false);
+  const [confirmNextRound,  setConfirmNextRound]  = useState(false);
+  const [breakdownOpen,     setBreakdownOpen]     = useState(true);
+  const [judgeTapsOpen,     setJudgeTapsOpen]     = useState(true);
 
   async function handleNextRoundConfirmed() {
     if (!match || isLastRound) return;
@@ -256,11 +258,6 @@ export default function DewanPage() {
             <div className={`flex flex-col items-center justify-center py-6 ${winner === "red" ? "bg-danger/10" : ""}`}>
               <p className="text-xs font-semibold uppercase tracking-widest text-danger mb-1">Red</p>
               <p className="text-6xl font-black text-danger">{totalRed}</p>
-              {(adminRed !== 0) && (
-                <p className="text-xs text-muted mt-1">
-                  {confirmedRed} judges {adminRed >= 0 ? "+" : ""}{adminRed} admin
-                </p>
-              )}
               {winner === "red" && <p className="text-xs font-semibold text-danger mt-1">Leading</p>}
             </div>
             <div className="col-span-2 flex flex-col items-center justify-center py-6 border-x border-border gap-3">
@@ -338,11 +335,6 @@ export default function DewanPage() {
             <div className={`flex flex-col items-center justify-center py-6 ${winner === "blue" ? "bg-blue-500/10" : ""}`}>
               <p className="text-xs font-semibold uppercase tracking-widest text-blue-400 mb-1">Blue</p>
               <p className="text-6xl font-black text-blue-400">{totalBlue}</p>
-              {(adminBlue !== 0) && (
-                <p className="text-xs text-muted mt-1">
-                  {confirmedBlue} judges {adminBlue >= 0 ? "+" : ""}{adminBlue} admin
-                </p>
-              )}
               {winner === "blue" && <p className="text-xs font-semibold text-blue-400 mt-1">Leading</p>}
             </div>
           </div>
@@ -388,9 +380,9 @@ export default function DewanPage() {
               type="button"
               onClick={() => undoLast("red")}
               disabled={isRunning || !adminEvents.some((e) => e.side === "red")}
-              className="w-full py-2 rounded-lg text-xs font-semibold text-muted border border-border hover:text-danger hover:border-danger/40 hover:bg-danger/5 transition-all duration-75 active:scale-95 active:brightness-75 select-none disabled:opacity-30 disabled:cursor-not-allowed disabled:active:scale-100"
+              className="w-full py-2.5 rounded-lg text-sm font-bold text-danger border border-danger/40 bg-danger/5 hover:bg-danger/15 hover:border-danger/60 transition-all duration-75 active:scale-95 active:brightness-75 select-none disabled:opacity-30 disabled:cursor-not-allowed disabled:active:scale-100"
             >
-              ↩ Undo last red action
+              ↩ Undo Last Red Action
             </button>
           </div>
 
@@ -426,14 +418,14 @@ export default function DewanPage() {
               type="button"
               onClick={() => undoLast("blue")}
               disabled={isRunning || !adminEvents.some((e) => e.side === "blue")}
-              className="w-full py-2 rounded-lg text-xs font-semibold text-muted border border-border hover:text-blue-400 hover:border-blue-400/40 hover:bg-blue-500/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              className="w-full py-2.5 rounded-lg text-sm font-bold text-blue-400 border border-blue-400/40 bg-blue-500/5 hover:bg-blue-500/15 hover:border-blue-400/60 transition-all duration-75 active:scale-95 active:brightness-75 select-none disabled:opacity-30 disabled:cursor-not-allowed disabled:active:scale-100"
             >
-              ↩ Undo last blue action
+              ↩ Undo Last Blue Action
             </button>
           </div>
         </div>
 
-        {/* ── Score breakdown (tie-breaker) ── */}
+        {/* ── Score breakdown (tie-breaker) — accordion ── */}
         {(() => {
           const ACTIONS: { pts: number; label: string; sublabel: string }[] = [
             { pts:  3, label: "+3", sublabel: "Takedown / Sweep" },
@@ -445,57 +437,67 @@ export default function DewanPage() {
           const count = (side: "red" | "blue", pts: number) =>
             adminEvents.filter((e) => e.side === side && e.points === pts).length;
           const isTied = totalRed === totalBlue;
-          const anyEvents = adminEvents.length > 0;
-          if (!anyEvents && !isTied) return null;
           return (
             <div className={`bg-surface border rounded-xl overflow-hidden mb-4 ${isTied ? "border-warn/50" : "border-border"}`}>
-              <div className={`px-5 py-2.5 border-b flex items-center justify-between ${isTied ? "border-warn/30 bg-warn/5" : "border-border"}`}>
-                <p className="text-xs font-semibold uppercase tracking-widest text-muted">Score Breakdown</p>
-                {isTied && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-warn" />
-                    <span className="text-xs font-bold text-warn">Tiebreaker active</span>
-                  </div>
-                )}
-              </div>
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="px-5 py-2 text-center text-xs font-semibold uppercase tracking-widest text-danger w-1/3">Red</th>
-                    <th className="px-5 py-2 text-center text-xs font-semibold uppercase tracking-widest text-muted">Action</th>
-                    <th className="px-5 py-2 text-center text-xs font-semibold uppercase tracking-widest text-blue-400 w-1/3">Blue</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ACTIONS.map(({ pts, label, sublabel }) => {
-                    const r = count("red",  pts);
-                    const b = count("blue", pts);
-                    const highlight = isTied && (r !== b);
-                    return (
-                      <tr
-                        key={pts}
-                        className={`border-b border-border last:border-b-0 ${highlight ? (pts > 0 ? "bg-accent/5" : "bg-warn/5") : ""}`}
-                      >
-                        <td className="px-5 py-3 text-center">
-                          <span className={`text-xl font-black ${r > 0 ? "text-danger" : "text-muted/30"}`}>{r}</span>
-                        </td>
-                        <td className="px-5 py-3 text-center">
-                          <p className={`text-sm font-bold ${highlight ? (pts > 0 ? "text-accent" : "text-warn") : "text-secondary"}`}>{label}</p>
-                          <p className="text-xs text-muted">{sublabel}</p>
-                        </td>
-                        <td className="px-5 py-3 text-center">
-                          <span className={`text-xl font-black ${b > 0 ? "text-blue-400" : "text-muted/30"}`}>{b}</span>
-                        </td>
+              <button
+                type="button"
+                onClick={() => setBreakdownOpen((o) => !o)}
+                className={`w-full px-5 py-3 flex items-center justify-between transition-colors hover:bg-elevated/50 ${isTied ? "bg-warn/5" : ""}`}
+              >
+                <div className="flex items-center gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-muted">Score Breakdown</p>
+                  {isTied && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-warn" />
+                      <span className="text-xs font-bold text-warn">Tiebreaker active</span>
+                    </div>
+                  )}
+                </div>
+                <span className="text-muted text-xs">{breakdownOpen ? "▲" : "▼"}</span>
+              </button>
+              {breakdownOpen && (
+                <>
+                  <div className={`border-t ${isTied ? "border-warn/30" : "border-border"}`} />
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="px-5 py-2 text-center text-xs font-semibold uppercase tracking-widest text-danger w-1/3">Red</th>
+                        <th className="px-5 py-2 text-center text-xs font-semibold uppercase tracking-widest text-muted">Action</th>
+                        <th className="px-5 py-2 text-center text-xs font-semibold uppercase tracking-widest text-blue-400 w-1/3">Blue</th>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                    </thead>
+                    <tbody>
+                      {ACTIONS.map(({ pts, label, sublabel }) => {
+                        const r = count("red",  pts);
+                        const b = count("blue", pts);
+                        const highlight = isTied && (r !== b);
+                        return (
+                          <tr
+                            key={pts}
+                            className={`border-b border-border last:border-b-0 ${highlight ? (pts > 0 ? "bg-accent/5" : "bg-warn/5") : ""}`}
+                          >
+                            <td className="px-5 py-3 text-center">
+                              <span className={`text-xl font-black ${r > 0 ? "text-danger" : "text-muted/30"}`}>{r}</span>
+                            </td>
+                            <td className="px-5 py-3 text-center">
+                              <p className={`text-sm font-bold ${highlight ? (pts > 0 ? "text-accent" : "text-warn") : "text-secondary"}`}>{label}</p>
+                              <p className="text-xs text-muted">{sublabel}</p>
+                            </td>
+                            <td className="px-5 py-3 text-center">
+                              <span className={`text-xl font-black ${b > 0 ? "text-blue-400" : "text-muted/30"}`}>{b}</span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </>
+              )}
             </div>
           );
         })()}
 
-        {/* ── Judge taps (raw) ── */}
+        {/* ── Judge taps (raw) — accordion ── */}
         <div className="bg-surface border border-border rounded-xl overflow-hidden">
           {judgeOrder.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 text-secondary">
@@ -505,46 +507,53 @@ export default function DewanPage() {
             </div>
           ) : (
             <>
-              <div className="px-5 py-2.5 border-b border-border">
+              <button
+                type="button"
+                onClick={() => setJudgeTapsOpen((o) => !o)}
+                className="w-full px-5 py-3 flex items-center justify-between hover:bg-elevated/50 transition-colors border-b border-border"
+              >
                 <p className="text-xs font-semibold uppercase tracking-widest text-muted">Judge Taps (raw)</p>
-              </div>
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="px-5 py-3 text-left   text-xs font-semibold uppercase tracking-widest text-muted">Judge</th>
-                    <th className="px-5 py-3 text-center text-xs font-semibold uppercase tracking-widest text-danger">Red</th>
-                    <th className="px-5 py-3 text-center text-xs font-semibold uppercase tracking-widest text-blue-400">Blue</th>
-                    <th className="px-5 py-3 text-right  text-xs font-semibold uppercase tracking-widest text-muted">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {judgeOrder.map((judgeId, i) => {
-                    const t = byJudge.get(judgeId)!;
-                    return (
-                      <tr key={judgeId} className="border-b border-border last:border-b-0 hover:bg-elevated/50 transition-colors">
-                        <td className="px-5 py-3">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-6 h-6 rounded-full bg-accent/10 border border-accent/30 flex items-center justify-center text-xs font-bold text-accent flex-shrink-0">
-                              {i + 1}
+                <span className="text-muted text-xs">{judgeTapsOpen ? "▲" : "▼"}</span>
+              </button>
+              {judgeTapsOpen && (
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="px-5 py-3 text-left   text-xs font-semibold uppercase tracking-widest text-muted">Judge</th>
+                      <th className="px-5 py-3 text-center text-xs font-semibold uppercase tracking-widest text-danger">Red</th>
+                      <th className="px-5 py-3 text-center text-xs font-semibold uppercase tracking-widest text-blue-400">Blue</th>
+                      <th className="px-5 py-3 text-right  text-xs font-semibold uppercase tracking-widest text-muted">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {judgeOrder.map((judgeId, i) => {
+                      const t = byJudge.get(judgeId)!;
+                      return (
+                        <tr key={judgeId} className="border-b border-border last:border-b-0 hover:bg-elevated/50 transition-colors">
+                          <td className="px-5 py-3">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-6 h-6 rounded-full bg-accent/10 border border-accent/30 flex items-center justify-center text-xs font-bold text-accent flex-shrink-0">
+                                {i + 1}
+                              </div>
+                              <div className="flex flex-col min-w-0">
+                                <span className="text-sm font-medium text-primary truncate">
+                                  {t.name || t.email || `Judge ${i + 1}`}
+                                </span>
+                                {t.name && t.email && (
+                                  <span className="text-xs text-muted truncate">{t.email}</span>
+                                )}
+                              </div>
                             </div>
-                            <div className="flex flex-col min-w-0">
-                              <span className="text-sm font-medium text-primary truncate">
-                                {t.name || t.email || `Judge ${i + 1}`}
-                              </span>
-                              {t.name && t.email && (
-                                <span className="text-xs text-muted truncate">{t.email}</span>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-5 py-3 text-center"><span className="text-lg font-bold text-danger">{t.red}</span></td>
-                        <td className="px-5 py-3 text-center"><span className="text-lg font-bold text-blue-400">{t.blue}</span></td>
-                        <td className="px-5 py-3 text-right"><span className="text-sm font-semibold text-secondary">{t.red + t.blue}</span></td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                          </td>
+                          <td className="px-5 py-3 text-center"><span className="text-lg font-bold text-danger">{t.red}</span></td>
+                          <td className="px-5 py-3 text-center"><span className="text-lg font-bold text-blue-400">{t.blue}</span></td>
+                          <td className="px-5 py-3 text-right"><span className="text-sm font-semibold text-secondary">{t.red + t.blue}</span></td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
             </>
           )}
         </div>
