@@ -183,8 +183,8 @@ export default function DewanPage() {
   const isExpired    = remaining <= 0;
 
   const [confirmNextRound,  setConfirmNextRound]  = useState(false);
-  const [breakdownOpen,     setBreakdownOpen]     = useState(true);
-  const [judgeTapsOpen,     setJudgeTapsOpen]     = useState(true);
+  const [breakdownOpen,     setBreakdownOpen]     = useState(false);
+  const [judgeTapsOpen,     setJudgeTapsOpen]     = useState(false);
 
   async function handleNextRoundConfirmed() {
     if (!match || isLastRound) return;
