@@ -15,17 +15,17 @@ import {
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
 const STATUS_LABEL: Record<string, string> = {
-  draft:             "Draft",
-  registration_open: "Registration Open",
-  in_progress:       "In Progress",
+  draft:             "Active",
+  registration_open: "Active",
+  in_progress:       "Active",
   completed:         "Completed",
   cancelled:         "Cancelled",
 };
 
 const STATUS_COLOR: Record<string, string> = {
-  draft:             "bg-elevated text-secondary border-border",
-  registration_open: "bg-accent/10 text-accent border-accent/30",
-  in_progress:       "bg-warn/10 text-warn border-warn/30",
+  draft:             "bg-green-500/10 text-green-400 border-green-500/30",
+  registration_open: "bg-green-500/10 text-green-400 border-green-500/30",
+  in_progress:       "bg-green-500/10 text-green-400 border-green-500/30",
   completed:         "bg-elevated text-muted border-border",
   cancelled:         "bg-danger/10 text-danger border-danger/30",
 };
