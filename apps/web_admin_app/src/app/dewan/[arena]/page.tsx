@@ -444,7 +444,7 @@ export default function DewanPage() {
                   type="button"
                   className="flex flex-col items-center justify-center gap-1.5 py-5 rounded-xl font-bold text-sm border border-border bg-elevated text-secondary hover:text-primary hover:border-accent/50 hover:bg-accent/5 transition-all duration-75 active:scale-95 select-none"
                 >
-                  <span className="text-2xl">🥋</span>
+                  <span className="text-2xl">👇</span>
                   Drop / Takedown Verification
                 </button>
                 <button
