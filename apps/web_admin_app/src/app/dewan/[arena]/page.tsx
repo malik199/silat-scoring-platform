@@ -185,6 +185,7 @@ export default function DewanPage() {
   const [confirmNextRound,  setConfirmNextRound]  = useState(false);
   const [breakdownOpen,     setBreakdownOpen]     = useState(false);
   const [judgeTapsOpen,     setJudgeTapsOpen]     = useState(false);
+  const [verificationOpen,  setVerificationOpen]  = useState(false);
 
   async function handleNextRoundConfirmed() {
     if (!match || isLastRound) return;
@@ -423,6 +424,39 @@ export default function DewanPage() {
               ↩ Undo Last Blue Action
             </button>
           </div>
+        </div>
+
+        {/* ── Verification — accordion ── */}
+        <div className="bg-surface border border-border rounded-xl overflow-hidden mb-4">
+          <button
+            type="button"
+            onClick={() => setVerificationOpen((o) => !o)}
+            className="w-full px-5 py-3 flex items-center justify-between hover:bg-elevated/50 transition-colors"
+          >
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted">Verification</p>
+            <span className="text-muted text-xs">{verificationOpen ? "▲" : "▼"}</span>
+          </button>
+          {verificationOpen && (
+            <>
+              <div className="border-t border-border" />
+              <div className="p-4 grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  className="flex flex-col items-center justify-center gap-1.5 py-5 rounded-xl font-bold text-sm border border-border bg-elevated text-secondary hover:text-primary hover:border-accent/50 hover:bg-accent/5 transition-all duration-75 active:scale-95 select-none"
+                >
+                  <span className="text-2xl">🥋</span>
+                  Drop / Takedown Verification
+                </button>
+                <button
+                  type="button"
+                  className="flex flex-col items-center justify-center gap-1.5 py-5 rounded-xl font-bold text-sm border border-border bg-elevated text-secondary hover:text-primary hover:border-warn/50 hover:bg-warn/5 transition-all duration-75 active:scale-95 select-none"
+                >
+                  <span className="text-2xl">✋</span>
+                  Protest Verification
+                </button>
+              </div>
+            </>
+          )}
         </div>
 
         {/* ── Score breakdown (tie-breaker) — accordion ── */}
