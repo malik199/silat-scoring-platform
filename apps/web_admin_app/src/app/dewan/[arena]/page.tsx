@@ -137,13 +137,6 @@ export default function DewanPage() {
     return subscribeVerificationResponses(match.id, av.id, setVerificationResponses);
   }, [match?.id, match?.activeVerification?.id]);
 
-  // Auto-close verification once all 3 judges have responded
-  useEffect(() => {
-    if (!match?.activeVerification) return;
-    if (verificationResponses.length >= 3) {
-      clearVerification(match.id);
-    }
-  }, [verificationResponses.length, match?.activeVerification, match?.id]);
 
   useEffect(() => {
     if (!user) return;
@@ -542,11 +535,22 @@ export default function DewanPage() {
                             ))}
                           </ul>
                         )}
-                        {hasResponses && (
-                          <div className="px-4 py-3 border-t border-border bg-surface/50 text-xs text-muted">
-                            Review responses above, then use the +3 / penalty buttons to apply the decision.
-                          </div>
-                        )}
+                        <div className="px-4 py-3 border-t border-border bg-surface/50 flex items-center justify-between gap-3">
+                          <p className="text-xs text-muted">
+                            {verificationResponses.length >= 3
+                              ? "All judges responded. Apply points then close."
+                              : "Waiting for judges to respond…"}
+                          </p>
+                          {verificationResponses.length >= 3 && (
+                            <button
+                              type="button"
+                              onClick={() => match && clearVerification(match.id)}
+                              className="px-4 py-2 rounded-lg bg-accent text-black text-xs font-bold hover:bg-accent-hover transition-colors flex-shrink-0"
+                            >
+                              ✓ Approve &amp; Close
+                            </button>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
