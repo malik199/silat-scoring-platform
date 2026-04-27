@@ -199,6 +199,7 @@ export default function DewanPage() {
   const [breakdownOpen,     setBreakdownOpen]     = useState(false);
   const [judgeTapsOpen,     setJudgeTapsOpen]     = useState(false);
   const [verificationOpen,  setVerificationOpen]  = useState(false);
+  const [overlayCopied,     setOverlayCopied]     = useState(false);
 
   async function handleNextRoundConfirmed() {
     if (!match || isLastRound) return;
@@ -253,12 +254,15 @@ export default function DewanPage() {
               onClick={() => {
                 const url = `${window.location.origin}/obs/${tournamentId}/${arenaNumber}`;
                 navigator.clipboard.writeText(url);
+                setOverlayCopied(true);
+                setTimeout(() => setOverlayCopied(false), 2500);
               }}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-elevated border border-border hover:border-accent/50 transition-colors select-none"
-              title="Copy OBS overlay URL"
             >
-              <span className="text-xs text-muted">OBS</span>
-              <span className="text-xs font-mono font-bold text-primary">⧉</span>
+              {overlayCopied
+                ? <span className="text-xs font-semibold text-accent">Overlay Link Copied</span>
+                : <span className="text-xs font-semibold text-muted">Video Overlay Link</span>
+              }
             </button>
           )}
         </div>
