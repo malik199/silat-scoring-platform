@@ -247,6 +247,20 @@ export default function DewanPage() {
               <span className="text-xs text-muted">{pinVisible ? "🙈" : "👁"}</span>
             </button>
           )}
+          {tournamentId && (
+            <button
+              type="button"
+              onClick={() => {
+                const url = `${window.location.origin}/obs/${tournamentId}/${arenaNumber}`;
+                navigator.clipboard.writeText(url);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-elevated border border-border hover:border-accent/50 transition-colors select-none"
+              title="Copy OBS overlay URL"
+            >
+              <span className="text-xs text-muted">OBS</span>
+              <span className="text-xs font-mono font-bold text-primary">⧉</span>
+            </button>
+          )}
         </div>
       }
     >

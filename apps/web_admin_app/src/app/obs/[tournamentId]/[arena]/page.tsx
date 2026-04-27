@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { ACTIVE_STATUSES } from "@/lib/tournaments";
 import {
   subscribeScoreEvents,
   subscribeAdminEvents,
@@ -50,10 +49,9 @@ function flag(country?: string) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function OBSLowerThirdPage() {
-  const { arena } = useParams<{ arena: string }>();
+  const { tournamentId, arena } = useParams<{ tournamentId: string; arena: string }>();
   const arenaNumber = Number(arena);
 
-  const [activeTournamentId, setActiveTournamentId] = useState<string | null | undefined>(undefined);
   const [match,       setMatch]       = useState<Match | null>(null);
   const [redComp,     setRedComp]     = useState<Competitor | null>(null);
   const [blueComp,    setBlueComp]    = useState<Competitor | null>(null);
@@ -71,26 +69,16 @@ export default function OBSLowerThirdPage() {
     };
   }, []);
 
-  // Find the active tournament first (public read, no auth needed)
+  // Subscribe to matches for this specific tournament + arena only
   useEffect(() => {
-    const q = query(collection(db, "tournaments"), where("status", "in", ACTIVE_STATUSES));
-    return onSnapshot(q, (snap) => {
-      setActiveTournamentId(snap.empty ? null : snap.docs[0].id);
-    }, () => setActiveTournamentId(null));
-  }, []);
-
-  // Subscribe to matches for the active tournament only, filter by arena
-  useEffect(() => {
-    if (activeTournamentId === undefined) return; // still loading
-    if (!activeTournamentId) { setMatch(null); return; }
-    const q = query(collection(db, "matches"), where("tournamentId", "==", activeTournamentId));
+    const q = query(collection(db, "matches"), where("tournamentId", "==", tournamentId));
     return onSnapshot(q, (snap) => {
       const found = snap.docs
         .map((d) => ({ id: d.id, ...(d.data() as Omit<Match, "id">) }))
         .find((m) => m.arenaNumber === arenaNumber && m.status === "in_progress");
       setMatch(found ?? null);
     }, () => setMatch(null));
-  }, [activeTournamentId, arenaNumber]);
+  }, [tournamentId, arenaNumber]);
 
   // Subscribe to competitors when match changes
   useEffect(() => {
