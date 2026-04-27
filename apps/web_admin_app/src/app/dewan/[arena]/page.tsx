@@ -137,6 +137,14 @@ export default function DewanPage() {
     return subscribeVerificationResponses(match.id, av.id, setVerificationResponses);
   }, [match?.id, match?.activeVerification?.id]);
 
+  // Auto-close verification once all 3 judges have responded
+  useEffect(() => {
+    if (!match?.activeVerification) return;
+    if (verificationResponses.length >= 3) {
+      clearVerification(match.id);
+    }
+  }, [verificationResponses.length, match?.activeVerification, match?.id]);
+
   useEffect(() => {
     if (!user) return;
     return subscribeCompetitors(user.uid, setCompetitors);
