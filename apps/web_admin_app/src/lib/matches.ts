@@ -207,7 +207,13 @@ function getEventSeconds(e: ScoreEvent): number {
     : 0;
 }
 
-/** Confirmed score using the ≥2-judges-within-5s rule. */
+/** Confirmed score using the ≥2-judges-within-5s rule.
+ *
+ *  Key detail: only the FIRST tap per judge within the 5-second window counts
+ *  toward a single confirmation. This means a second round of taps from the
+ *  same judges (even within 5s) produces a separate confirmation rather than
+ *  being absorbed into the first one and lost.
+ */
 export function computeConfirmedScores(events: ScoreEvent[]): { red: number; blue: number; confirmedEventIds: Set<string> } {
   const sorted = [...events].sort((a, b) => getEventSeconds(a) - getEventSeconds(b));
   const used = new Set<string>();
@@ -220,11 +226,24 @@ export function computeConfirmedScores(events: ScoreEvent[]): { red: number; blu
       for (const anchor of pool) {
         if (used.has(anchor.id)) continue;
         const anchorTime = getEventSeconds(anchor);
+
+        // All unused events within 5s of the anchor
         const inWindow = pool.filter((e) => !used.has(e.id) && getEventSeconds(e) - anchorTime <= 5);
-        const judgesInWindow = new Set(inWindow.map((e) => e.judgeId));
-        if (judgesInWindow.size >= 2) {
+
+        // Only the first tap per judge — prevents a second round of taps
+        // from being swallowed into the same confirmation window.
+        const seenJudges = new Set<string>();
+        const onePerJudge = inWindow.filter((e) => {
+          if (seenJudges.has(e.judgeId)) return false;
+          seenJudges.add(e.judgeId);
+          return true;
+        });
+
+        if (onePerJudge.length >= 2) {
           if (side === "red") red += pts; else blue += pts;
-          for (const e of inWindow) { used.add(e.id); confirmedEventIds.add(e.id); }
+          // Mark only the one-per-judge events as used; later taps from the
+          // same judges remain available for the next confirmation.
+          for (const e of onePerJudge) { used.add(e.id); confirmedEventIds.add(e.id); }
         } else {
           used.add(anchor.id);
         }
