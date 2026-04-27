@@ -34,6 +34,12 @@ export const MATCH_STATUS_COLOR: Record<MatchStatus, string> = {
   cancelled:   "bg-danger/10 text-danger border-danger/30",
 };
 
+export interface ActiveVerification {
+  /** Unique ID for this verification session — changes each time a new one is started */
+  id: string;
+  type: "drop_takedown" | "protest";
+}
+
 export interface Match {
   id: string;
   tournamentId: string;
@@ -54,6 +60,8 @@ export interface Match {
   timerStartedAt: { seconds: number } | null;
   /** Seconds already elapsed before the last start */
   timerElapsedSeconds: number;
+  /** Set when Dewan requests a drop/takedown or protest verification from judges */
+  activeVerification: ActiveVerification | null;
   createdAt: string;
 }
 
@@ -288,6 +296,62 @@ export function subscribeAdminEvents(
   return onSnapshot(
     q,
     (snap) => cb(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<AdminEvent, "id">) }))),
+    () => cb([])
+  );
+}
+
+// ─── Verification ─────────────────────────────────────────────────────────────
+
+export async function startVerification(
+  matchId: string,
+  type: "drop_takedown" | "protest"
+): Promise<string> {
+  const id = Date.now().toString();
+  await updateDoc(doc(db, COL, matchId), { activeVerification: { id, type } });
+  return id;
+}
+
+export async function clearVerification(matchId: string): Promise<void> {
+  await updateDoc(doc(db, COL, matchId), { activeVerification: null });
+}
+
+export interface VerificationResponse {
+  id: string;
+  verificationId: string;
+  judgeId: string;
+  judgeName: string;
+  verdict: "red" | "blue" | "invalid";
+  createdAt: { seconds: number } | null;
+}
+
+export async function postVerificationResponse(
+  matchId: string,
+  verificationId: string,
+  judgeId: string,
+  judgeName: string,
+  verdict: "red" | "blue" | "invalid"
+): Promise<void> {
+  // Use judgeId as doc ID so each judge can only have one vote per verification.
+  // Path: verificationResponses/{verificationId}_{judgeId}
+  const { setDoc } = await import("firebase/firestore");
+  await setDoc(
+    doc(db, COL, matchId, "verificationResponses", `${verificationId}_${judgeId}`),
+    { verificationId, judgeId, judgeName, verdict, createdAt: serverTimestamp() }
+  );
+}
+
+export function subscribeVerificationResponses(
+  matchId: string,
+  verificationId: string,
+  cb: (responses: VerificationResponse[]) => void
+): Unsubscribe {
+  const q = query(
+    collection(db, COL, matchId, "verificationResponses"),
+    where("verificationId", "==", verificationId)
+  );
+  return onSnapshot(
+    q,
+    (snap) => cb(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<VerificationResponse, "id">) }))),
     () => cb([])
   );
 }

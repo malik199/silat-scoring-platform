@@ -28,6 +28,12 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
   bool            _loadingMatch = true;
   Timer?          _pollTimer;
 
+  // ── Verification state ───────────────────────────────────────────────────────
+  /// The verification ID the judge has already seen/responded to.
+  /// When the match's activeVerification.id differs, show the dialog.
+  String? _handledVerificationId;
+  bool    _verificationDialogShowing = false;
+
   // ── Event logs ──────────────────────────────────────────────────────────────
   List<int> _redEvents  = [];
   List<int> _blueEvents = [];
@@ -79,20 +85,65 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
         final blue = await fetchCompetitor(match.blueCompetitorId);
         if (!mounted) return;
         setState(() {
-          _match        = match;
-          _red          = red;
-          _blue         = blue;
-          _redEvents    = [];
-          _blueEvents   = [];
-          _loadingMatch = false;
+          _match                  = match;
+          _red                    = red;
+          _blue                   = blue;
+          _redEvents              = [];
+          _blueEvents             = [];
+          _handledVerificationId  = null;
+          _loadingMatch           = false;
         });
       } else {
         // Same match — update timer state without resetting scores
         setState(() { _match = match; _loadingMatch = false; });
       }
+
+      // Check if a new verification request came in
+      _checkVerification(match);
     } catch (_) {
       if (mounted) setState(() => _loadingMatch = false);
     }
+  }
+
+  void _checkVerification(MatchDoc match) {
+    final av = match.activeVerification;
+    if (av == null) return;
+    if (av.id == _handledVerificationId) return; // already handled
+    if (_verificationDialogShowing) return;       // dialog already on screen
+
+    _handledVerificationId     = av.id;
+    _verificationDialogShowing = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _showVerificationDialog(match.id, av.id, av.type);
+    });
+  }
+
+  void _showVerificationDialog(String matchId, String verificationId, String type) {
+    final isDropTakedown = type == 'drop_takedown';
+    final title   = isDropTakedown ? 'Drop / Takedown Verification' : 'Protest Verification';
+    final icon    = isDropTakedown ? '👇' : '✋';
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => _VerificationDialog(
+        title:          title,
+        icon:           icon,
+        onVote: (verdict) {
+          postVerificationResponse(
+            matchId:        matchId,
+            verificationId: verificationId,
+            verdict:        verdict,
+          );
+          _verificationDialogShowing = false;
+          Navigator.of(ctx).pop();
+        },
+      ),
+    ).then((_) {
+      _verificationDialogShowing = false;
+    });
   }
 
   void _addRed(int pts) {
@@ -345,6 +396,100 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ── Verification dialog ───────────────────────────────────────────────────────
+
+class _VerificationDialog extends StatelessWidget {
+  final String title;
+  final String icon;
+  final void Function(String verdict) onVote;
+
+  const _VerificationDialog({
+    required this.title,
+    required this.icon,
+    required this.onVote,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: const Color(0xFF1A1A1A),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(icon, style: const TextStyle(fontSize: 40)),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Select your verdict:',
+              style: TextStyle(color: Colors.white54, fontSize: 13),
+            ),
+            const SizedBox(height: 20),
+            _VerdictButton(
+              label: 'Valid for RED',
+              color: const Color(0xFFEF5350),
+              onTap: () => onVote('red'),
+            ),
+            const SizedBox(height: 10),
+            _VerdictButton(
+              label: 'Valid for BLUE',
+              color: const Color(0xFF42A5F5),
+              onTap: () => onVote('blue'),
+            ),
+            const SizedBox(height: 10),
+            _VerdictButton(
+              label: 'Invalid',
+              color: Colors.white24,
+              onTap: () => onVote('invalid'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _VerdictButton extends StatelessWidget {
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _VerdictButton({required this.label, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: onTap,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color.withValues(alpha: 0.15),
+          foregroundColor: color,
+          side: BorderSide(color: color.withValues(alpha: 0.5)),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          elevation: 0,
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+      ),
     );
   }
 }

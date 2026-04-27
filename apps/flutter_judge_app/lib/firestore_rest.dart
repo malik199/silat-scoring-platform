@@ -64,16 +64,23 @@ Future<List<TournamentDoc>> fetchTournaments() async {
   }).toList();
 }
 
+class ActiveVerification {
+  final String id;
+  final String type; // "drop_takedown" | "protest"
+  const ActiveVerification({required this.id, required this.type});
+}
+
 class MatchDoc {
-  final String    id;
-  final String    redCompetitorId;
-  final String    blueCompetitorId;
-  final String    status;
-  final bool      timerRunning;
-  final DateTime? timerStartedAt;       // null when timer is stopped
-  final double    timerElapsedSeconds;  // seconds accumulated before last start
-  final int       roundDurationSeconds; // 90 or 120
-  final int       currentRound;         // 1-based
+  final String              id;
+  final String              redCompetitorId;
+  final String              blueCompetitorId;
+  final String              status;
+  final bool                timerRunning;
+  final DateTime?           timerStartedAt;       // null when timer is stopped
+  final double              timerElapsedSeconds;  // seconds accumulated before last start
+  final int                 roundDurationSeconds; // 90 or 120
+  final int                 currentRound;         // 1-based
+  final ActiveVerification? activeVerification;   // set when Dewan requests verification
 
   const MatchDoc({
     required this.id,
@@ -85,6 +92,7 @@ class MatchDoc {
     required this.timerElapsedSeconds,
     required this.roundDurationSeconds,
     required this.currentRound,
+    this.activeVerification,
   });
 }
 
@@ -127,16 +135,25 @@ Future<MatchDoc?> fetchActiveMatch(String tournamentId, int arenaNumber) async {
       final timerRunning    = (fields['timerRunning'] as Map?)?['booleanValue'] as bool? ?? false;
       final tsRaw           = (fields['timerStartedAt'] as Map?)?['timestampValue'] as String?;
       final timerStartedAt  = tsRaw != null ? DateTime.tryParse(tsRaw)?.toUtc() : null;
+      // Parse activeVerification if present
+      final avMap = ((fields['activeVerification'] as Map?)?['mapValue'] as Map?)?['fields'] as Map<String, dynamic>?;
+      final activeVerification = avMap != null
+          ? ActiveVerification(
+              id:   _str(avMap, 'id'),
+              type: _str(avMap, 'type'),
+            )
+          : null;
       return MatchDoc(
-        id:                  (doc['name'] as String).split('/').last,
-        redCompetitorId:     _str(fields, 'redCornerCompetitorId'),
-        blueCompetitorId:    _str(fields, 'blueCornerCompetitorId'),
-        status:              status,
-        timerRunning:        timerRunning,
-        timerStartedAt:      timerStartedAt,
-        timerElapsedSeconds: _dbl(fields, 'timerElapsedSeconds'),
+        id:                   (doc['name'] as String).split('/').last,
+        redCompetitorId:      _str(fields, 'redCornerCompetitorId'),
+        blueCompetitorId:     _str(fields, 'blueCornerCompetitorId'),
+        status:               status,
+        timerRunning:         timerRunning,
+        timerStartedAt:       timerStartedAt,
+        timerElapsedSeconds:  _dbl(fields, 'timerElapsedSeconds'),
         roundDurationSeconds: _int(fields, 'roundDurationSeconds', fallback: 120),
-        currentRound:        _int(fields, 'currentRound',         fallback: 1),
+        currentRound:         _int(fields, 'currentRound',         fallback: 1),
+        activeVerification:   activeVerification,
       );
     }
   }
@@ -223,6 +240,42 @@ Future<void> postScoreEvent({
     );
   } catch (_) {
     // Silent — local score is the source of truth for the judge
+  }
+}
+
+/// Submits this judge's verdict for a verification request.
+/// Uses a deterministic doc ID (verificationId_judgeId) so each judge has one vote.
+Future<void> postVerificationResponse({
+  required String matchId,
+  required String verificationId,
+  required String verdict, // "red" | "blue" | "invalid"
+}) async {
+  try {
+    final jId   = judgeSessionId;
+    final jName = FirebaseAuth.instance.currentUser?.displayName
+                ?? FirebaseAuth.instance.currentUser?.email
+                ?? '';
+    final docId = '${verificationId}_$jId';
+    final uri   = Uri.parse('$_base/matches/$matchId/verificationResponses/$docId');
+    final headers = {
+      'Content-Type': 'application/json',
+      ...await _authHeaders(),
+    };
+    await http.patch(
+      uri,
+      headers: headers,
+      body: jsonEncode({
+        'fields': {
+          'verificationId': {'stringValue': verificationId},
+          'judgeId':        {'stringValue': jId},
+          'judgeName':      {'stringValue': jName},
+          'verdict':        {'stringValue': verdict},
+          'createdAt':      {'timestampValue': DateTime.now().toUtc().toIso8601String()},
+        },
+      }),
+    );
+  } catch (_) {
+    // Silent — judge can tap again if needed
   }
 }
 

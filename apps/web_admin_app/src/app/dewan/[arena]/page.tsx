@@ -10,6 +10,7 @@ import {
   subscribeActiveMatch,
   subscribeScoreEvents,
   subscribeAdminEvents,
+  subscribeVerificationResponses,
   addAdminEvent,
   deleteAdminEvent,
   computeConfirmedScores,
@@ -19,9 +20,12 @@ import {
   timerStop,
   timerReset,
   advanceRound,
+  startVerification,
+  clearVerification,
   type Match,
   type ScoreEvent,
   type AdminEvent,
+  type VerificationResponse,
 } from "@/lib/matches";
 
 // ─── Raw per-judge tallies ────────────────────────────────────────────────────
@@ -95,14 +99,15 @@ export default function DewanPage() {
   const { user } = useAuth();
 
   const [openSide, setOpenSide] = useState<"red" | "blue" | null>(null);
-  const [tournament,    setTournament]    = useState<Tournament | null>(null);
-  const [tournamentId,  setTournamentId]  = useState<string | null>(null);
-  const [pinVisible,    setPinVisible]    = useState(false);
-  const [match,         setMatch]         = useState<Match | null | undefined>(undefined);
-  const [competitors,   setCompetitors]   = useState<Competitor[]>([]);
-  const [scoreEvents,   setScoreEvents]   = useState<ScoreEvent[]>([]);
-  const [adminEvents,   setAdminEvents]   = useState<AdminEvent[]>([]);
-  const [remaining,     setRemaining]     = useState<number>(120);
+  const [tournament,             setTournament]             = useState<Tournament | null>(null);
+  const [tournamentId,           setTournamentId]           = useState<string | null>(null);
+  const [pinVisible,             setPinVisible]             = useState(false);
+  const [match,                  setMatch]                  = useState<Match | null | undefined>(undefined);
+  const [competitors,            setCompetitors]            = useState<Competitor[]>([]);
+  const [scoreEvents,            setScoreEvents]            = useState<ScoreEvent[]>([]);
+  const [adminEvents,            setAdminEvents]            = useState<AdminEvent[]>([]);
+  const [remaining,              setRemaining]              = useState<number>(120);
+  const [verificationResponses,  setVerificationResponses]  = useState<VerificationResponse[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -124,6 +129,13 @@ export default function DewanPage() {
     const unsubAdmin = subscribeAdminEvents(match.id, setAdminEvents);
     return () => { unsubScore(); unsubAdmin(); };
   }, [match?.id]);
+
+  // Subscribe to verification responses whenever the active verification changes
+  useEffect(() => {
+    const av = match?.activeVerification;
+    if (!match || !av) { setVerificationResponses([]); return; }
+    return subscribeVerificationResponses(match.id, av.id, setVerificationResponses);
+  }, [match?.id, match?.activeVerification?.id]);
 
   useEffect(() => {
     if (!user) return;
@@ -427,37 +439,114 @@ export default function DewanPage() {
         </div>
 
         {/* ── Verification — accordion ── */}
-        <div className="bg-surface border border-border rounded-xl overflow-hidden mb-4">
-          <button
-            type="button"
-            onClick={() => setVerificationOpen((o) => !o)}
-            className="w-full px-5 py-3 flex items-center justify-between hover:bg-elevated/50 transition-colors"
-          >
-            <p className="text-xs font-semibold uppercase tracking-widest text-muted">Verification</p>
-            <span className="text-muted text-xs">{verificationOpen ? "▲" : "▼"}</span>
-          </button>
-          {verificationOpen && (
-            <>
-              <div className="border-t border-border" />
-              <div className="p-4 grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  className="flex flex-col items-center justify-center gap-1.5 py-5 rounded-xl font-bold text-sm border border-border bg-elevated text-secondary hover:text-primary hover:border-accent/50 hover:bg-accent/5 transition-all duration-75 active:scale-95 select-none"
-                >
-                  <span className="text-2xl">👇</span>
-                  Drop / Takedown Verification
-                </button>
-                <button
-                  type="button"
-                  className="flex flex-col items-center justify-center gap-1.5 py-5 rounded-xl font-bold text-sm border border-border bg-elevated text-secondary hover:text-primary hover:border-warn/50 hover:bg-warn/5 transition-all duration-75 active:scale-95 select-none"
-                >
-                  <span className="text-2xl">✋</span>
-                  Protest Verification
-                </button>
-              </div>
-            </>
-          )}
-        </div>
+        {(() => {
+          const av = match.activeVerification;
+          const timerPaused = !isRunning;
+          const hasResponses = verificationResponses.length > 0;
+          const verdictLabel = (v: string) =>
+            v === "red" ? "Valid for Red" : v === "blue" ? "Valid for Blue" : "Invalid";
+          const verdictColor = (v: string) =>
+            v === "red" ? "text-danger" : v === "blue" ? "text-blue-400" : "text-muted";
+
+          return (
+            <div className={`bg-surface border rounded-xl overflow-hidden mb-4 ${av ? "border-accent/50" : "border-border"}`}>
+              <button
+                type="button"
+                onClick={() => setVerificationOpen((o) => !o)}
+                className={`w-full px-5 py-3 flex items-center justify-between hover:bg-elevated/50 transition-colors ${av ? "bg-accent/5" : ""}`}
+              >
+                <div className="flex items-center gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-muted">Verification</p>
+                  {av && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+                      <span className="text-xs font-bold text-accent">
+                        {av.type === "drop_takedown" ? "Drop/Takedown" : "Protest"} — {verificationResponses.length} response{verificationResponses.length !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <span className="text-muted text-xs">{verificationOpen ? "▲" : "▼"}</span>
+              </button>
+              {verificationOpen && (
+                <>
+                  <div className="border-t border-border" />
+                  <div className="p-4 space-y-4">
+                    {/* Trigger buttons — disabled when timer is running or verification already active */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        disabled={!timerPaused || (av?.type === "drop_takedown")}
+                        onClick={() => match && startVerification(match.id, "drop_takedown")}
+                        className={`flex flex-col items-center justify-center gap-1.5 py-5 rounded-xl font-bold text-sm border transition-all duration-75 active:scale-95 select-none disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 ${
+                          av?.type === "drop_takedown"
+                            ? "border-accent bg-accent/10 text-accent"
+                            : "border-border bg-elevated text-secondary hover:text-primary hover:border-accent/50 hover:bg-accent/5"
+                        }`}
+                      >
+                        <span className="text-2xl">👇</span>
+                        {av?.type === "drop_takedown" ? "In Progress…" : "Drop / Takedown Verification"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!timerPaused || (av?.type === "protest")}
+                        onClick={() => match && startVerification(match.id, "protest")}
+                        className={`flex flex-col items-center justify-center gap-1.5 py-5 rounded-xl font-bold text-sm border transition-all duration-75 active:scale-95 select-none disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 ${
+                          av?.type === "protest"
+                            ? "border-warn bg-warn/10 text-warn"
+                            : "border-border bg-elevated text-secondary hover:text-primary hover:border-warn/50 hover:bg-warn/5"
+                        }`}
+                      >
+                        <span className="text-2xl">✋</span>
+                        {av?.type === "protest" ? "In Progress…" : "Protest Verification"}
+                      </button>
+                    </div>
+
+                    {/* Live responses */}
+                    {av && (
+                      <div className="bg-elevated border border-border rounded-xl overflow-hidden">
+                        <div className="px-4 py-2.5 border-b border-border flex items-center justify-between">
+                          <p className="text-xs font-semibold uppercase tracking-widest text-muted">
+                            Judge Responses — {av.type === "drop_takedown" ? "Drop/Takedown" : "Protest"}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => match && clearVerification(match.id)}
+                            className="text-xs font-semibold text-muted hover:text-danger transition-colors"
+                          >
+                            Close ✕
+                          </button>
+                        </div>
+                        {verificationResponses.length === 0 ? (
+                          <p className="px-4 py-4 text-sm text-muted">Waiting for judges to respond…</p>
+                        ) : (
+                          <ul className="divide-y divide-border">
+                            {verificationResponses.map((r) => (
+                              <li key={r.id} className="flex items-center justify-between px-4 py-3">
+                                <span className="text-sm font-medium text-primary">
+                                  {r.judgeName || r.judgeId}
+                                </span>
+                                <span className={`text-sm font-bold ${verdictColor(r.verdict)}`}>
+                                  {av.type === "drop_takedown" ? "Drop " : "Protest "}
+                                  {verdictLabel(r.verdict)}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        {hasResponses && (
+                          <div className="px-4 py-3 border-t border-border bg-surface/50 text-xs text-muted">
+                            Review responses above, then use the +3 / penalty buttons to apply the decision.
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })()}
 
         {/* ── Score breakdown (tie-breaker) — accordion ── */}
         {(() => {
