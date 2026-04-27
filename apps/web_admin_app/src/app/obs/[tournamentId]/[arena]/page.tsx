@@ -124,10 +124,8 @@ export default function OBSLowerThirdPage() {
     );
   }
 
-  const redName   = redComp  ? `${redComp.firstName}|${redComp.lastName}`   : "|";
-  const blueName  = blueComp ? `${blueComp.firstName}|${blueComp.lastName}` : "|";
-  const [redFirst,  redLast]  = redName.split("|");
-  const [blueFirst, blueLast] = blueName.split("|");
+  const redFullName  = redComp  ? `${redComp.firstName} ${redComp.lastName}`   : "";
+  const blueFullName = blueComp ? `${blueComp.firstName} ${blueComp.lastName}` : "";
   const redFlag   = flag(redComp?.country);
   const blueFlag  = flag(blueComp?.country);
   const isExpired = remaining <= 0;
@@ -144,12 +142,10 @@ export default function OBSLowerThirdPage() {
         remaining={remaining}
         timerRunning={match.timerRunning}
         isExpired={isExpired}
-        redFirst={redFirst}
-        redLast={redLast}
+        redName={redFullName}
         redFlag={redFlag}
         redScore={totalRed}
-        blueFirst={blueFirst}
-        blueLast={blueLast}
+        blueName={blueFullName}
         blueFlag={blueFlag}
         blueScore={totalBlue}
       />
@@ -166,15 +162,27 @@ interface LowerThirdProps {
   remaining: number;
   timerRunning: boolean;
   isExpired: boolean;
-  redFirst: string; redLast: string; redFlag: string; redScore: number;
-  blueFirst: string; blueLast: string; blueFlag: string; blueScore: number;
+  redName: string; redFlag: string; redScore: number;
+  blueName: string; blueFlag: string; blueScore: number;
+}
+
+function nameFontSize(name: string): number {
+  const len = name.length;
+  if (len <= 12) return 34;
+  if (len <= 16) return 28;
+  if (len <= 20) return 23;
+  return 19;
+}
+
+function nameLetterSpacing(name: string): number {
+  return name.length > 16 ? -0.5 : 1;
 }
 
 function LowerThird({
   tournamentName, arenaNumber, round,
   remaining, timerRunning, isExpired,
-  redFirst, redLast, redFlag, redScore,
-  blueFirst, blueLast, blueFlag, blueScore,
+  redName, redFlag, redScore,
+  blueName, blueFlag, blueScore,
 }: LowerThirdProps) {
   const timerColor = isExpired ? "#ef4444" : timerRunning ? "#facc15" : "#ffffff";
 
@@ -222,21 +230,18 @@ function LowerThird({
             <span style={{ fontSize: 36, lineHeight: 1, flexShrink: 0 }}>{blueFlag}</span>
           )}
           <div style={{ minWidth: 0 }}>
-            <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase" }}>
-              {blueFirst}
-            </div>
             <div style={{
               color: "#ffffff",
-              fontSize: 34,
+              fontSize: nameFontSize(blueName),
               fontWeight: 900,
-              lineHeight: 1.05,
+              lineHeight: 1.1,
               textTransform: "uppercase",
-              letterSpacing: 1,
+              letterSpacing: nameLetterSpacing(blueName),
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
             }}>
-              {blueLast}
+              {blueName}
             </div>
           </div>
         </div>
@@ -260,7 +265,7 @@ function LowerThird({
             fontSize: 64,
             fontWeight: 900,
             lineHeight: 1,
-            width: 120,
+            width: 150,
             height: "100%",
             display: "flex",
             alignItems: "center",
@@ -298,7 +303,7 @@ function LowerThird({
             fontSize: 64,
             fontWeight: 900,
             lineHeight: 1,
-            width: 120,
+            width: 150,
             height: "100%",
             display: "flex",
             alignItems: "center",
@@ -322,21 +327,18 @@ function LowerThird({
           gap: 16,
         }}>
           <div style={{ minWidth: 0, textAlign: "right" }}>
-            <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase" }}>
-              {redFirst}
-            </div>
             <div style={{
               color: "#ffffff",
-              fontSize: 34,
+              fontSize: nameFontSize(redName),
               fontWeight: 900,
-              lineHeight: 1.05,
+              lineHeight: 1.1,
               textTransform: "uppercase",
-              letterSpacing: 1,
+              letterSpacing: nameLetterSpacing(redName),
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
             }}>
-              {redLast}
+              {redName}
             </div>
           </div>
           {redFlag && (
