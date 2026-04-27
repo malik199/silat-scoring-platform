@@ -345,13 +345,16 @@ export function subscribeVerificationResponses(
   verificationId: string,
   cb: (responses: VerificationResponse[]) => void
 ): Unsubscribe {
-  const q = query(
-    collection(db, COL, matchId, "verificationResponses"),
-    where("verificationId", "==", verificationId)
-  );
+  // No `where` filter — avoids composite index requirement.
+  // Filter client-side by verificationId so old responses from prior sessions are excluded.
   return onSnapshot(
-    q,
-    (snap) => cb(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<VerificationResponse, "id">) }))),
+    collection(db, COL, matchId, "verificationResponses"),
+    (snap) => {
+      const responses = snap.docs
+        .map((d) => ({ id: d.id, ...(d.data() as Omit<VerificationResponse, "id">) }))
+        .filter((r) => r.verificationId === verificationId);
+      cb(responses);
+    },
     () => cb([])
   );
 }
