@@ -387,7 +387,7 @@ export const LIGHT_VIOLATION_TYPES = [
   { type: "out_of_bounds", label: "Out of Bounds",   icon: "🦶" },
   { type: "wrong_target",  label: "Light Illegal Strike", icon: "🎯" },
   { type: "failed_sweep",  label: "Failed Sweep",    icon: "🧹" },
-  { type: "lower_stance",  label: "Lower Stance",    icon: "🦵" },
+  { type: "lower_stance",  label: "Ducking / Unsafe Head Positioning", icon: "🦵" },
 ] as const;
 
 export type LightViolationType = typeof LIGHT_VIOLATION_TYPES[number]["type"];
