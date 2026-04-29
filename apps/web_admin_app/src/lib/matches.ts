@@ -378,6 +378,56 @@ export function subscribeVerificationResponses(
   );
 }
 
+// ─── Light violations ─────────────────────────────────────────────────────────
+
+export const LIGHT_VIOLATION_TYPES = [
+  { type: "stalling",      label: "Stalling",       icon: "⏱️" },
+  { type: "poor_form",     label: "Poor Form",       icon: "🥋" },
+  { type: "avoiding",      label: "Avoiding",        icon: "🏃" },
+  { type: "out_of_bounds", label: "Out of Bounds",   icon: "🦶" },
+  { type: "wrong_target",  label: "Wrong Target",    icon: "🎯" },
+] as const;
+
+export type LightViolationType = typeof LIGHT_VIOLATION_TYPES[number]["type"];
+
+export interface LightViolation {
+  id: string;
+  side: "red" | "blue";
+  type: LightViolationType;
+  round: number;
+  createdAt: { seconds: number } | null;
+}
+
+export async function addLightViolation(
+  matchId: string,
+  side: "red" | "blue",
+  type: LightViolationType,
+  round: number
+): Promise<void> {
+  await addDoc(collection(db, COL, matchId, "lightViolations"), {
+    side, type, round, createdAt: serverTimestamp(),
+  });
+}
+
+export async function deleteLightViolation(matchId: string, eventId: string): Promise<void> {
+  await deleteDoc(doc(db, COL, matchId, "lightViolations", eventId));
+}
+
+export function subscribeLightViolations(
+  matchId: string,
+  cb: (violations: LightViolation[]) => void
+): Unsubscribe {
+  const q = query(
+    collection(db, COL, matchId, "lightViolations"),
+    orderBy("createdAt", "asc")
+  );
+  return onSnapshot(
+    q,
+    (snap) => cb(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<LightViolation, "id">) }))),
+    () => cb([])
+  );
+}
+
 export function subscribeActiveMatch(
   tournamentId: string,
   arenaNumber: number,
