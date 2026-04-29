@@ -430,6 +430,85 @@ export function subscribeLightViolations(
   );
 }
 
+// ─── Serious violations (moderate −1 pt / serious −5 pts, auto-deducted) ──────
+
+export const SERIOUS_VIOLATION_TYPES = [
+  // Moderate — −1 pt each
+  { type: "grabbing_gear",           label: "Grabbing / Pulling Gear or Body",   icon: "🤏", points: -1, severity: "moderate" },
+  { type: "grabbing_takedown",       label: "Grabbing During Takedown",           icon: "🤼", points: -1, severity: "moderate" },
+  { type: "illegal_counter",         label: "Illegal Counter-Falling",            icon: "🔄", points: -1, severity: "moderate" },
+  { type: "invalid_technique",       label: "Invalid Technique Execution",        icon: "🥋", points: -1, severity: "moderate" },
+  { type: "moderate_illegal_strike", label: "Moderate Illegal Strike",            icon: "🎯", points: -1, severity: "moderate" },
+  { type: "moderate_conduct",        label: "Moderate Unsportsmanlike Conduct",   icon: "😤", points: -1, severity: "moderate" },
+  // Serious — −5 pts each
+  { type: "hard_illegal_strike",     label: "Hard Strike to Prohibited Area",     icon: "⚡", points: -5, severity: "serious" },
+  { type: "thigh_strike",            label: "Single Thigh Strike",                icon: "🦵", points: -5, severity: "serious" },
+  { type: "dangerous_attack",        label: "Attack Causing Injury / High Risk",  icon: "💥", points: -5, severity: "serious" },
+  { type: "dangerous_throw",         label: "Dangerous Throw / Slam",             icon: "🤼", points: -5, severity: "serious" },
+  { type: "joint_attack",            label: "Dangerous / Illegal Joint Attack",   icon: "🦴", points: -5, severity: "serious" },
+  { type: "serious_conduct",         label: "Serious Misconduct",                 icon: "😡", points: -5, severity: "serious" },
+] as const;
+
+export type SeriousViolationType = typeof SERIOUS_VIOLATION_TYPES[number]["type"];
+
+export interface SeriousViolation {
+  id: string;
+  side: "red" | "blue";
+  type: SeriousViolationType;
+  round: number;
+  points: number;
+  /** ID of the linked adminEvent that applied the point deduction */
+  adminEventId: string;
+  createdAt: { seconds: number } | null;
+}
+
+export async function addSeriousViolation(
+  matchId: string,
+  side: "red" | "blue",
+  type: SeriousViolationType,
+  round: number
+): Promise<void> {
+  const vType = SERIOUS_VIOLATION_TYPES.find((v) => v.type === type)!;
+  // Create the admin event first so we capture its ID for later undo
+  const adminRef = await addDoc(collection(db, COL, matchId, "adminEvents"), {
+    side,
+    points: vType.points,
+    createdAt: serverTimestamp(),
+  });
+  await addDoc(collection(db, COL, matchId, "seriousViolations"), {
+    side, type, round,
+    points: vType.points,
+    adminEventId: adminRef.id,
+    createdAt: serverTimestamp(),
+  });
+}
+
+export async function deleteSeriousViolation(
+  matchId: string,
+  violationId: string,
+  adminEventId: string
+): Promise<void> {
+  const batch = writeBatch(db);
+  batch.delete(doc(db, COL, matchId, "seriousViolations", violationId));
+  batch.delete(doc(db, COL, matchId, "adminEvents", adminEventId));
+  await batch.commit();
+}
+
+export function subscribeSeriousViolations(
+  matchId: string,
+  cb: (violations: SeriousViolation[]) => void
+): Unsubscribe {
+  const q = query(
+    collection(db, COL, matchId, "seriousViolations"),
+    orderBy("createdAt", "asc")
+  );
+  return onSnapshot(
+    q,
+    (snap) => cb(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<SeriousViolation, "id">) }))),
+    () => cb([])
+  );
+}
+
 export function subscribeActiveMatch(
   tournamentId: string,
   arenaNumber: number,

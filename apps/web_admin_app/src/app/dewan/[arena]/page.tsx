@@ -12,10 +12,13 @@ import {
   subscribeAdminEvents,
   subscribeVerificationResponses,
   subscribeLightViolations,
+  subscribeSeriousViolations,
   addAdminEvent,
   deleteAdminEvent,
   addLightViolation,
   deleteLightViolation,
+  addSeriousViolation,
+  deleteSeriousViolation,
   computeConfirmedScores,
   computeRemainingSeconds,
   formatTime,
@@ -26,12 +29,15 @@ import {
   startVerification,
   clearVerification,
   LIGHT_VIOLATION_TYPES,
+  SERIOUS_VIOLATION_TYPES,
   type Match,
   type ScoreEvent,
   type AdminEvent,
   type VerificationResponse,
   type LightViolation,
   type LightViolationType,
+  type SeriousViolation,
+  type SeriousViolationType,
 } from "@/lib/matches";
 
 // ─── Raw per-judge tallies ────────────────────────────────────────────────────
@@ -115,6 +121,7 @@ export default function DewanPage() {
   const [remaining,              setRemaining]              = useState<number>(120);
   const [verificationResponses,  setVerificationResponses]  = useState<VerificationResponse[]>([]);
   const [lightViolations,        setLightViolations]        = useState<LightViolation[]>([]);
+  const [seriousViolations,      setSeriousViolations]      = useState<SeriousViolation[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -131,11 +138,12 @@ export default function DewanPage() {
   }, [tournamentId, arenaNumber]);
 
   useEffect(() => {
-    if (!match) { setScoreEvents([]); setAdminEvents([]); setLightViolations([]); return; }
-    const unsubScore = subscribeScoreEvents(match.id, setScoreEvents);
-    const unsubAdmin = subscribeAdminEvents(match.id, setAdminEvents);
-    const unsubViol  = subscribeLightViolations(match.id, setLightViolations);
-    return () => { unsubScore(); unsubAdmin(); unsubViol(); };
+    if (!match) { setScoreEvents([]); setAdminEvents([]); setLightViolations([]); setSeriousViolations([]); return; }
+    const unsubScore   = subscribeScoreEvents(match.id, setScoreEvents);
+    const unsubAdmin   = subscribeAdminEvents(match.id, setAdminEvents);
+    const unsubViol    = subscribeLightViolations(match.id, setLightViolations);
+    const unsubSerious = subscribeSeriousViolations(match.id, setSeriousViolations);
+    return () => { unsubScore(); unsubAdmin(); unsubViol(); unsubSerious(); };
   }, [match?.id]);
 
   // Subscribe to verification responses whenever the active verification changes
@@ -192,7 +200,9 @@ export default function DewanPage() {
 
   async function undoLast(side: "red" | "blue") {
     if (!match) return;
-    const last = [...adminEvents].reverse().find((e) => e.side === side);
+    // Don't undo adminEvents that were created by a serious violation (those have their own undo)
+    const claimedIds = new Set(seriousViolations.map((v) => v.adminEventId));
+    const last = [...adminEvents].reverse().find((e) => e.side === side && !claimedIds.has(e.id));
     if (last) await deleteAdminEvent(match.id, last.id);
   }
 
@@ -203,12 +213,13 @@ export default function DewanPage() {
   const isLastRound  = currentRound >= 3;
   const isExpired    = remaining <= 0;
 
-  const [confirmNextRound,  setConfirmNextRound]  = useState(false);
-  const [breakdownOpen,     setBreakdownOpen]     = useState(false);
-  const [judgeTapsOpen,     setJudgeTapsOpen]     = useState(false);
-  const [verificationOpen,  setVerificationOpen]  = useState(false);
-  const [violationsOpen,    setViolationsOpen]    = useState(false);
-  const [overlayCopied,     setOverlayCopied]     = useState(false);
+  const [confirmNextRound,      setConfirmNextRound]      = useState(false);
+  const [breakdownOpen,         setBreakdownOpen]         = useState(false);
+  const [judgeTapsOpen,         setJudgeTapsOpen]         = useState(false);
+  const [verificationOpen,      setVerificationOpen]      = useState(false);
+  const [violationsOpen,        setViolationsOpen]        = useState(false);
+  const [seriousViolationsOpen, setSeriousViolationsOpen] = useState(false);
+  const [overlayCopied,         setOverlayCopied]         = useState(false);
 
   async function handleNextRoundConfirmed() {
     if (!match || isLastRound) return;
@@ -563,6 +574,137 @@ export default function DewanPage() {
                   </div>
                   <div className="px-4 py-2.5 border-t border-border">
                     <p className="text-xs text-muted">Counts are per round. Round {currentRound} shown.</p>
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* ── Serious violations — accordion ── */}
+        {(() => {
+          const count = (side: "red" | "blue", type: SeriousViolationType) =>
+            seriousViolations.filter((v) => v.side === side && v.type === type && v.round === currentRound).length;
+
+          const undoSerious = async (side: "red" | "blue", type: SeriousViolationType) => {
+            if (!match) return;
+            const last = [...seriousViolations]
+              .reverse()
+              .find((v) => v.side === side && v.type === type && v.round === currentRound);
+            if (last) await deleteSeriousViolation(match.id, last.id, last.adminEventId);
+          };
+
+          const totalThisRound = seriousViolations.filter((v) => v.round === currentRound).length;
+          const moderate = SERIOUS_VIOLATION_TYPES.filter((v) => v.severity === "moderate");
+          const serious  = SERIOUS_VIOLATION_TYPES.filter((v) => v.severity === "serious");
+
+          const ViolRow = ({ type, label, icon }: { type: SeriousViolationType; label: string; icon: string }) => {
+            const r = count("red",  type);
+            const b = count("blue", type);
+            return (
+              <tr className="border-b border-border last:border-b-0">
+                {/* Red cell */}
+                <td className="px-3 py-2 w-[30%]">
+                  <div className="flex items-center justify-center gap-1.5">
+                    {r > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => undoSerious("red", type)}
+                        className="text-xs text-muted hover:text-danger transition-colors"
+                        title="Undo"
+                      >↩</button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => match && addSeriousViolation(match.id, "red", type, currentRound)}
+                      className={`w-8 h-8 rounded-lg font-black text-sm flex items-center justify-center transition-all duration-75 active:scale-90 select-none ${
+                        r > 0
+                          ? "bg-danger text-white"
+                          : "bg-elevated text-muted hover:bg-danger/10 hover:text-danger border border-border"
+                      }`}
+                    >
+                      {r > 0 ? r : "+"}
+                    </button>
+                  </div>
+                </td>
+                {/* Violation label */}
+                <td className="px-2 py-2 text-center">
+                  <span className="text-sm leading-none mr-1">{icon}</span>
+                  <span className="text-xs text-secondary">{label}</span>
+                </td>
+                {/* Blue cell */}
+                <td className="px-3 py-2 w-[30%]">
+                  <div className="flex items-center justify-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => match && addSeriousViolation(match.id, "blue", type, currentRound)}
+                      className={`w-8 h-8 rounded-lg font-black text-sm flex items-center justify-center transition-all duration-75 active:scale-90 select-none ${
+                        b > 0
+                          ? "bg-blue-500 text-white"
+                          : "bg-elevated text-muted hover:bg-blue-500/10 hover:text-blue-400 border border-border"
+                      }`}
+                    >
+                      {b > 0 ? b : "+"}
+                    </button>
+                    {b > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => undoSerious("blue", type)}
+                        className="text-xs text-muted hover:text-blue-400 transition-colors"
+                        title="Undo"
+                      >↩</button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            );
+          };
+
+          return (
+            <div className="bg-surface border border-border rounded-xl overflow-hidden mb-4">
+              <button
+                type="button"
+                onClick={() => setSeriousViolationsOpen((o) => !o)}
+                className="w-full px-5 py-3 flex items-center justify-between hover:bg-elevated/50 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-muted">Serious Violations</p>
+                  {totalThisRound > 0 && (
+                    <span className="text-xs font-bold text-danger bg-danger/10 border border-danger/30 rounded-full px-2 py-0.5">
+                      {totalThisRound} R{currentRound}
+                    </span>
+                  )}
+                </div>
+                <span className="text-muted text-xs">{seriousViolationsOpen ? "▲" : "▼"}</span>
+              </button>
+              {seriousViolationsOpen && (
+                <>
+                  <div className="border-t border-border" />
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="px-3 py-2 text-center text-xs font-semibold uppercase tracking-widest text-danger w-[30%]">Red</th>
+                        <th className="px-2 py-2 text-center text-xs font-semibold uppercase tracking-widest text-muted">Violation</th>
+                        <th className="px-3 py-2 text-center text-xs font-semibold uppercase tracking-widest text-blue-400 w-[30%]">Blue</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td colSpan={3} className="px-4 py-1.5 bg-elevated/60 text-center text-xs font-semibold uppercase tracking-widest text-warn/80 border-b border-border">
+                          Moderate — −1 pt each
+                        </td>
+                      </tr>
+                      {moderate.map((v) => <ViolRow key={v.type} type={v.type as SeriousViolationType} label={v.label} icon={v.icon} />)}
+                      <tr>
+                        <td colSpan={3} className="px-4 py-1.5 bg-elevated/60 text-center text-xs font-semibold uppercase tracking-widest text-danger/80 border-b border-border border-t border-border">
+                          Serious — −5 pts each
+                        </td>
+                      </tr>
+                      {serious.map((v) => <ViolRow key={v.type} type={v.type as SeriousViolationType} label={v.label} icon={v.icon} />)}
+                    </tbody>
+                  </table>
+                  <div className="px-4 py-2.5 border-t border-border">
+                    <p className="text-xs text-muted">Points deducted automatically. Round {currentRound} shown.</p>
                   </div>
                 </>
               )}
