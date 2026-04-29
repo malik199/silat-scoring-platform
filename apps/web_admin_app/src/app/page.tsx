@@ -1,124 +1,212 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Shell } from "@/components/Shell";
-import { StatCard } from "@/components/StatCard";
-import { ActiveTournamentBanner } from "@/components/ActiveTournamentBanner";
+import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { subscribeActiveTournament, type Tournament } from "@/lib/tournaments";
-import { subscribeCompetitors } from "@/lib/competitors";
-import { subscribeMatches, type Match } from "@/lib/matches";
+import { TIERS } from "@/lib/tiers";
 
-export default function DashboardPage() {
-  const { user } = useAuth();
+const FEATURES = [
+  {
+    icon: "⚖",
+    label: "Real-Time Judge Scoring",
+    desc: "Judges score from any phone. Points confirm automatically when 2+ judges agree within 5 seconds.",
+  },
+  {
+    icon: "📺",
+    label: "Broadcast Overlay",
+    desc: "OBS-ready transparent lower-thirds with live scores, timer, and competitor names.",
+  },
+  {
+    icon: "🏟",
+    label: "Multi-Arena Control",
+    desc: "Run multiple arenas simultaneously with independent Dewan panels, timers, and scoreboards.",
+  },
+];
 
-  const [tournament,      setTournament]      = useState<Tournament | null | undefined>(undefined);
-  const [competitorCount, setCompetitorCount] = useState<number | null>(null);
-  const [matches,         setMatches]         = useState<Match[] | null>(null);
+const INCLUDED = [
+  "Live judge scoring",
+  "Multi-arena support",
+  "Dewan control panel",
+  "OBS broadcast overlay",
+  "Verification system",
+  "Violation tracking",
+];
 
-  useEffect(() => {
-    if (!user) return;
-    const unsubT = subscribeActiveTournament(user.uid, setTournament);
-    const unsubC = subscribeCompetitors(user.uid, (c) => setCompetitorCount(c.length));
-    return () => { unsubT(); unsubC(); };
-  }, [user]);
-
-  useEffect(() => {
-    if (!tournament) { setMatches(tournament === null ? [] : null); return; }
-    return subscribeMatches(tournament.id, setMatches);
-  }, [tournament?.id]);
-
-  const loading = tournament === undefined || competitorCount === null || matches === null;
-
-  const totalMatches  = matches?.length ?? 0;
-  const runningCount  = matches?.filter((m) => m.status === "in_progress").length ?? 0;
-  const recentMatches = matches ? [...matches].sort((a, b) => b.order - a.order).slice(0, 5) : [];
-
-  const fmt = (n: number | null) => (n === null ? "—" : String(n));
+export default function LandingPage() {
+  const { user, loading } = useAuth();
 
   return (
-    <Shell title="Dashboard">
-      <ActiveTournamentBanner />
+    <div className="min-h-screen bg-base text-primary">
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
-        <StatCard
-          label="Total Matches"
-          value={loading ? "—" : fmt(totalMatches)}
-          sub={runningCount > 0 ? `${runningCount} running now` : totalMatches === 0 ? "No matches yet" : "None running"}
-          trend={runningCount > 0 ? "up" : "neutral"}
-        />
-        <StatCard
-          label="Active Tournament"
-          value={loading ? "—" : tournament ? "1" : "0"}
-          sub={tournament ? tournament.name : "No active tournament"}
-          trend={tournament ? "up" : "neutral"}
-        />
-        <StatCard
-          label="Registered Competitors"
-          value={loading ? "—" : fmt(competitorCount)}
-          sub={competitorCount === 0 ? "None added yet" : competitorCount === 1 ? "1 competitor" : `${competitorCount} competitors`}
-          trend={competitorCount ? "up" : "neutral"}
-        />
-        <StatCard
-          label="Matches Pending"
-          value={loading ? "—" : fmt(matches?.filter((m) => m.status === "pending").length ?? 0)}
-          sub={totalMatches === 0 ? "No matches yet" : "Waiting to start"}
-          trend="neutral"
-        />
-      </div>
+      {/* ── Nav ── */}
+      <nav className="sticky top-0 z-50 border-b border-border/60 bg-base/80 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <img src="/logo.svg" alt="Silat Score" className="h-10 w-auto" />
+          <div className="flex items-center gap-3">
+            {!loading && user ? (
+              <Link
+                href="/dashboard"
+                className="px-5 py-2 rounded-lg bg-accent text-black text-sm font-bold hover:bg-accent-hover transition-colors"
+              >
+                Go to Dashboard →
+              </Link>
+            ) : (
+              <>
+                <Link href="/login" className="text-sm text-secondary hover:text-primary transition-colors px-3 py-2">
+                  Sign In
+                </Link>
+                <Link
+                  href="/register"
+                  className="px-5 py-2 rounded-lg bg-accent text-black text-sm font-bold hover:bg-accent-hover transition-colors"
+                >
+                  Get Started Free
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      </nav>
 
-      {/* Recent matches */}
-      <div className="bg-surface border border-border rounded-xl overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-          <h2 className="text-sm font-semibold text-primary">Recent Matches</h2>
-          <a href="/matches" className="text-xs text-accent hover:underline">See all</a>
+      {/* ── Hero ── */}
+      <section className="max-w-5xl mx-auto px-6 pt-24 pb-20 text-center">
+        {/* Badge */}
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/10 border border-accent/20 text-accent text-xs font-bold mb-8 uppercase tracking-widest">
+          <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+          Free for up to 20 competitors
         </div>
 
-        {loading ? (
-          <div className="px-5 py-10 text-center text-sm text-secondary">Loading…</div>
-        ) : recentMatches.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-secondary">
-            <p className="text-4xl mb-3">⚔</p>
-            <p className="text-sm">No matches yet.</p>
-            <p className="text-xs mt-1 text-muted">
-              {tournament ? "Create a match to get started." : "Create a tournament to get started."}
-            </p>
-          </div>
-        ) : (
-          <ul>
-            {recentMatches.map((m, i) => (
-              <li
-                key={m.id}
-                className={`flex items-center gap-4 px-5 py-3 ${i < recentMatches.length - 1 ? "border-b border-border" : ""}`}
+        <h1 className="text-5xl sm:text-6xl font-black leading-[1.1] tracking-tight mb-6">
+          Run Your Tournament.{" "}
+          <br className="hidden sm:block" />
+          <span style={{ color: "#00d084" }}>Focus on the Sport.</span>
+        </h1>
+
+        <p className="text-lg text-secondary max-w-2xl mx-auto mb-10 leading-relaxed">
+          Professional Pencak Silat tournament management — real-time judge scoring,
+          live broadcast overlays, and complete multi-arena control in one platform.
+        </p>
+
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <Link
+            href="/register"
+            className="w-full sm:w-auto px-10 py-3.5 rounded-xl bg-accent text-black font-black text-sm hover:bg-accent-hover transition-colors"
+          >
+            Get Started Free
+          </Link>
+          <Link
+            href="/login"
+            className="w-full sm:w-auto px-10 py-3.5 rounded-xl border border-border text-secondary font-semibold text-sm hover:bg-elevated hover:text-primary transition-colors"
+          >
+            Sign In →
+          </Link>
+        </div>
+      </section>
+
+      {/* ── Features ── */}
+      <section className="max-w-5xl mx-auto px-6 pb-20">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          {FEATURES.map(({ icon, label, desc }) => (
+            <div
+              key={label}
+              className="bg-surface border border-border rounded-2xl p-7 hover:border-border/80 transition-colors"
+            >
+              <span className="text-3xl block mb-4">{icon}</span>
+              <h3 className="text-sm font-bold text-primary mb-2">{label}</h3>
+              <p className="text-xs text-secondary leading-relaxed">{desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Pricing ── */}
+      <section className="max-w-6xl mx-auto px-6 pb-28">
+        <div className="text-center mb-14">
+          <h2 className="text-3xl sm:text-4xl font-black mb-3">Simple, transparent pricing</h2>
+          <p className="text-secondary text-sm">Start free. Upgrade as your tournaments grow.</p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-start">
+          {TIERS.map((tier) => {
+            const isFree = tier.id === "free";
+            return (
+              <div
+                key={tier.id}
+                className={`relative bg-surface rounded-2xl p-6 border flex flex-col ${
+                  isFree
+                    ? "border-accent/50 ring-1 ring-accent/10"
+                    : "border-border"
+                }`}
               >
-                <span className="text-xs font-bold text-muted w-6 text-center flex-shrink-0">
-                  {m.order}
-                </span>
-                <span className="text-sm text-secondary flex-shrink-0">Arena {m.arenaNumber}</span>
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <div className="w-1.5 h-1.5 rounded-full bg-danger flex-shrink-0" />
-                  <span className="text-sm text-primary truncate">Red</span>
-                  <span className="text-xs text-muted mx-1">vs</span>
-                  <div className="w-1.5 h-1.5 rounded-full bg-blue-400 flex-shrink-0" />
-                  <span className="text-sm text-primary truncate">Blue</span>
+                {isFree && (
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-accent text-black text-xs font-black whitespace-nowrap">
+                    Start here
+                  </div>
+                )}
+
+                {/* Tier name + range */}
+                <div className="mb-5 pt-1">
+                  <p className="text-base font-black text-primary">{tier.name}</p>
+                  <p className="text-xs text-muted mt-0.5">{tier.range}</p>
                 </div>
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border flex-shrink-0 ${
-                  m.status === "in_progress" ? "bg-warn/10 text-warn border-warn/30" :
-                  m.status === "completed"   ? "bg-accent/10 text-accent border-accent/30" :
-                  m.status === "cancelled"   ? "bg-danger/10 text-danger border-danger/30" :
-                  "bg-elevated text-secondary border-border"
-                }`}>
-                  {m.status === "in_progress" && <span className="w-1.5 h-1.5 rounded-full bg-warn mr-1 animate-pulse" />}
-                  {m.status === "in_progress" ? "Running" :
-                   m.status === "completed"   ? "Done" :
-                   m.status === "cancelled"   ? "Cancelled" : "Pending"}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </Shell>
+
+                {/* Price */}
+                <div className="mb-5">
+                  {isFree ? (
+                    <div>
+                      <span className="text-4xl font-black text-accent">$0</span>
+                      <span className="text-xs text-muted ml-1">/ forever</span>
+                    </div>
+                  ) : (
+                    <p className="text-sm font-semibold text-muted italic">Pricing coming soon</p>
+                  )}
+                </div>
+
+                {/* Description */}
+                <p className="text-xs text-secondary leading-relaxed mb-5 flex-1">
+                  {tier.description}
+                </p>
+
+                {/* What's included — only show on free tier to keep cards compact */}
+                {isFree && (
+                  <ul className="space-y-1.5 mb-5">
+                    {INCLUDED.map((item) => (
+                      <li key={item} className="flex items-center gap-2 text-xs text-secondary">
+                        <span className="text-accent text-xs font-bold">✓</span>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {/* CTA */}
+                {isFree ? (
+                  <Link
+                    href="/register"
+                    className="block w-full text-center py-2.5 rounded-lg bg-accent text-black text-sm font-bold hover:bg-accent-hover transition-colors"
+                  >
+                    Get started free
+                  </Link>
+                ) : (
+                  <button
+                    disabled
+                    className="w-full py-2.5 rounded-lg border border-border text-xs font-semibold text-muted cursor-not-allowed"
+                  >
+                    Coming soon
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* ── Footer ── */}
+      <footer className="border-t border-border py-8 text-center text-xs text-muted">
+        <span>© {new Date().getFullYear()} Silat Score</span>
+        <span className="mx-3 text-border">·</span>
+        <Link href="/login" className="hover:text-secondary transition-colors">Sign In</Link>
+        <span className="mx-3 text-border">·</span>
+        <Link href="/register" className="hover:text-secondary transition-colors">Register</Link>
+      </footer>
+    </div>
   );
 }
