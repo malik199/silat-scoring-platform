@@ -5,18 +5,20 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signInWithEmail } from "@/lib/auth";
 import { useAuth } from "@/context/AuthContext";
+import { SocialAuthButtons } from "@/components/SocialAuthButtons";
 
 export default function LoginPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
 
-  const [email, setEmail]       = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError]       = useState<string | null>(null);
+  const [email,      setEmail]      = useState("");
+  const [password,   setPassword]   = useState("");
+  const [error,      setError]      = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!loading && user !== null) router.replace("/dashboard");
+    if (!loading && user?.emailVerified) router.replace("/dashboard");
+    if (!loading && user && !user.emailVerified) router.replace("/verify-email");
   }, [user, loading, router]);
 
   async function handleSubmit(e: FormEvent) {
@@ -24,12 +26,14 @@ export default function LoginPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await signInWithEmail(email, password);
-      router.replace("/dashboard");
+      const signedIn = await signInWithEmail(email, password);
+      if (!signedIn.emailVerified) {
+        router.replace("/verify-email");
+      } else {
+        router.replace("/dashboard");
+      }
     } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : "Sign-in failed. Check your credentials."
-      );
+      setError(err instanceof Error ? err.message : "Sign-in failed. Check your credentials.");
     } finally {
       setSubmitting(false);
     }
@@ -44,29 +48,34 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex h-screen items-center justify-center bg-base px-4">
+    <div className="flex min-h-screen items-center justify-center bg-base px-4 py-12">
       <div className="w-full max-w-sm">
-        {/* Logo */}
+
+        {/* Wordmark */}
         <div className="text-center mb-8">
-          <Link href="/">
-            <img
-              src="/logo.svg"
-              alt="Silat Score"
-              className="mx-auto mb-2"
-              style={{ height: 240, width: "auto" }}
-            />
+          <Link href="/" className="text-xl font-black text-primary tracking-tight">
+            Silat Score
           </Link>
         </div>
 
         {/* Card */}
-        <div className="bg-surface border border-border rounded-2xl p-8">
-          <h2 className="text-base font-semibold text-primary mb-6">Sign in</h2>
+        <div className="bg-surface border border-border rounded-2xl p-7">
+          <h2 className="text-base font-semibold text-primary mb-5">Sign in</h2>
 
+          {/* Social buttons */}
+          <SocialAuthButtons />
+
+          {/* Divider */}
+          <div className="flex items-center gap-3 my-5">
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-xs text-muted">or</span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+
+          {/* Email / password form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-secondary mb-1.5">
-                Email
-              </label>
+              <label className="block text-xs font-medium text-secondary mb-1.5">Email</label>
               <input
                 type="email"
                 value={email}
@@ -77,11 +86,8 @@ export default function LoginPage() {
                 className="w-full px-3.5 py-2.5 rounded-lg bg-elevated border border-border text-primary text-sm placeholder:text-muted focus:outline-none focus:border-accent transition-colors"
               />
             </div>
-
             <div>
-              <label className="block text-xs font-medium text-secondary mb-1.5">
-                Password
-              </label>
+              <label className="block text-xs font-medium text-secondary mb-1.5">Password</label>
               <input
                 type="password"
                 value={password}
@@ -102,7 +108,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full py-2.5 rounded-lg bg-accent text-black text-sm font-semibold hover:bg-accent-hover disabled:opacity-50 transition-colors mt-2"
+              className="w-full py-2.5 rounded-lg bg-accent text-black text-sm font-semibold hover:bg-accent-hover disabled:opacity-50 transition-colors"
             >
               {submitting ? "Signing in…" : "Sign in"}
             </button>
@@ -111,9 +117,7 @@ export default function LoginPage() {
 
         <p className="text-center text-xs text-muted mt-5">
           Don&apos;t have an account?{" "}
-          <Link href="/register" className="text-accent hover:underline">
-            Register free
-          </Link>
+          <Link href="/register" className="text-accent hover:underline">Register free</Link>
         </p>
       </div>
     </div>
