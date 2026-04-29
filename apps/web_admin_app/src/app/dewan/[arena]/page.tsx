@@ -466,6 +466,110 @@ export default function DewanPage() {
           </div>
         </div>
 
+        {/* ── Light violations — accordion ── */}
+        {(() => {
+          const viol = (side: "red" | "blue", type: LightViolationType) =>
+            lightViolations.filter((v) => v.side === side && v.type === type && v.round === currentRound);
+
+          const undoViol = async (side: "red" | "blue", type: LightViolationType) => {
+            if (!match) return;
+            const last = [...lightViolations]
+              .reverse()
+              .find((v) => v.side === side && v.type === type && v.round === currentRound);
+            if (last) await deleteLightViolation(match.id, last.id);
+          };
+
+          return (
+            <div className="bg-surface border border-border rounded-xl overflow-hidden mb-4">
+              <button
+                type="button"
+                onClick={() => setViolationsOpen((o) => !o)}
+                className="w-full px-5 py-3 flex items-center justify-between hover:bg-elevated/50 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-muted">Light Violations</p>
+                  {lightViolations.filter((v) => v.round === currentRound).length > 0 && (
+                    <span className="text-xs font-bold text-warn bg-warn/10 border border-warn/30 rounded-full px-2 py-0.5">
+                      {lightViolations.filter((v) => v.round === currentRound).length} R{currentRound}
+                    </span>
+                  )}
+                </div>
+                <span className="text-muted text-xs">{violationsOpen ? "▲" : "▼"}</span>
+              </button>
+              {violationsOpen && (
+                <>
+                  <div className="border-t border-border" />
+                  <div className="grid grid-cols-2 gap-px bg-border">
+                    {/* Red side */}
+                    <div className="bg-surface p-3 space-y-1.5">
+                      <p className="text-xs font-semibold uppercase tracking-widest text-danger mb-2">Red Corner</p>
+                      {LIGHT_VIOLATION_TYPES.map(({ type, label, icon }) => {
+                        const count = viol("red", type).length;
+                        return (
+                          <div key={type} className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => match && addLightViolation(match.id, "red", type, currentRound)}
+                              className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg bg-elevated border border-border hover:border-danger/40 hover:bg-danger/5 transition-all active:scale-95 text-left"
+                            >
+                              <span className="text-base leading-none">{icon}</span>
+                              <span className="text-xs font-medium text-secondary flex-1">{label}</span>
+                              {count > 0 && (
+                                <span className="text-sm font-black text-danger">{count}</span>
+                              )}
+                            </button>
+                            {count > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => undoViol("red", type)}
+                                className="w-7 h-7 flex items-center justify-center rounded-lg text-muted hover:text-danger hover:bg-danger/10 transition-colors text-xs"
+                                title="Undo last"
+                              >↩</button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {/* Blue side */}
+                    <div className="bg-surface p-3 space-y-1.5">
+                      <p className="text-xs font-semibold uppercase tracking-widest text-blue-400 mb-2">Blue Corner</p>
+                      {LIGHT_VIOLATION_TYPES.map(({ type, label, icon }) => {
+                        const count = viol("blue", type).length;
+                        return (
+                          <div key={type} className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => match && addLightViolation(match.id, "blue", type, currentRound)}
+                              className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg bg-elevated border border-border hover:border-blue-400/40 hover:bg-blue-500/5 transition-all active:scale-95 text-left"
+                            >
+                              <span className="text-base leading-none">{icon}</span>
+                              <span className="text-xs font-medium text-secondary flex-1">{label}</span>
+                              {count > 0 && (
+                                <span className="text-sm font-black text-blue-400">{count}</span>
+                              )}
+                            </button>
+                            {count > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => undoViol("blue", type)}
+                                className="w-7 h-7 flex items-center justify-center rounded-lg text-muted hover:text-blue-400 hover:bg-blue-500/10 transition-colors text-xs"
+                                title="Undo last"
+                              >↩</button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="px-4 py-2.5 border-t border-border">
+                    <p className="text-xs text-muted">Counts are per round. Round {currentRound} shown.</p>
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })()}
+
         {/* ── Verification — accordion ── */}
         {(() => {
           const av = match.activeVerification;
@@ -653,110 +757,6 @@ export default function DewanPage() {
                       })}
                     </tbody>
                   </table>
-                </>
-              )}
-            </div>
-          );
-        })()}
-
-        {/* ── Light violations — accordion ── */}
-        {(() => {
-          const viol = (side: "red" | "blue", type: LightViolationType) =>
-            lightViolations.filter((v) => v.side === side && v.type === type && v.round === currentRound);
-
-          const undoViol = async (side: "red" | "blue", type: LightViolationType) => {
-            if (!match) return;
-            const last = [...lightViolations]
-              .reverse()
-              .find((v) => v.side === side && v.type === type && v.round === currentRound);
-            if (last) await deleteLightViolation(match.id, last.id);
-          };
-
-          return (
-            <div className="bg-surface border border-border rounded-xl overflow-hidden mb-4">
-              <button
-                type="button"
-                onClick={() => setViolationsOpen((o) => !o)}
-                className="w-full px-5 py-3 flex items-center justify-between hover:bg-elevated/50 transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <p className="text-xs font-semibold uppercase tracking-widest text-muted">Light Violations</p>
-                  {lightViolations.filter((v) => v.round === currentRound).length > 0 && (
-                    <span className="text-xs font-bold text-warn bg-warn/10 border border-warn/30 rounded-full px-2 py-0.5">
-                      {lightViolations.filter((v) => v.round === currentRound).length} R{currentRound}
-                    </span>
-                  )}
-                </div>
-                <span className="text-muted text-xs">{violationsOpen ? "▲" : "▼"}</span>
-              </button>
-              {violationsOpen && (
-                <>
-                  <div className="border-t border-border" />
-                  <div className="grid grid-cols-2 gap-px bg-border">
-                    {/* Red side */}
-                    <div className="bg-surface p-3 space-y-1.5">
-                      <p className="text-xs font-semibold uppercase tracking-widest text-danger mb-2">Red Corner</p>
-                      {LIGHT_VIOLATION_TYPES.map(({ type, label, icon }) => {
-                        const count = viol("red", type).length;
-                        return (
-                          <div key={type} className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => match && addLightViolation(match.id, "red", type, currentRound)}
-                              className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg bg-elevated border border-border hover:border-danger/40 hover:bg-danger/5 transition-all active:scale-95 text-left"
-                            >
-                              <span className="text-base leading-none">{icon}</span>
-                              <span className="text-xs font-medium text-secondary flex-1">{label}</span>
-                              {count > 0 && (
-                                <span className="text-sm font-black text-danger">{count}</span>
-                              )}
-                            </button>
-                            {count > 0 && (
-                              <button
-                                type="button"
-                                onClick={() => undoViol("red", type)}
-                                className="w-7 h-7 flex items-center justify-center rounded-lg text-muted hover:text-danger hover:bg-danger/10 transition-colors text-xs"
-                                title="Undo last"
-                              >↩</button>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                    {/* Blue side */}
-                    <div className="bg-surface p-3 space-y-1.5">
-                      <p className="text-xs font-semibold uppercase tracking-widest text-blue-400 mb-2">Blue Corner</p>
-                      {LIGHT_VIOLATION_TYPES.map(({ type, label, icon }) => {
-                        const count = viol("blue", type).length;
-                        return (
-                          <div key={type} className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => match && addLightViolation(match.id, "blue", type, currentRound)}
-                              className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg bg-elevated border border-border hover:border-blue-400/40 hover:bg-blue-500/5 transition-all active:scale-95 text-left"
-                            >
-                              <span className="text-base leading-none">{icon}</span>
-                              <span className="text-xs font-medium text-secondary flex-1">{label}</span>
-                              {count > 0 && (
-                                <span className="text-sm font-black text-blue-400">{count}</span>
-                              )}
-                            </button>
-                            {count > 0 && (
-                              <button
-                                type="button"
-                                onClick={() => undoViol("blue", type)}
-                                className="w-7 h-7 flex items-center justify-center rounded-lg text-muted hover:text-blue-400 hover:bg-blue-500/10 transition-colors text-xs"
-                                title="Undo last"
-                              >↩</button>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  <div className="px-4 py-2.5 border-t border-border">
-                    <p className="text-xs text-muted">Counts are per round. Round {currentRound} shown.</p>
-                  </div>
                 </>
               )}
             </div>

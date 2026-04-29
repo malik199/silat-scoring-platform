@@ -385,8 +385,9 @@ export const LIGHT_VIOLATION_TYPES = [
   { type: "poor_form",     label: "Poor Silat Form", icon: "🥋" },
   { type: "avoiding",      label: "Avoiding",        icon: "🏃" },
   { type: "out_of_bounds", label: "Out of Bounds",   icon: "🦶" },
-  { type: "wrong_target",  label: "Wrong Target",    icon: "🎯" },
+  { type: "wrong_target",  label: "Light Illegal Strike", icon: "🎯" },
   { type: "failed_sweep",  label: "Failed Sweep",    icon: "🧹" },
+  { type: "lower_stance",  label: "Lower Stance",    icon: "🦵" },
 ] as const;
 
 export type LightViolationType = typeof LIGHT_VIOLATION_TYPES[number]["type"];
