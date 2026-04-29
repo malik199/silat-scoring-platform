@@ -382,7 +382,7 @@ export function subscribeVerificationResponses(
 
 export const LIGHT_VIOLATION_TYPES = [
   { type: "stalling",      label: "Stalling",       icon: "⏱️" },
-  { type: "poor_form",     label: "Poor Form",       icon: "🥋" },
+  { type: "poor_form",     label: "Poor Silat Form", icon: "🥋" },
   { type: "avoiding",      label: "Avoiding",        icon: "🏃" },
   { type: "out_of_bounds", label: "Out of Bounds",   icon: "🦶" },
   { type: "wrong_target",  label: "Wrong Target",    icon: "🎯" },
