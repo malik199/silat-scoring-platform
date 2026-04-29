@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Shell } from "@/components/Shell";
 import { useAuth } from "@/context/AuthContext";
+import { getUserProfile } from "@/lib/users";
+import { TIERS } from "@/lib/tiers";
 import { COUNTRIES } from "@/lib/countries";
 import {
   subscribeCompetitors,
@@ -59,10 +61,11 @@ interface ManualModalProps {
   /** Pass an existing competitor to edit, or undefined to add new. */
   existing?: Competitor;
   organiserId: string;
+  atLimit: boolean;
   onClose: () => void;
 }
 
-function ManualModal({ existing, organiserId, onClose }: ManualModalProps) {
+function ManualModal({ existing, organiserId, atLimit, onClose }: ManualModalProps) {
   const isEdit = Boolean(existing);
   const [form, setForm] = useState<FormData>(
     existing
@@ -147,8 +150,26 @@ function ManualModal({ existing, organiserId, onClose }: ManualModalProps) {
           </p>
         </div>
 
+        {/* Limit gate — only shown when adding (not editing) and at the cap */}
+        {!isEdit && atLimit && (
+          <div className="px-6 py-8 flex flex-col items-center text-center gap-3">
+            <span className="text-4xl">🔒</span>
+            <p className="text-sm font-bold text-primary">Free plan limit reached</p>
+            <p className="text-xs text-secondary leading-relaxed max-w-xs">
+              Your free plan includes up to 20 competitors. Upgrade to add more.
+            </p>
+            <button
+              type="button"
+              onClick={onClose}
+              className="mt-2 px-5 py-2 rounded-lg border border-border text-sm font-medium text-secondary hover:text-primary hover:bg-elevated transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        )}
+
         {/* Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
+        <form onSubmit={handleSubmit} className={`flex-1 overflow-y-auto ${!isEdit && atLimit ? "hidden" : ""}`}>
           <div className="px-6 py-5 space-y-4">
             {/* Name row */}
             <div className="grid grid-cols-2 gap-3">
@@ -377,10 +398,11 @@ function ManualModal({ existing, organiserId, onClose }: ManualModalProps) {
 
 interface CsvModalProps {
   organiserId: string;
+  slotsRemaining: number;
   onClose: () => void;
 }
 
-function CsvModal({ organiserId, onClose }: CsvModalProps) {
+function CsvModal({ organiserId, slotsRemaining, onClose }: CsvModalProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [result, setResult] = useState<CsvParseResult | null>(null);
   const [fileName, setFileName] = useState("");
@@ -399,11 +421,15 @@ function CsvModal({ organiserId, onClose }: CsvModalProps) {
     reader.readAsText(file);
   }
 
+  // Rows that will actually be imported (capped at slotsRemaining)
+  const importable = result ? result.valid.slice(0, slotsRemaining) : [];
+  const capped     = result ? result.valid.length - importable.length : 0;
+
   async function handleImport() {
-    if (!result || result.valid.length === 0) return;
+    if (importable.length === 0) return;
     setSaving(true);
     try {
-      await bulkAddCompetitors(result.valid.map((c) => ({ ...c, organiserId })));
+      await bulkAddCompetitors(importable.map((c) => ({ ...c, organiserId })));
       setDone(true);
     } catch {
       setSaving(false);
@@ -486,16 +512,32 @@ function CsvModal({ organiserId, onClose }: CsvModalProps) {
                   {/* Summary */}
                   <div className="flex gap-3">
                     <div className="flex-1 bg-accent/5 border border-accent/20 rounded-lg px-4 py-3 text-center">
-                      <p className="text-lg font-bold text-accent">{result.valid.length}</p>
+                      <p className="text-lg font-bold text-accent">{importable.length}</p>
                       <p className="text-xs text-secondary">ready to import</p>
                     </div>
-                    {result.errors.length > 0 && (
+                    {(result.errors.length > 0 || capped > 0) && (
                       <div className="flex-1 bg-danger/5 border border-danger/20 rounded-lg px-4 py-3 text-center">
-                        <p className="text-lg font-bold text-danger">{result.errors.length}</p>
+                        <p className="text-lg font-bold text-danger">{result.errors.length + capped}</p>
                         <p className="text-xs text-secondary">rows skipped</p>
                       </div>
                     )}
                   </div>
+
+                  {/* Plan cap warning */}
+                  {capped > 0 && (
+                    <div className="bg-warn/5 border border-warn/30 rounded-lg px-4 py-3 flex items-start gap-2">
+                      <span className="text-warn text-sm flex-shrink-0">⚠</span>
+                      <p className="text-xs text-secondary leading-relaxed">
+                        <span className="font-semibold text-warn">{capped} row{capped !== 1 ? "s" : ""} excluded</span> — your free plan allows {slotsRemaining} more competitor{slotsRemaining !== 1 ? "s" : ""}. Upgrade to import all rows.
+                      </p>
+                    </div>
+                  )}
+
+                  {slotsRemaining === 0 && (
+                    <div className="bg-danger/5 border border-danger/20 rounded-lg px-4 py-3 text-center">
+                      <p className="text-xs text-danger font-semibold">Free plan limit reached — upgrade to import competitors.</p>
+                    </div>
+                  )}
 
                   {/* Errors */}
                   {result.errors.length > 0 && (
@@ -553,13 +595,13 @@ function CsvModal({ organiserId, onClose }: CsvModalProps) {
             <button
               type="button"
               onClick={handleImport}
-              disabled={!result || result.valid.length === 0 || saving}
+              disabled={importable.length === 0 || saving}
               className="flex-1 px-4 py-2.5 rounded-lg bg-accent text-black text-sm font-semibold hover:bg-accent-hover transition-colors disabled:opacity-40"
             >
               {saving
                 ? "Importing…"
-                : result
-                ? `Import ${result.valid.length} Competitor${result.valid.length !== 1 ? "s" : ""}`
+                : importable.length > 0
+                ? `Import ${importable.length} Competitor${importable.length !== 1 ? "s" : ""}`
                 : "Import"}
             </button>
           )}
@@ -573,11 +615,12 @@ function CsvModal({ organiserId, onClose }: CsvModalProps) {
 
 export default function CompetitorsPage() {
   const { user } = useAuth();
-  const [competitors, setCompetitors] = useState<Competitor[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState<"manual" | "csv" | null>(null);
+  const [competitors,     setCompetitors]     = useState<Competitor[]>([]);
+  const [loading,         setLoading]         = useState(true);
+  const [tierLimit,       setTierLimit]       = useState<number>(Infinity);
+  const [modal,           setModal]           = useState<"manual" | "csv" | null>(null);
   const [editingCompetitor, setEditingCompetitor] = useState<Competitor | null>(null);
-  const [search, setSearch] = useState("");
+  const [search,          setSearch]          = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -587,6 +630,20 @@ export default function CompetitorsPage() {
     });
     return unsub;
   }, [user]);
+
+  // Load tier to determine competitor cap
+  useEffect(() => {
+    if (!user) return;
+    getUserProfile(user.uid).then((profile) => {
+      if (!profile) return;
+      const tier = TIERS.find((t) => t.id === profile.tier);
+      setTierLimit(tier?.maxCompetitors ?? Infinity);
+    });
+  }, [user]);
+
+  const slotsRemaining = Math.max(0, tierLimit - competitors.length);
+  const atLimit        = competitors.length >= tierLimit;
+  const isFreeTier     = tierLimit === 20;
 
   const filtered = competitors.filter((c) => {
     const q = search.toLowerCase();
@@ -601,6 +658,31 @@ export default function CompetitorsPage() {
 
   return (
     <Shell title="Competitors">
+      {/* Free tier usage bar */}
+      {isFreeTier && !loading && (
+        <div className="mb-5 bg-surface border border-border rounded-xl px-5 py-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-semibold text-secondary">
+              Free plan — competitor slots
+            </p>
+            <p className={`text-xs font-bold ${atLimit ? "text-danger" : "text-secondary"}`}>
+              {competitors.length} / {tierLimit} used
+            </p>
+          </div>
+          <div className="h-1.5 bg-elevated rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all ${atLimit ? "bg-danger" : "bg-accent"}`}
+              style={{ width: `${Math.min(100, (competitors.length / tierLimit) * 100)}%` }}
+            />
+          </div>
+          {atLimit && (
+            <p className="text-xs text-danger mt-2">
+              Limit reached. Upgrade your plan to add more competitors.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Toolbar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">
         {/* Search */}
@@ -630,7 +712,9 @@ export default function CompetitorsPage() {
           </button>
           <button
             onClick={() => setModal("manual")}
-            className="px-4 py-2 rounded-lg bg-accent text-black text-sm font-semibold hover:bg-accent-hover transition-colors"
+            disabled={atLimit}
+            title={atLimit ? "Free plan limit reached (20/20)" : undefined}
+            className="px-4 py-2 rounded-lg bg-accent text-black text-sm font-semibold hover:bg-accent-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             + Add Manually
           </button>
@@ -711,15 +795,16 @@ export default function CompetitorsPage() {
       </div>
 
       {modal === "manual" && user && (
-        <ManualModal organiserId={user.uid} onClose={() => setModal(null)} />
+        <ManualModal organiserId={user.uid} atLimit={atLimit} onClose={() => setModal(null)} />
       )}
       {modal === "csv" && user && (
-        <CsvModal organiserId={user.uid} onClose={() => setModal(null)} />
+        <CsvModal organiserId={user.uid} slotsRemaining={slotsRemaining} onClose={() => setModal(null)} />
       )}
       {editingCompetitor && user && (
         <ManualModal
           existing={editingCompetitor}
           organiserId={user.uid}
+          atLimit={false}
           onClose={() => setEditingCompetitor(null)}
         />
       )}
