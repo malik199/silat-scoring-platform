@@ -66,38 +66,87 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* ── Hero ── */}
-      <section className="max-w-5xl mx-auto px-6 pt-24 pb-20 text-center">
-        {/* Badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/10 border border-accent/20 text-accent text-xs font-bold mb-8 uppercase tracking-widest">
-          <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-          Free for up to 20 competitors
-        </div>
+      {/* ── Hero Banner ── */}
+      <section className="relative overflow-hidden">
+        {/* Background glow */}
+        <div
+          aria-hidden
+          style={{
+            position: "absolute", inset: 0,
+            background: "radial-gradient(ellipse 80% 60% at 50% -10%, rgba(0,208,132,0.12) 0%, transparent 70%)",
+            pointerEvents: "none",
+          }}
+        />
+        {/* Subtle dot grid */}
+        <div
+          aria-hidden
+          style={{
+            position: "absolute", inset: 0, opacity: 0.35,
+            backgroundImage: "radial-gradient(circle, #3a3a3f 1px, transparent 1px)",
+            backgroundSize: "28px 28px",
+            pointerEvents: "none",
+          }}
+        />
 
-        <h1 className="text-5xl sm:text-6xl font-black leading-[1.1] tracking-tight mb-6">
-          Run Your Tournament.{" "}
-          <br className="hidden sm:block" />
-          <span style={{ color: "#00d084" }}>Focus on the Sport.</span>
-        </h1>
+        <div className="relative max-w-5xl mx-auto px-6 pt-16 pb-20 text-center">
+          {/* Logo in hero */}
+          <div className="flex justify-center mb-8">
+            <div
+              style={{
+                position: "relative",
+                display: "inline-block",
+              }}
+            >
+              {/* Glow ring behind logo */}
+              <div
+                aria-hidden
+                style={{
+                  position: "absolute",
+                  inset: "-24px",
+                  borderRadius: "50%",
+                  background: "radial-gradient(circle, rgba(0,208,132,0.15) 0%, transparent 70%)",
+                  filter: "blur(16px)",
+                }}
+              />
+              <img
+                src="/logo.svg"
+                alt="Silat Score"
+                style={{ height: 180, width: "auto", position: "relative" }}
+              />
+            </div>
+          </div>
 
-        <p className="text-lg text-secondary max-w-2xl mx-auto mb-10 leading-relaxed">
-          Professional Pencak Silat tournament management — real-time judge scoring,
-          live broadcast overlays, and complete multi-arena control in one platform.
-        </p>
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/10 border border-accent/20 text-accent text-xs font-bold mb-7 uppercase tracking-widest">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+            Free for up to 20 competitors
+          </div>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <Link
-            href="/register"
-            className="w-full sm:w-auto px-10 py-3.5 rounded-xl bg-accent text-black font-black text-sm hover:bg-accent-hover transition-colors"
-          >
-            Get Started Free
-          </Link>
-          <Link
-            href="/login"
-            className="w-full sm:w-auto px-10 py-3.5 rounded-xl border border-border text-secondary font-semibold text-sm hover:bg-elevated hover:text-primary transition-colors"
-          >
-            Sign In →
-          </Link>
+          <h1 className="text-5xl sm:text-6xl font-black leading-[1.1] tracking-tight mb-5">
+            Run Your Pencak Silat Tournament.
+            <br />
+            <span style={{ color: "#00d084" }}>Customized for Silat Tanding.</span>
+          </h1>
+
+          <p className="text-lg text-secondary max-w-2xl mx-auto mb-10 leading-relaxed">
+            Real-time judge scoring, live broadcast overlays, and complete
+            multi-arena control — built specifically for Pencak Silat Tanding competition.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link
+              href="/register"
+              className="w-full sm:w-auto px-10 py-3.5 rounded-xl bg-accent text-black font-black text-sm hover:bg-accent-hover transition-colors"
+            >
+              Get Started Free
+            </Link>
+            <Link
+              href="/login"
+              className="w-full sm:w-auto px-10 py-3.5 rounded-xl border border-border text-secondary font-semibold text-sm hover:bg-elevated hover:text-primary transition-colors"
+            >
+              Sign In →
+            </Link>
+          </div>
         </div>
       </section>
 
