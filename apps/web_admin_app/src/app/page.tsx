@@ -40,7 +40,7 @@ export default function LandingPage() {
       {/* ── Nav ── */}
       <nav className="sticky top-0 z-50 border-b border-border/60 bg-base/80 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <span className="text-lg font-black text-primary tracking-tight">Silat Score</span>
+          <img src="/SilatScore.svg" alt="Silat Score" className="h-8 w-auto" />
           <div className="flex items-center gap-3">
             {!loading && user ? (
               <Link
