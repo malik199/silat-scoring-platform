@@ -53,8 +53,8 @@ export default function LoginPage() {
 
         {/* Wordmark */}
         <div className="text-center mb-8">
-          <Link href="/" className="text-xl font-black text-primary tracking-tight">
-            Silat Score
+          <Link href="/">
+            <img src="/SilatScore.svg" alt="Silat Score" className="h-10 w-auto mx-auto" />
           </Link>
         </div>
 
