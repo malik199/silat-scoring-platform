@@ -101,7 +101,7 @@ function ContactModal({ onClose }: { onClose: () => void }) {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className={labelCls}>Your Name <span className="text-danger">*</span></label>
-                  <input type="text" required placeholder="Ahmad Razali" value={form.name} onChange={(e) => set("name", e.target.value)} className={inputCls} />
+                  <input type="text" required placeholder="Full Name" value={form.name} onChange={(e) => set("name", e.target.value)} className={inputCls} />
                 </div>
                 <div>
                   <label className={labelCls}>Email <span className="text-danger">*</span></label>
