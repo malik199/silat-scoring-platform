@@ -16,6 +16,6 @@ env:
   - variable: NEXT_PUBLIC_USE_FIREBASE_EMULATORS
     value: "false"
   - variable: GMAIL_USER
-    secret: GMAIL_USER
+    value: silat.virginia@gmail.com
   - variable: GMAIL_PASS
     secret: GMAIL_PASS
