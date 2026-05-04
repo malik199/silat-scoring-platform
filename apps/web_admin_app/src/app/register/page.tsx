@@ -60,8 +60,8 @@ export default function RegisterPage() {
 
         {/* Logo / wordmark */}
         <div className="text-center mb-6">
-          <Link href="/" className="text-xl font-black text-primary tracking-tight">
-            Silat Score
+          <Link href="/">
+            <img src="/SilatScore.svg" alt="Silat Score" className="h-10 w-auto mx-auto" />
           </Link>
         </div>
 
