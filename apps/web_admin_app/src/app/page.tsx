@@ -11,9 +11,9 @@ const FEATURES = [
     desc: "Judges score from any phone. Points confirm automatically when 2+ judges agree within 5 seconds.",
   },
   {
-    icon: "📺",
-    label: "Broadcast Overlay",
-    desc: "OBS-ready transparent lower-thirds with live scores, timer, and competitor names.",
+    icon: "📱",
+    label: "Companion Mobile App",
+    desc: "Judges score wirelessly over WiFi using our companion app, available on iOS and Android.",
   },
   {
     icon: "🏟",
