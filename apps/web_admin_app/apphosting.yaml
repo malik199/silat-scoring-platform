@@ -15,3 +15,7 @@ env:
     value: 1:191446392057:web:51c0f0cd3b63b8aa90d628
   - variable: NEXT_PUBLIC_USE_FIREBASE_EMULATORS
     value: "false"
+  - variable: GMAIL_USER
+    secret: GMAIL_USER
+  - variable: GMAIL_PASS
+    secret: GMAIL_PASS
