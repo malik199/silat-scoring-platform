@@ -6,16 +6,19 @@ import { useAuth } from "@/context/AuthContext";
 
 const FEATURES = [
   {
+    image: "/scoreimage1.jpg",
     icon: "⚖",
     label: "Real-Time Judge Scoring",
     desc: "Judges score from any phone. Points confirm automatically when 2+ judges agree within 5 seconds.",
   },
   {
+    image: "/scoreimage2.jpg",
     icon: "📱",
     label: "Companion Mobile App",
     desc: "Judges score wirelessly over WiFi using our companion app, available on iOS and Android.",
   },
   {
+    image: "/scoreimage3.jpg",
     icon: "🏟",
     label: "Multi-Arena Control",
     desc: "Run multiple arenas simultaneously with independent Dewan panels, timers, and scoreboards.",
@@ -285,14 +288,23 @@ export default function LandingPage() {
       {/* ── Features ── */}
       <section className="max-w-5xl mx-auto px-6 pb-20">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-          {FEATURES.map(({ icon, label, desc }) => (
+          {FEATURES.map(({ image, icon, label, desc }) => (
             <div
               key={label}
-              className="bg-surface border border-border rounded-2xl p-7 hover:border-border/80 transition-colors"
+              className="bg-surface border border-border rounded-2xl overflow-hidden hover:border-border/80 transition-colors"
             >
-              <span className="text-3xl block mb-4">{icon}</span>
-              <h3 className="text-sm font-bold text-primary mb-2">{label}</h3>
-              <p className="text-xs text-secondary leading-relaxed">{desc}</p>
+              <div className="w-full h-44 overflow-hidden">
+                <img
+                  src={image}
+                  alt={label}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="p-6">
+                <span className="text-2xl block mb-2">{icon}</span>
+                <h3 className="text-sm font-bold text-primary mb-2">{label}</h3>
+                <p className="text-xs text-secondary leading-relaxed">{desc}</p>
+              </div>
             </div>
           ))}
         </div>
