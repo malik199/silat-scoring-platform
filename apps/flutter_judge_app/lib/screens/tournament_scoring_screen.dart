@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../firestore_rest.dart';
 
@@ -411,14 +412,14 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Expanded(child: _ScoreButton(
-          image:    'assets/punch.png',
+          image:    'assets/images/punch.svg',
           sublabel: '1 pt',
           color:    color,
           onTap:    () => onAdd(1),
         )),
         const SizedBox(height: 10),
         Expanded(child: _ScoreButton(
-          image:    'assets/kick.png',
+          image:    'assets/images/kick.svg',
           sublabel: '2 pts',
           color:    color,
           onTap:    () => onAdd(2),
@@ -609,11 +610,10 @@ class _ScoreButtonState extends State<_ScoreButton> {
               Flexible(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Image.asset(
+                  child: SvgPicture.asset(
                     widget.image,
                     fit: BoxFit.contain,
-                    color: Colors.white,
-                    colorBlendMode: BlendMode.srcIn,
+                    colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
                   ),
                 ),
               ),
