@@ -211,7 +211,7 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
         isPhone
             ? _buildCompactStrip(blueTotal, redTotal, blue, red)
             : Padding(
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 10),
                 child: Row(
                   children: [
                     Expanded(child: _buildScoreHeader(
@@ -228,7 +228,7 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
         // ── Buttons + round badge ────────────────────────────────────────────
         Expanded(
           child: Padding(
-            padding: EdgeInsets.fromLTRB(12, isPhone ? 4 : 0, 12, 12),
+            padding: EdgeInsets.fromLTRB(20, isPhone ? 4 : 0, 20, 16),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -247,7 +247,7 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
 
   Widget _buildCompactStrip(int blueTotal, int redTotal, Color blue, Color red) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
       child: Row(
         children: [
           // Blue
@@ -430,36 +430,37 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
   Widget _buildRoundBadge({bool compact = false}) {
     const amber = Color(0xFFFFB300);
     final round = _match?.currentRound ?? 1;
+    final size  = compact ? 62.0 : 82.0;
 
     return SizedBox(
-      width: compact ? 64 : 78,
+      width: size,
       child: Center(
         child: Container(
-          width: double.infinity,
-          padding: EdgeInsets.symmetric(vertical: compact ? 10 : 18, horizontal: 8),
-          decoration: BoxDecoration(
+          width: size,
+          height: size,
+          decoration: const BoxDecoration(
             color: amber,
-            borderRadius: BorderRadius.circular(20),
+            shape: BoxShape.circle,
           ),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (!compact)
                 const Text(
-                  'ROUND',
+                  'R',
                   style: TextStyle(
                     color: Colors.black,
-                    fontSize: 9,
+                    fontSize: 12,
                     fontWeight: FontWeight.w900,
-                    letterSpacing: 1.8,
+                    letterSpacing: 1.5,
+                    height: 1.0,
                   ),
                 ),
-              if (!compact) const SizedBox(height: 4),
               Text(
-                'R$round',
+                '$round',
                 style: TextStyle(
                   color: Colors.black,
-                  fontSize: compact ? 28 : 52,
+                  fontSize: compact ? 26 : 44,
                   fontWeight: FontWeight.w900,
                   height: 1.0,
                 ),
