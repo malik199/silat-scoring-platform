@@ -573,16 +573,20 @@ class _ScoreButtonState extends State<_ScoreButton> {
             borderRadius: BorderRadius.circular(20),
           ),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Flexible(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: SvgPicture.asset(
-                    widget.image,
-                    fit: BoxFit.contain,
-                    colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-                  ),
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final vPad = constraints.maxHeight * 0.20;
+                    return Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: vPad),
+                      child: SvgPicture.asset(
+                        widget.image,
+                        fit: BoxFit.contain,
+                        colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                      ),
+                    );
+                  },
                 ),
               ),
             ],
