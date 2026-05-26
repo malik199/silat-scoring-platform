@@ -307,10 +307,10 @@ export default function DewanPage() {
         {/* ── Score banner ── */}
         <div className="bg-surface border border-border rounded-xl overflow-hidden mb-4">
           <div className="grid grid-cols-4">
-            <div className={`flex flex-col items-center justify-center py-6 ${winner === "red" ? "bg-danger/10" : ""}`}>
-              <p className="text-xs font-semibold uppercase tracking-widest text-danger mb-1">Red</p>
-              <p className="text-6xl font-black text-danger">{totalRed}</p>
-              {winner === "red" && <p className="text-xs font-semibold text-danger mt-1">Leading</p>}
+            <div className={`flex flex-col items-center justify-center py-6 ${winner === "blue" ? "bg-blue-500/10" : ""}`}>
+              <p className="text-xs font-semibold uppercase tracking-widest text-blue-400 mb-1">Blue</p>
+              <p className="text-6xl font-black text-blue-400">{totalBlue}</p>
+              {winner === "blue" && <p className="text-xs font-semibold text-blue-400 mt-1">Leading</p>}
             </div>
             <div className="col-span-2 flex flex-col items-center justify-center py-6 border-x border-border gap-3">
               {/* Round pips */}
@@ -384,10 +384,10 @@ export default function DewanPage() {
                 <p className="text-xs font-semibold text-muted">Final Round</p>
               )}
             </div>
-            <div className={`flex flex-col items-center justify-center py-6 ${winner === "blue" ? "bg-blue-500/10" : ""}`}>
-              <p className="text-xs font-semibold uppercase tracking-widest text-blue-400 mb-1">Blue</p>
-              <p className="text-6xl font-black text-blue-400">{totalBlue}</p>
-              {winner === "blue" && <p className="text-xs font-semibold text-blue-400 mt-1">Leading</p>}
+            <div className={`flex flex-col items-center justify-center py-6 ${winner === "red" ? "bg-danger/10" : ""}`}>
+              <p className="text-xs font-semibold uppercase tracking-widest text-danger mb-1">Red</p>
+              <p className="text-6xl font-black text-danger">{totalRed}</p>
+              {winner === "red" && <p className="text-xs font-semibold text-danger mt-1">Leading</p>}
             </div>
           </div>
         </div>
@@ -400,44 +400,6 @@ export default function DewanPage() {
           </div>
         )}
         <div className="grid grid-cols-2 gap-3 mb-4">
-          {/* Red corner */}
-          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-danger">Red Corner</p>
-              {redComp && (
-                <>
-                  <p className="text-sm font-bold text-primary truncate mt-0.5">{redComp.firstName} {redComp.lastName}</p>
-                  <p className="text-xs text-muted truncate">{redComp.schoolName || redComp.country || ""}</p>
-                </>
-              )}
-            </div>
-            <div className="grid grid-cols-4 gap-2">
-              <AdminBtn
-                label="3" sublabel="Takedown / Sweep"
-                onClick={() => apply("red", 3)}
-                variant="red-positive"
-                className="col-span-4"
-                disabled={isRunning}
-              />
-              {([-1, -2, -5, -10] as const).map((pts) => (
-                <AdminBtn
-                  key={pts} label={String(pts)} sublabel="Penalty"
-                  onClick={() => apply("red", pts)}
-                  variant="red-penalty"
-                  disabled={isRunning}
-                />
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={() => undoLast("red")}
-              disabled={isRunning || !adminEvents.some((e) => e.side === "red")}
-              className="w-full py-2.5 rounded-lg text-sm font-bold text-danger border border-danger/40 bg-danger/5 hover:bg-danger/15 hover:border-danger/60 transition-all duration-75 active:scale-95 active:brightness-75 select-none disabled:opacity-30 disabled:cursor-not-allowed disabled:active:scale-100"
-            >
-              ↩ Undo Last Red Action
-            </button>
-          </div>
-
           {/* Blue corner */}
           <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
             <div>
@@ -473,6 +435,44 @@ export default function DewanPage() {
               className="w-full py-2.5 rounded-lg text-sm font-bold text-blue-400 border border-blue-400/40 bg-blue-500/5 hover:bg-blue-500/15 hover:border-blue-400/60 transition-all duration-75 active:scale-95 active:brightness-75 select-none disabled:opacity-30 disabled:cursor-not-allowed disabled:active:scale-100"
             >
               ↩ Undo Last Blue Action
+            </button>
+          </div>
+
+          {/* Red corner */}
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-danger">Red Corner</p>
+              {redComp && (
+                <>
+                  <p className="text-sm font-bold text-primary truncate mt-0.5">{redComp.firstName} {redComp.lastName}</p>
+                  <p className="text-xs text-muted truncate">{redComp.schoolName || redComp.country || ""}</p>
+                </>
+              )}
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              <AdminBtn
+                label="3" sublabel="Takedown / Sweep"
+                onClick={() => apply("red", 3)}
+                variant="red-positive"
+                className="col-span-4"
+                disabled={isRunning}
+              />
+              {([-1, -2, -5, -10] as const).map((pts) => (
+                <AdminBtn
+                  key={pts} label={String(pts)} sublabel="Penalty"
+                  onClick={() => apply("red", pts)}
+                  variant="red-penalty"
+                  disabled={isRunning}
+                />
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => undoLast("red")}
+              disabled={isRunning || !adminEvents.some((e) => e.side === "red")}
+              className="w-full py-2.5 rounded-lg text-sm font-bold text-danger border border-danger/40 bg-danger/5 hover:bg-danger/15 hover:border-danger/60 transition-all duration-75 active:scale-95 active:brightness-75 select-none disabled:opacity-30 disabled:cursor-not-allowed disabled:active:scale-100"
+            >
+              ↩ Undo Last Red Action
             </button>
           </div>
         </div>
@@ -511,36 +511,6 @@ export default function DewanPage() {
                 <>
                   <div className="border-t border-border" />
                   <div className="grid grid-cols-2 gap-px bg-border">
-                    {/* Red side */}
-                    <div className="bg-surface p-3 space-y-1.5">
-                      <p className="text-xs font-semibold uppercase tracking-widest text-danger mb-2">Red Corner</p>
-                      {LIGHT_VIOLATION_TYPES.map(({ type, label, icon }) => {
-                        const count = viol("red", type).length;
-                        return (
-                          <div key={type} className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => match && addLightViolation(match.id, "red", type, currentRound)}
-                              className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg bg-elevated border border-border hover:border-danger/40 hover:bg-danger/5 transition-all active:scale-95 text-left"
-                            >
-                              <span className="text-base leading-none">{icon}</span>
-                              <span className="text-xs font-medium text-secondary flex-1">{label}</span>
-                              {count > 0 && (
-                                <span className="text-sm font-black text-danger">{count}</span>
-                              )}
-                            </button>
-                            {count > 0 && (
-                              <button
-                                type="button"
-                                onClick={() => undoViol("red", type)}
-                                className="w-7 h-7 flex items-center justify-center rounded-lg text-muted hover:text-danger hover:bg-danger/10 transition-colors text-xs"
-                                title="Undo last"
-                              >↩</button>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
                     {/* Blue side */}
                     <div className="bg-surface p-3 space-y-1.5">
                       <p className="text-xs font-semibold uppercase tracking-widest text-blue-400 mb-2">Blue Corner</p>
@@ -564,6 +534,36 @@ export default function DewanPage() {
                                 type="button"
                                 onClick={() => undoViol("blue", type)}
                                 className="w-7 h-7 flex items-center justify-center rounded-lg text-muted hover:text-blue-400 hover:bg-blue-500/10 transition-colors text-xs"
+                                title="Undo last"
+                              >↩</button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {/* Red side */}
+                    <div className="bg-surface p-3 space-y-1.5">
+                      <p className="text-xs font-semibold uppercase tracking-widest text-danger mb-2">Red Corner</p>
+                      {LIGHT_VIOLATION_TYPES.map(({ type, label, icon }) => {
+                        const count = viol("red", type).length;
+                        return (
+                          <div key={type} className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => match && addLightViolation(match.id, "red", type, currentRound)}
+                              className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg bg-elevated border border-border hover:border-danger/40 hover:bg-danger/5 transition-all active:scale-95 text-left"
+                            >
+                              <span className="text-base leading-none">{icon}</span>
+                              <span className="text-xs font-medium text-secondary flex-1">{label}</span>
+                              {count > 0 && (
+                                <span className="text-sm font-black text-danger">{count}</span>
+                              )}
+                            </button>
+                            {count > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => undoViol("red", type)}
+                                className="w-7 h-7 flex items-center justify-center rounded-lg text-muted hover:text-danger hover:bg-danger/10 transition-colors text-xs"
                                 title="Undo last"
                               >↩</button>
                             )}
@@ -603,35 +603,6 @@ export default function DewanPage() {
             const b = count("blue", type);
             return (
               <tr className="border-b border-border last:border-b-0">
-                {/* Red cell */}
-                <td className="px-3 py-2 w-[30%]">
-                  <div className="flex items-center justify-center gap-1.5">
-                    {r > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => undoSerious("red", type)}
-                        className="text-xs text-muted hover:text-danger transition-colors"
-                        title="Undo"
-                      >↩</button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => match && addSeriousViolation(match.id, "red", type, currentRound)}
-                      className={`w-8 h-8 rounded-lg font-black text-sm flex items-center justify-center transition-all duration-75 active:scale-90 select-none ${
-                        r > 0
-                          ? "bg-danger text-white"
-                          : "bg-elevated text-muted hover:bg-danger/10 hover:text-danger border border-border"
-                      }`}
-                    >
-                      {r > 0 ? r : "+"}
-                    </button>
-                  </div>
-                </td>
-                {/* Violation label */}
-                <td className="px-2 py-2 text-center">
-                  <span className="text-sm leading-none mr-1">{icon}</span>
-                  <span className="text-xs text-secondary">{label}</span>
-                </td>
                 {/* Blue cell */}
                 <td className="px-3 py-2 w-[30%]">
                   <div className="flex items-center justify-center gap-1.5">
@@ -654,6 +625,35 @@ export default function DewanPage() {
                         title="Undo"
                       >↩</button>
                     )}
+                  </div>
+                </td>
+                {/* Violation label */}
+                <td className="px-2 py-2 text-center">
+                  <span className="text-sm leading-none mr-1">{icon}</span>
+                  <span className="text-xs text-secondary">{label}</span>
+                </td>
+                {/* Red cell */}
+                <td className="px-3 py-2 w-[30%]">
+                  <div className="flex items-center justify-center gap-1.5">
+                    {r > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => undoSerious("red", type)}
+                        className="text-xs text-muted hover:text-danger transition-colors"
+                        title="Undo"
+                      >↩</button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => match && addSeriousViolation(match.id, "red", type, currentRound)}
+                      className={`w-8 h-8 rounded-lg font-black text-sm flex items-center justify-center transition-all duration-75 active:scale-90 select-none ${
+                        r > 0
+                          ? "bg-danger text-white"
+                          : "bg-elevated text-muted hover:bg-danger/10 hover:text-danger border border-border"
+                      }`}
+                    >
+                      {r > 0 ? r : "+"}
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -683,9 +683,9 @@ export default function DewanPage() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-border">
-                        <th className="px-3 py-2 text-center text-xs font-semibold uppercase tracking-widest text-danger w-[30%]">Red</th>
-                        <th className="px-2 py-2 text-center text-xs font-semibold uppercase tracking-widest text-muted">Violation</th>
                         <th className="px-3 py-2 text-center text-xs font-semibold uppercase tracking-widest text-blue-400 w-[30%]">Blue</th>
+                        <th className="px-2 py-2 text-center text-xs font-semibold uppercase tracking-widest text-muted">Violation</th>
+                        <th className="px-3 py-2 text-center text-xs font-semibold uppercase tracking-widest text-danger w-[30%]">Red</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -889,9 +889,9 @@ export default function DewanPage() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-border">
-                        <th className="px-5 py-2 text-center text-xs font-semibold uppercase tracking-widest text-danger w-1/3">Red</th>
-                        <th className="px-5 py-2 text-center text-xs font-semibold uppercase tracking-widest text-muted">Action</th>
                         <th className="px-5 py-2 text-center text-xs font-semibold uppercase tracking-widest text-blue-400 w-1/3">Blue</th>
+                        <th className="px-5 py-2 text-center text-xs font-semibold uppercase tracking-widest text-muted">Action</th>
+                        <th className="px-5 py-2 text-center text-xs font-semibold uppercase tracking-widest text-danger w-1/3">Red</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -905,14 +905,14 @@ export default function DewanPage() {
                             className={`border-b border-border last:border-b-0 ${highlight ? (pts > 0 ? "bg-accent/5" : "bg-warn/5") : ""}`}
                           >
                             <td className="px-5 py-3 text-center">
-                              <span className={`text-xl font-black ${r > 0 ? "text-danger" : "text-muted/30"}`}>{r}</span>
+                              <span className={`text-xl font-black ${b > 0 ? "text-blue-400" : "text-muted/30"}`}>{b}</span>
                             </td>
                             <td className="px-5 py-3 text-center">
                               <p className={`text-sm font-bold ${highlight ? (pts > 0 ? "text-accent" : "text-warn") : "text-secondary"}`}>{label}</p>
                               <p className="text-xs text-muted">{sublabel}</p>
                             </td>
                             <td className="px-5 py-3 text-center">
-                              <span className={`text-xl font-black ${b > 0 ? "text-blue-400" : "text-muted/30"}`}>{b}</span>
+                              <span className={`text-xl font-black ${r > 0 ? "text-danger" : "text-muted/30"}`}>{r}</span>
                             </td>
                           </tr>
                         );
@@ -948,8 +948,8 @@ export default function DewanPage() {
                   <thead>
                     <tr className="border-b border-border">
                       <th className="px-5 py-3 text-left   text-xs font-semibold uppercase tracking-widest text-muted">Judge</th>
-                      <th className="px-5 py-3 text-center text-xs font-semibold uppercase tracking-widest text-danger">Red</th>
                       <th className="px-5 py-3 text-center text-xs font-semibold uppercase tracking-widest text-blue-400">Blue</th>
+                      <th className="px-5 py-3 text-center text-xs font-semibold uppercase tracking-widest text-danger">Red</th>
                       <th className="px-5 py-3 text-right  text-xs font-semibold uppercase tracking-widest text-muted">Total</th>
                     </tr>
                   </thead>
@@ -973,8 +973,8 @@ export default function DewanPage() {
                               </div>
                             </div>
                           </td>
-                          <td className="px-5 py-3 text-center"><span className="text-lg font-bold text-danger">{t.red}</span></td>
                           <td className="px-5 py-3 text-center"><span className="text-lg font-bold text-blue-400">{t.blue}</span></td>
+                          <td className="px-5 py-3 text-center"><span className="text-lg font-bold text-danger">{t.red}</span></td>
                           <td className="px-5 py-3 text-right"><span className="text-sm font-semibold text-secondary">{t.red + t.blue}</span></td>
                         </tr>
                       );

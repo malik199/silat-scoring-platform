@@ -484,16 +484,6 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
       {/* Split screen */}
       <div className="flex flex-1">
         <CornerPanel
-          corner="red"
-          competitor={redComp}
-          score={totalRed}
-          leading={totalRed > totalBlue}
-          judgeOrder={judgeOrder}
-          recentTaps={recentTaps}
-          recentAdmin={recentAdminRed}
-        />
-        <div className="w-1 flex-shrink-0 bg-black/30" />
-        <CornerPanel
           corner="blue"
           competitor={blueComp}
           score={totalBlue}
@@ -501,6 +491,16 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
           judgeOrder={judgeOrder}
           recentTaps={recentTaps}
           recentAdmin={recentAdminBlue}
+        />
+        <div className="w-1 flex-shrink-0 bg-black/30" />
+        <CornerPanel
+          corner="red"
+          competitor={redComp}
+          score={totalRed}
+          leading={totalRed > totalBlue}
+          judgeOrder={judgeOrder}
+          recentTaps={recentTaps}
+          recentAdmin={recentAdminRed}
         />
       </div>
 
