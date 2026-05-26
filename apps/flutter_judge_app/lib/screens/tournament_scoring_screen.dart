@@ -199,60 +199,120 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
   Widget _buildScoring() {
     final blueTotal = _blueEvents.fold(0, (s, p) => s + p);
     final redTotal  = _redEvents.fold(0, (s, p) => s + p);
+    final isPhone   = MediaQuery.of(context).size.shortestSide < 600;
 
-    const blue  = Color(0xFF42A5F5);
-    const red   = Color(0xFFEF5350);
+    const blue = Color(0xFF42A5F5);
+    const red  = Color(0xFFEF5350);
 
     return Column(
       children: [
 
-        // ── Score headers ────────────────────────────────────────────────────
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
-          child: Row(
-            children: [
-              Expanded(child: _buildScoreHeader(
-                competitor: _blue,
-                total:      blueTotal,
-                color:      blue,
-                isLeft:     true,
-              )),
-              const SizedBox(width: 10),
-              Expanded(child: _buildScoreHeader(
-                competitor: _red,
-                total:      redTotal,
-                color:      red,
-                isLeft:     false,
-              )),
-            ],
-          ),
-        ),
+        // ── Score headers: compact strip on phones, full cards on tablets ────
+        isPhone
+            ? _buildCompactStrip(blueTotal, redTotal, blue, red)
+            : Padding(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+                child: Row(
+                  children: [
+                    Expanded(child: _buildScoreHeader(
+                      competitor: _blue, total: blueTotal, color: blue, isLeft: true,
+                    )),
+                    const SizedBox(width: 10),
+                    Expanded(child: _buildScoreHeader(
+                      competitor: _red, total: redTotal, color: red, isLeft: false,
+                    )),
+                  ],
+                ),
+              ),
 
         // ── Buttons + round badge ────────────────────────────────────────────
         Expanded(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            padding: EdgeInsets.fromLTRB(12, isPhone ? 4 : 0, 12, 12),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-
-                // Blue buttons — stacked vertically
                 Expanded(child: _buildButtonColumn(blue, _addBlue)),
-
                 const SizedBox(width: 10),
-
-                // Center: round badge
-                _buildRoundBadge(),
-
+                _buildRoundBadge(compact: isPhone),
                 const SizedBox(width: 10),
-
-                // Red buttons — stacked vertically
                 Expanded(child: _buildButtonColumn(red, _addRed)),
               ],
             ),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildCompactStrip(int blueTotal, int redTotal, Color blue, Color red) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+      child: Row(
+        children: [
+          // Blue
+          Expanded(child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            decoration: BoxDecoration(
+              color: blue.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: blue.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('BLUE', style: TextStyle(color: blue, fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
+                    Text(
+                      _blue?.fullName.split(' ').first ?? '—',
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 11),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                Text(
+                  '$blueTotal',
+                  style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w900, height: 1.0),
+                ),
+              ],
+            ),
+          )),
+          const SizedBox(width: 8),
+          // Red
+          Expanded(child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            decoration: BoxDecoration(
+              color: red.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: red.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                Text(
+                  '$redTotal',
+                  style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w900, height: 1.0),
+                ),
+                const Spacer(),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('RED', style: TextStyle(color: red, fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
+                    Text(
+                      _red?.fullName.split(' ').first ?? '—',
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 11),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          )),
+        ],
+      ),
     );
   }
 
@@ -367,16 +427,16 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
     );
   }
 
-  Widget _buildRoundBadge() {
+  Widget _buildRoundBadge({bool compact = false}) {
     const amber = Color(0xFFFFB300);
     final round = _match?.currentRound ?? 1;
 
     return SizedBox(
-      width: 78,
+      width: compact ? 64 : 78,
       child: Center(
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 8),
+          padding: EdgeInsets.symmetric(vertical: compact ? 10 : 18, horizontal: 8),
           decoration: BoxDecoration(
             color: amber,
             borderRadius: BorderRadius.circular(20),
@@ -384,21 +444,22 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'ROUND',
+              if (!compact)
+                const Text(
+                  'ROUND',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.8,
+                  ),
+                ),
+              if (!compact) const SizedBox(height: 4),
+              Text(
+                'R$round',
                 style: TextStyle(
                   color: Colors.black,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.8,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '$round',
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 52,
+                  fontSize: compact ? 28 : 52,
                   fontWeight: FontWeight.w900,
                   height: 1.0,
                 ),
