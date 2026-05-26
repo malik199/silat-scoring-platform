@@ -85,7 +85,18 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
 
   void _checkVerification(MatchDoc match) {
     final av = match.activeVerification;
-    if (av == null) return;
+
+    if (av == null) {
+      // Dewan cancelled — dismiss the dialog if it is still on screen
+      if (_verificationDialogShowing && mounted) {
+        _verificationDialogShowing = false;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) Navigator.of(context).pop();
+        });
+      }
+      return;
+    }
+
     if (av.id == _handledVerificationId) return;
     if (_verificationDialogShowing) return;
 
@@ -399,7 +410,7 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
   Widget _buildRoundBadge({bool compact = false}) {
     const amber = Color(0xFFFFB300);
     final round = _match?.currentRound ?? 1;
-    final size  = compact ? 62.0 : 140.0;
+    final size  = compact ? 90.0 : 140.0;
 
     return SizedBox(
       width: size,
@@ -430,7 +441,7 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
                 '$round',
                 style: TextStyle(
                   color: Colors.black,
-                  fontSize: compact ? 26 : 88,
+                  fontSize: compact ? 52 : 88,
                   fontWeight: FontWeight.w900,
                   height: 1.0,
                 ),
@@ -466,18 +477,25 @@ class _VerificationDialog extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(icon, style: const TextStyle(fontSize: 40)),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(icon, style: const TextStyle(fontSize: 28)),
+                const SizedBox(width: 10),
+                Flexible(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             const Text(
               'Select your verdict:',
               style: TextStyle(color: Colors.white54, fontSize: 13),
