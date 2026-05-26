@@ -500,23 +500,27 @@ class _VerificationDialog extends StatelessWidget {
               'Select your verdict:',
               style: TextStyle(color: Colors.white54, fontSize: 13),
             ),
-            const SizedBox(height: 20),
-            _VerdictButton(
-              label: 'Valid for RED',
-              color: const Color(0xFFEF5350),
-              onTap: () => onVote('red'),
-            ),
-            const SizedBox(height: 10),
-            _VerdictButton(
-              label: 'Valid for BLUE',
-              color: const Color(0xFF42A5F5),
-              onTap: () => onVote('blue'),
-            ),
-            const SizedBox(height: 10),
-            _VerdictButton(
-              label: 'Invalid',
-              color: Colors.white24,
-              onTap: () => onVote('invalid'),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(child: _VerdictButton(
+                  label: 'RED',
+                  color: const Color(0xFFEF5350),
+                  onTap: () => onVote('red'),
+                )),
+                const SizedBox(width: 8),
+                Expanded(child: _VerdictButton(
+                  label: 'BLUE',
+                  color: const Color(0xFF42A5F5),
+                  onTap: () => onVote('blue'),
+                )),
+                const SizedBox(width: 8),
+                Expanded(child: _VerdictButton(
+                  label: 'Invalid',
+                  color: Colors.white24,
+                  onTap: () => onVote('invalid'),
+                )),
+              ],
             ),
           ],
         ),
@@ -534,22 +538,20 @@ class _VerdictButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: onTap,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color.withValues(alpha: 0.15),
-          foregroundColor: color,
-          side: BorderSide(color: color.withValues(alpha: 0.5)),
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          elevation: 0,
-        ),
-        child: Text(
-          label,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
+    return ElevatedButton(
+      onPressed: onTap,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color.withValues(alpha: 0.15),
+        foregroundColor: color,
+        side: BorderSide(color: color.withValues(alpha: 0.5)),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 0,
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+        textAlign: TextAlign.center,
       ),
     );
   }
