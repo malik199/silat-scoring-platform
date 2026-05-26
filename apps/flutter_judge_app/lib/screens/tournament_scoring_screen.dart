@@ -412,14 +412,14 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Expanded(child: _ScoreButton(
-          image:    'assets/images/punch.svg',
+          image:    'assets/punch.svg',
           sublabel: '1 pt',
           color:    color,
           onTap:    () => onAdd(1),
         )),
         const SizedBox(height: 10),
         Expanded(child: _ScoreButton(
-          image:    'assets/images/kick.svg',
+          image:    'assets/kick.svg',
           sublabel: '2 pts',
           color:    color,
           onTap:    () => onAdd(2),
