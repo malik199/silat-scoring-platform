@@ -411,14 +411,14 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Expanded(child: _ScoreButton(
-          label:    '1',
+          image:    'assets/punch.png',
           sublabel: '1 pt',
           color:    color,
           onTap:    () => onAdd(1),
         )),
         const SizedBox(height: 10),
         Expanded(child: _ScoreButton(
-          label:    '2',
+          image:    'assets/kick.png',
           sublabel: '2 pts',
           color:    color,
           onTap:    () => onAdd(2),
@@ -570,12 +570,12 @@ class _VerdictButton extends StatelessWidget {
 // ── Score button ─────────────────────────────────────────────────────────────
 
 class _ScoreButton extends StatefulWidget {
-  final String label;
+  final String image;
   final String? sublabel;
   final Color color;
   final VoidCallback? onTap;
 
-  const _ScoreButton({required this.label, this.sublabel, required this.color, required this.onTap});
+  const _ScoreButton({required this.image, this.sublabel, required this.color, required this.onTap});
 
   @override
   State<_ScoreButton> createState() => _ScoreButtonState();
@@ -606,13 +606,15 @@ class _ScoreButtonState extends State<_ScoreButton> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
-                widget.label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 80,
-                  fontWeight: FontWeight.bold,
-                  height: 1.0,
+              Flexible(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Image.asset(
+                    widget.image,
+                    fit: BoxFit.contain,
+                    color: Colors.white,
+                    colorBlendMode: BlendMode.srcIn,
+                  ),
                 ),
               ),
               if (widget.sublabel != null) ...[
