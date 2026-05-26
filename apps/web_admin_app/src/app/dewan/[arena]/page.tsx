@@ -724,24 +724,35 @@ export default function DewanPage() {
 
           return (
             <div className={`bg-surface border rounded-xl overflow-hidden mb-4 ${av ? "border-accent/50" : "border-border"}`}>
-              <button
-                type="button"
-                onClick={() => setVerificationOpen((o) => !o)}
-                className={`w-full px-5 py-3 flex items-center justify-between hover:bg-elevated/50 transition-colors ${av ? "bg-accent/5" : ""}`}
-              >
-                <div className="flex items-center gap-2">
+              <div className={`flex items-center justify-between px-5 py-3 ${av ? "bg-accent/5" : ""}`}>
+                <button
+                  type="button"
+                  onClick={() => setVerificationOpen((o) => !o)}
+                  className="flex items-center gap-2 flex-1 hover:opacity-80 transition-opacity text-left"
+                >
                   <p className="text-xs font-semibold uppercase tracking-widest text-muted">Verification</p>
                   {av && (
                     <div className="flex items-center gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
                       <span className="text-xs font-bold text-accent">
-                        {av.type === "drop_takedown" ? "Drop/Takedown" : "Protest"} — {verificationResponses.length} response{verificationResponses.length !== 1 ? "s" : ""}
+                        {av.type === "drop_takedown" ? "Drop/Takedown" : "Protest"} — {verificationResponses.length}/3 responses
                       </span>
                     </div>
                   )}
+                </button>
+                <div className="flex items-center gap-2">
+                  {av && (
+                    <button
+                      type="button"
+                      onClick={() => match && clearVerification(match.id)}
+                      className="px-3 py-1 rounded-lg border border-danger/40 text-danger text-xs font-bold hover:bg-danger/10 transition-colors"
+                    >
+                      Cancel ✕
+                    </button>
+                  )}
+                  <span className="text-muted text-xs">{verificationOpen ? "▲" : "▼"}</span>
                 </div>
-                <span className="text-muted text-xs">{verificationOpen ? "▲" : "▼"}</span>
-              </button>
+              </div>
               {verificationOpen && (
                 <>
                   <div className="border-t border-border" />
@@ -812,17 +823,26 @@ export default function DewanPage() {
                           <p className="text-xs text-muted">
                             {verificationResponses.length >= 3
                               ? "All judges responded. Apply points then close."
-                              : "Waiting for judges to respond…"}
+                              : `${verificationResponses.length}/3 judges responded.`}
                           </p>
-                          {verificationResponses.length >= 3 && (
+                          <div className="flex items-center gap-2 flex-shrink-0">
                             <button
                               type="button"
                               onClick={() => match && clearVerification(match.id)}
-                              className="px-4 py-2 rounded-lg bg-accent text-black text-xs font-bold hover:bg-accent-hover transition-colors flex-shrink-0"
+                              className="px-4 py-2 rounded-lg border border-danger/40 text-danger text-xs font-bold hover:bg-danger/10 transition-colors"
                             >
-                              ✓ Approve &amp; Close
+                              Cancel Verification
                             </button>
-                          )}
+                            {verificationResponses.length >= 3 && (
+                              <button
+                                type="button"
+                                onClick={() => match && clearVerification(match.id)}
+                                className="px-4 py-2 rounded-lg bg-accent text-black text-xs font-bold hover:bg-accent-hover transition-colors"
+                              >
+                                ✓ Approve &amp; Close
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     )}
