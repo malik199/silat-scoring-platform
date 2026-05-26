@@ -198,9 +198,11 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
 
   // ── Scoring screen ───────────────────────────────────────────────────────────
   Widget _buildScoring() {
-    final blueTotal = _blueEvents.fold(0, (s, p) => s + p);
-    final redTotal  = _redEvents.fold(0, (s, p) => s + p);
-    final isPhone   = MediaQuery.of(context).size.shortestSide < 600;
+    final bluePunches = _blueEvents.where((p) => p == 1).length;
+    final blueKicks   = _blueEvents.where((p) => p == 2).length;
+    final redPunches  = _redEvents.where((p) => p == 1).length;
+    final redKicks    = _redEvents.where((p) => p == 2).length;
+    final isPhone     = MediaQuery.of(context).size.shortestSide < 600;
 
     const blue = Color(0xFF42A5F5);
     const red  = Color(0xFFEF5350);
@@ -210,17 +212,21 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
 
         // ── Score headers: compact strip on phones, full cards on tablets ────
         isPhone
-            ? _buildCompactStrip(blueTotal, redTotal, blue, red)
+            ? _buildCompactStrip(bluePunches, blueKicks, redPunches, redKicks, blue, red)
             : Padding(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 10),
                 child: Row(
                   children: [
                     Expanded(child: _buildScoreHeader(
-                      competitor: _blue, total: blueTotal, color: blue, isLeft: true,
+                      competitor: _blue,
+                      punches: bluePunches, kicks: blueKicks,
+                      color: blue, isLeft: true,
                     )),
                     const SizedBox(width: 10),
                     Expanded(child: _buildScoreHeader(
-                      competitor: _red, total: redTotal, color: red, isLeft: false,
+                      competitor: _red,
+                      punches: redPunches, kicks: redKicks,
+                      color: red, isLeft: false,
                     )),
                   ],
                 ),
@@ -246,72 +252,62 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
     );
   }
 
-  Widget _buildCompactStrip(int blueTotal, int redTotal, Color blue, Color red) {
+  Widget _buildCompactStrip(
+    int bluePunches, int blueKicks,
+    int redPunches,  int redKicks,
+    Color blue, Color red,
+  ) {
+    Widget counts(int punches, int kicks, Color color) => Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SvgPicture.asset('assets/punch.svg', width: 18, height: 18,
+            colorFilter: ColorFilter.mode(color, BlendMode.srcIn)),
+        const SizedBox(width: 4),
+        Text('$punches', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, height: 1.0)),
+        const SizedBox(width: 10),
+        SvgPicture.asset('assets/kick.svg', width: 18, height: 18,
+            colorFilter: ColorFilter.mode(color, BlendMode.srcIn)),
+        const SizedBox(width: 4),
+        Text('$kicks', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, height: 1.0)),
+      ],
+    );
+
+    Widget card(String label, String firstName, int punches, int kicks, Color color, bool isLeft) =>
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: isLeft
+              ? [
+                  Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                    Text(label, style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
+                    Text(firstName, style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 11), overflow: TextOverflow.ellipsis),
+                  ]),
+                  const Spacer(),
+                  counts(punches, kicks, color),
+                ]
+              : [
+                  counts(punches, kicks, color),
+                  const Spacer(),
+                  Column(crossAxisAlignment: CrossAxisAlignment.end, mainAxisSize: MainAxisSize.min, children: [
+                    Text(label, style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
+                    Text(firstName, style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 11), overflow: TextOverflow.ellipsis),
+                  ]),
+                ],
+        ),
+      );
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
       child: Row(
         children: [
-          // Blue
-          Expanded(child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-            decoration: BoxDecoration(
-              color: blue.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: blue.withValues(alpha: 0.3)),
-            ),
-            child: Row(
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('BLUE', style: TextStyle(color: blue, fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
-                    Text(
-                      _blue?.fullName.split(' ').first ?? '—',
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 11),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-                const Spacer(),
-                Text(
-                  '$blueTotal',
-                  style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w900, height: 1.0),
-                ),
-              ],
-            ),
-          )),
+          Expanded(child: card('BLUE', _blue?.fullName.split(' ').first ?? '—', bluePunches, blueKicks, blue, true)),
           const SizedBox(width: 8),
-          // Red
-          Expanded(child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-            decoration: BoxDecoration(
-              color: red.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: red.withValues(alpha: 0.3)),
-            ),
-            child: Row(
-              children: [
-                Text(
-                  '$redTotal',
-                  style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w900, height: 1.0),
-                ),
-                const Spacer(),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('RED', style: TextStyle(color: red, fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
-                    Text(
-                      _red?.fullName.split(' ').first ?? '—',
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 11),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          )),
+          Expanded(child: card('RED',  _red?.fullName.split(' ').first  ?? '—', redPunches,  redKicks,  red,  false)),
         ],
       ),
     );
@@ -319,16 +315,33 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
 
   Widget _buildScoreHeader({
     required CompetitorDoc? competitor,
-    required int total,
+    required int punches,
+    required int kicks,
     required Color color,
     required bool isLeft,
   }) {
-    final align      = isLeft ? CrossAxisAlignment.start : CrossAxisAlignment.end;
-    final textAlign  = isLeft ? TextAlign.left : TextAlign.right;
-    final recentChips = (isLeft ? _blueEvents : _redEvents).reversed.take(6).toList();
+    final align     = isLeft ? CrossAxisAlignment.start : CrossAxisAlignment.end;
+    final textAlign = isLeft ? TextAlign.left : TextAlign.right;
+
+    Widget countRow(String asset, int count) => Row(
+      mainAxisSize: MainAxisSize.min,
+      children: isLeft
+          ? [
+              SvgPicture.asset(asset, width: 18, height: 18,
+                  colorFilter: ColorFilter.mode(color, BlendMode.srcIn)),
+              const SizedBox(width: 8),
+              Text('$count', style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900, height: 1.0)),
+            ]
+          : [
+              Text('$count', style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900, height: 1.0)),
+              const SizedBox(width: 8),
+              SvgPicture.asset(asset, width: 18, height: 18,
+                  colorFilter: ColorFilter.mode(color, BlendMode.srcIn)),
+            ],
+    );
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
@@ -338,33 +351,13 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
         crossAxisAlignment: align,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            'TOTAL SCORE',
-            style: TextStyle(
-              color: color,
-              fontSize: 9,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.5,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            '$total',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 38,
-              fontWeight: FontWeight.w900,
-              height: 1.0,
-            ),
-          ),
-          const SizedBox(height: 5),
+          countRow('assets/punch.svg', punches),
+          const SizedBox(height: 8),
+          countRow('assets/kick.svg', kicks),
+          const SizedBox(height: 8),
           Text(
             competitor?.fullName ?? '—',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.65),
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.65), fontSize: 13, fontWeight: FontWeight.w600),
             overflow: TextOverflow.ellipsis,
             maxLines: 1,
             textAlign: textAlign,
@@ -379,29 +372,6 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
               textAlign: textAlign,
             ),
           ],
-          if (recentChips.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 4,
-              runSpacing: 4,
-              alignment: isLeft ? WrapAlignment.start : WrapAlignment.end,
-              children: recentChips.map((pts) => Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  '+$pts',
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              )).toList(),
-            ),
-          ],
         ],
       ),
     );
@@ -412,17 +382,15 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Expanded(child: _ScoreButton(
-          image:    'assets/punch.svg',
-          sublabel: '1 pt',
-          color:    color,
-          onTap:    () => onAdd(1),
+          image:  'assets/punch.svg',
+          color:  color,
+          onTap:  () => onAdd(1),
         )),
         const SizedBox(height: 10),
         Expanded(child: _ScoreButton(
-          image:    'assets/kick.svg',
-          sublabel: '2 pts',
-          color:    color,
-          onTap:    () => onAdd(2),
+          image:  'assets/kick.svg',
+          color:  color,
+          onTap:  () => onAdd(2),
         )),
       ],
     );
@@ -431,7 +399,7 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
   Widget _buildRoundBadge({bool compact = false}) {
     const amber = Color(0xFFFFB300);
     final round = _match?.currentRound ?? 1;
-    final size  = compact ? 62.0 : 82.0;
+    final size  = compact ? 62.0 : 140.0;
 
     return SizedBox(
       width: size,
@@ -448,20 +416,21 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
             children: [
               if (!compact)
                 const Text(
-                  'R',
+                  'ROUND',
                   style: TextStyle(
                     color: Colors.black,
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: FontWeight.w900,
-                    letterSpacing: 1.5,
+                    letterSpacing: 2,
                     height: 1.0,
                   ),
                 ),
+              if (!compact) const SizedBox(height: 2),
               Text(
                 '$round',
                 style: TextStyle(
                   color: Colors.black,
-                  fontSize: compact ? 26 : 44,
+                  fontSize: compact ? 26 : 88,
                   fontWeight: FontWeight.w900,
                   height: 1.0,
                 ),
@@ -572,11 +541,10 @@ class _VerdictButton extends StatelessWidget {
 
 class _ScoreButton extends StatefulWidget {
   final String image;
-  final String? sublabel;
   final Color color;
   final VoidCallback? onTap;
 
-  const _ScoreButton({required this.image, this.sublabel, required this.color, required this.onTap});
+  const _ScoreButton({required this.image, required this.color, required this.onTap});
 
   @override
   State<_ScoreButton> createState() => _ScoreButtonState();
@@ -617,18 +585,6 @@ class _ScoreButtonState extends State<_ScoreButton> {
                   ),
                 ),
               ),
-              if (widget.sublabel != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  widget.sublabel!,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ],
             ],
           ),
         ),
