@@ -6,6 +6,7 @@ import {
   onSnapshot,
   query,
   serverTimestamp,
+  updateDoc,
   where,
   type Unsubscribe,
 } from "firebase/firestore";
@@ -101,6 +102,10 @@ export async function createBracket(
     createdAt: serverTimestamp(),
   });
   return ref.id;
+}
+
+export async function renameBracket(id: string, name: string): Promise<void> {
+  await updateDoc(doc(db, COL, id), { name });
 }
 
 export async function getBracket(id: string): Promise<Bracket | null> {

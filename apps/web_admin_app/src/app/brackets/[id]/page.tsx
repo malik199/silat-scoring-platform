@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { Shell } from "@/components/Shell";
 import { useAuth } from "@/context/AuthContext";
 import { subscribeCompetitors, type Competitor } from "@/lib/competitors";
-import { getBracket, buildRounds, getRoundName, type Bracket, type BracketMatchup } from "@/lib/brackets";
+import { getBracket, renameBracket, buildRounds, getRoundName, type Bracket, type BracketMatchup } from "@/lib/brackets";
 
 // ─── Layout constants ─────────────────────────────────────────────────────────
 
@@ -93,6 +93,10 @@ export default function BracketViewPage() {
   const [competitors, setCompetitors] = useState<Competitor[]>([]);
   const [loading,     setLoading]     = useState(true);
   const [notFound,    setNotFound]    = useState(false);
+  const [renaming,    setRenaming]    = useState(false);
+  const [nameInput,   setNameInput]   = useState("");
+  const [saving,      setSaving]      = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!params?.id) return;
@@ -101,6 +105,25 @@ export default function BracketViewPage() {
       else setBracket(b);
     });
   }, [params?.id]);
+
+  function startRename() {
+    setNameInput(bracket?.name ?? "");
+    setRenaming(true);
+    setTimeout(() => inputRef.current?.select(), 0);
+  }
+
+  async function commitRename() {
+    if (!bracket || !nameInput.trim() || saving) return;
+    setSaving(true);
+    await renameBracket(bracket.id, nameInput.trim());
+    setBracket((b) => b ? { ...b, name: nameInput.trim() } : b);
+    setSaving(false);
+    setRenaming(false);
+  }
+
+  function cancelRename() {
+    setRenaming(false);
+  }
 
   useEffect(() => {
     if (!user) return;
@@ -171,7 +194,53 @@ export default function BracketViewPage() {
   }
 
   return (
-    <Shell title="Bracket">
+    <Shell title={bracket?.name ?? "Bracket"}>
+      {/* Rename row */}
+      <div className="flex items-center gap-3 mb-6">
+        {renaming ? (
+          <form
+            onSubmit={(e) => { e.preventDefault(); commitRename(); }}
+            className="flex items-center gap-2 flex-1"
+          >
+            <input
+              ref={inputRef}
+              type="text"
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Escape" && cancelRename()}
+              autoFocus
+              className="flex-1 max-w-sm bg-elevated border border-accent rounded-lg px-3 py-1.5 text-sm font-semibold text-primary focus:outline-none"
+            />
+            <button
+              type="submit"
+              disabled={!nameInput.trim() || saving}
+              className="px-3 py-1.5 rounded-lg bg-accent text-black text-xs font-semibold hover:bg-accent-hover transition-colors disabled:opacity-40"
+            >
+              {saving ? "Saving…" : "Save"}
+            </button>
+            <button
+              type="button"
+              onClick={cancelRename}
+              className="px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-secondary hover:text-primary hover:bg-elevated transition-colors"
+            >
+              Cancel
+            </button>
+          </form>
+        ) : (
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-bold text-primary">{bracket?.name}</h2>
+            <button
+              type="button"
+              onClick={startRename}
+              title="Rename bracket"
+              className="text-muted hover:text-primary text-sm px-1.5 py-1 rounded hover:bg-elevated transition-colors"
+            >
+              ✎
+            </button>
+          </div>
+        )}
+      </div>
+
       <div className="overflow-x-auto pb-6">
         <div className="relative inline-block" style={{ width: TOTAL_W, height: TOTAL_H + 48 }}>
           {/* Round column labels */}
