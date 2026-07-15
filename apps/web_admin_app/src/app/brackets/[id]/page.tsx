@@ -31,7 +31,7 @@ function CompCard({ competitor, isBye }: { competitor: Competitor | null | undef
         style={{ width: CARD_W, height: CARD_H }}
         className="flex items-center px-3 rounded-lg border border-dashed border-border/40 bg-surface/40"
       >
-        <span className="text-xs text-muted italic">BYE</span>
+        <span className="text-xs text-muted italic">TBA</span>
       </div>
     );
   }
@@ -63,22 +63,21 @@ function CompCard({ competitor, isBye }: { competitor: Competitor | null | undef
 function MatchupBox({
   matchup,
   cMap,
-  seededIds,
+  roundIdx,
 }: {
   matchup: BracketMatchup;
   cMap: Map<string, Competitor>;
-  seededIds: (string | null)[];
+  roundIdx: number;
 }) {
   const p1 = matchup.p1Id ? cMap.get(matchup.p1Id) ?? null : null;
   const p2 = matchup.p2Id ? cMap.get(matchup.p2Id) ?? null : null;
-  const p1Bye = matchup.p1Id === null && seededIds.includes(null);
-  const p2Bye = matchup.p2Id === null && seededIds.includes(null);
+  const isFirstRound = roundIdx === 0;
 
   return (
     <div style={{ height: MATCHUP_H }} className="flex flex-col">
-      <CompCard competitor={p1} isBye={p1Bye && matchup.p1Id === null} />
+      <CompCard competitor={p1} isBye={isFirstRound && matchup.p1Id === null} />
       <div style={{ height: GAP }} />
-      <CompCard competitor={p2} isBye={p2Bye && matchup.p2Id === null} />
+      <CompCard competitor={p2} isBye={isFirstRound && matchup.p2Id === null} />
     </div>
   );
 }
@@ -286,7 +285,7 @@ export default function BracketViewPage() {
                     key={i}
                     matchup={matchup}
                     cMap={cMap}
-                    seededIds={bracket?.seededIds ?? []}
+                    roundIdx={r}
                   />
                 ))}
               </div>

@@ -38,9 +38,14 @@ export function shuffleArray<T>(arr: T[]): T[] {
 }
 
 export function padToPowerOfTwo(ids: string[]): (string | null)[] {
-  let n = 1;
-  while (n < ids.length) n *= 2;
-  return [...ids, ...Array<null>(n - ids.length).fill(null)];
+  let P = 1;
+  while (P < ids.length) P *= 2;
+  const numByes = P - ids.length;
+  // Place each bye adjacent to one real competitor so no null-vs-null matchup forms
+  const result: (string | null)[] = [];
+  for (let i = 0; i < numByes; i++) result.push(ids[i], null);
+  for (let i = numByes; i < ids.length; i++) result.push(ids[i]);
+  return result;
 }
 
 export function buildRounds(seededIds: (string | null)[]): BracketMatchup[][] {
