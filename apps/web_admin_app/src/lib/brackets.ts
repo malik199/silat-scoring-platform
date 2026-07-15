@@ -1,8 +1,20 @@
-import { addDoc, collection, doc, getDoc, serverTimestamp } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  onSnapshot,
+  query,
+  serverTimestamp,
+  where,
+  type Unsubscribe,
+} from "firebase/firestore";
 import { db } from "./firebase";
 
 export interface Bracket {
   id: string;
+  organiserId: string;
+  name: string;
   seededIds: (string | null)[];
   createdAt: unknown;
 }
@@ -50,8 +62,38 @@ export function getRoundName(numMatchups: number): string {
 
 const COL = "brackets";
 
-export async function createBracket(seededIds: (string | null)[]): Promise<string> {
-  const ref = await addDoc(collection(db, COL), { seededIds, createdAt: serverTimestamp() });
+export function subscribeBrackets(
+  organiserId: string,
+  cb: (brackets: Bracket[]) => void
+): Unsubscribe {
+  const q = query(collection(db, COL), where("organiserId", "==", organiserId));
+  return onSnapshot(
+    q,
+    (snap) => {
+      const brackets = snap.docs
+        .map((d) => ({ id: d.id, ...(d.data() as Omit<Bracket, "id">) }))
+        .sort((a, b) => {
+          const ta = (a.createdAt as { seconds?: number })?.seconds ?? 0;
+          const tb = (b.createdAt as { seconds?: number })?.seconds ?? 0;
+          return ta - tb;
+        });
+      cb(brackets);
+    },
+    () => cb([])
+  );
+}
+
+export async function createBracket(
+  organiserId: string,
+  name: string,
+  seededIds: (string | null)[]
+): Promise<string> {
+  const ref = await addDoc(collection(db, COL), {
+    organiserId,
+    name,
+    seededIds,
+    createdAt: serverTimestamp(),
+  });
   return ref.id;
 }
 

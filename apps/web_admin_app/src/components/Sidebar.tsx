@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { signOut } from "@/lib/auth";
 import { subscribeActiveTournament, type Tournament } from "@/lib/tournaments";
+import { subscribeBrackets, type Bracket } from "@/lib/brackets";
 
 const NAV = [
   { label: "Tournament",  href: "/tournaments", icon: "🏆" },
@@ -20,10 +21,16 @@ export function Sidebar() {
   const { user } = useAuth();
 
   const [tournament, setTournament] = useState<Tournament | null | undefined>(undefined);
+  const [brackets,   setBrackets]   = useState<Bracket[]>([]);
 
   useEffect(() => {
     if (!user) return;
     return subscribeActiveTournament(user.uid, setTournament);
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    return subscribeBrackets(user.uid, setBrackets);
   }, [user]);
 
   const arenaCount = tournament?.arenaCount ?? 0;
@@ -65,6 +72,7 @@ export function Sidebar() {
         {NAV.map(({ label, href, icon }) => {
           const active = pathname === href;
           const isTournaments = href === "/tournaments";
+          const isBrackets = href === "/brackets";
           const activeTournamentHref = tournament ? `/tournaments/${tournament.id}` : null;
           const subActive = activeTournamentHref ? pathname === activeTournamentHref : false;
           return (
@@ -93,6 +101,27 @@ export function Sidebar() {
                     <span className="text-xs leading-none text-muted">▶</span>
                     <span className="truncate">{tournament.name}</span>
                   </Link>
+                </div>
+              )}
+              {isBrackets && brackets.length > 0 && (
+                <div className="ml-2 border-l border-border pl-2 mt-0.5">
+                  {brackets.map((b) => {
+                    const bracketActive = pathname === `/brackets/${b.id}`;
+                    return (
+                      <Link
+                        key={b.id}
+                        href={`/brackets/${b.id}`}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors truncate ${
+                          bracketActive
+                            ? "bg-accent text-black"
+                            : "text-secondary hover:bg-elevated hover:text-primary"
+                        }`}
+                      >
+                        <span className="text-xs leading-none text-muted">▶</span>
+                        <span className="truncate">{b.name}</span>
+                      </Link>
+                    );
+                  })}
                 </div>
               )}
             </div>

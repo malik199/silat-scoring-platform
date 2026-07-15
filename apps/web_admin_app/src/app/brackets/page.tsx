@@ -10,7 +10,7 @@ import {
   type Competitor,
   type ExperienceLevel,
 } from "@/lib/competitors";
-import { shuffleArray, padToPowerOfTwo, createBracket } from "@/lib/brackets";
+import { shuffleArray, padToPowerOfTwo, createBracket, subscribeBrackets, type Bracket } from "@/lib/brackets";
 
 // ─── Experience badge ─────────────────────────────────────────────────────────
 
@@ -77,6 +77,7 @@ export default function BracketsPage() {
   const { user } = useAuth();
   const router = useRouter();
   const [competitors, setCompetitors] = useState<Competitor[]>([]);
+  const [brackets,    setBrackets]    = useState<Bracket[]>([]);
   const [loading,     setLoading]     = useState(true);
   const [selected,    setSelected]    = useState<Set<string>>(new Set());
   const [sortKey,     setSortKey]     = useState<SortKey>("name");
@@ -90,6 +91,11 @@ export default function BracketsPage() {
       setCompetitors(data);
       setLoading(false);
     });
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    return subscribeBrackets(user.uid, setBrackets);
   }, [user]);
 
   function handleSort(key: SortKey) {
@@ -281,13 +287,14 @@ export default function BracketsPage() {
           type="button"
           disabled={creating}
           onClick={async () => {
-            if (creating) return;
+            if (creating || !user) return;
             setCreating(true);
             try {
               const ids = [...selected];
               const shuffled = shuffleArray(ids);
               const seeded = padToPowerOfTwo(shuffled);
-              const bracketId = await createBracket(seeded);
+              const name = `Untitled Bracket ${brackets.length + 1}`;
+              const bracketId = await createBracket(user.uid, name, seeded);
               router.push(`/brackets/${bracketId}`);
             } catch {
               setCreating(false);
