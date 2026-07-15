@@ -32,12 +32,23 @@ function ExperienceBadge({ level }: { level: ExperienceLevel }) {
 
 // ─── Sorting ──────────────────────────────────────────────────────────────────
 
-type SortKey = "name" | "dateOfBirth" | "kg" | "lbs" | "gender" | "country" | "school" | "experience";
+type SortKey = "name" | "age" | "kg" | "lbs" | "gender" | "country" | "school" | "experience";
 type SortDir = "asc" | "desc";
 
 const EXPERIENCE_ORDER: Record<ExperienceLevel, number> = {
   beginner: 0, intermediate: 1, advanced: 2, pro: 3,
 };
+
+function calcAge(dob: string): string {
+  if (!dob) return "—";
+  const birth = new Date(dob + "T00:00:00");
+  const now = new Date();
+  let years = now.getFullYear() - birth.getFullYear();
+  let months = now.getMonth() - birth.getMonth();
+  if (now.getDate() < birth.getDate()) months--;
+  if (months < 0) { years--; months += 12; }
+  return `${years}y ${months}m`;
+}
 
 function sortCompetitors(list: Competitor[], key: SortKey, dir: SortDir): Competitor[] {
   return [...list].sort((a, b) => {
@@ -46,8 +57,9 @@ function sortCompetitors(list: Competitor[], key: SortKey, dir: SortDir): Compet
       case "name":
         cmp = `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
         break;
-      case "dateOfBirth":
-        cmp = (a.dateOfBirth || "").localeCompare(b.dateOfBirth || "");
+      case "age":
+        // ascending age = youngest first = latest DOB first
+        cmp = (b.dateOfBirth || "").localeCompare(a.dateOfBirth || "");
         break;
       case "kg":
       case "lbs":
@@ -85,6 +97,7 @@ export default function BracketsPage() {
   const [sortKey,     setSortKey]     = useState<SortKey>("name");
   const [sortDir,     setSortDir]     = useState<SortDir>("asc");
   const [search,      setSearch]      = useState("");
+  const [genderFilter, setGenderFilter] = useState<"all" | "male" | "female">("all");
   const [creating,    setCreating]    = useState(false);
   const [createError, setCreateError] = useState("");
 
@@ -119,13 +132,14 @@ export default function BracketsPage() {
     const q = search.toLowerCase();
     return competitors.filter(
       (c) =>
-        !q ||
-        c.firstName.toLowerCase().includes(q) ||
-        c.lastName.toLowerCase().includes(q) ||
-        c.country.toLowerCase().includes(q) ||
-        c.schoolName.toLowerCase().includes(q)
+        (genderFilter === "all" || c.gender === genderFilter) &&
+        (!q ||
+          c.firstName.toLowerCase().includes(q) ||
+          c.lastName.toLowerCase().includes(q) ||
+          c.country.toLowerCase().includes(q) ||
+          c.schoolName.toLowerCase().includes(q))
     );
-  }, [competitors, search]);
+  }, [competitors, search, genderFilter]);
 
   const sorted = useMemo(
     () => sortCompetitors(filtered, sortKey, sortDir),
@@ -188,8 +202,24 @@ export default function BracketsPage() {
             className="w-full bg-surface border border-border rounded-lg pl-8 pr-3 py-2 text-sm text-primary placeholder-muted focus:outline-none focus:border-accent transition-colors"
           />
         </div>
+        <div className="flex rounded-lg overflow-hidden border border-border text-sm font-semibold flex-shrink-0">
+          {(["all", "male", "female"] as const).map((g) => (
+            <button
+              key={g}
+              type="button"
+              onClick={() => setGenderFilter(g)}
+              className={`px-3 py-2 transition-colors capitalize ${
+                genderFilter === g
+                  ? "bg-accent text-black"
+                  : "bg-elevated text-secondary hover:text-primary"
+              }`}
+            >
+              {g === "all" ? "All" : g === "male" ? "Male" : "Female"}
+            </button>
+          ))}
+        </div>
         <p className="text-xs text-muted hidden sm:block">
-          {loading ? "" : `${competitors.length} competitor${competitors.length !== 1 ? "s" : ""}`}
+          {loading ? "" : `${filtered.length} of ${competitors.length} competitor${competitors.length !== 1 ? "s" : ""}`}
         </p>
       </div>
 
@@ -207,8 +237,8 @@ export default function BracketsPage() {
               className="w-4 h-4 rounded border-border bg-elevated accent-accent cursor-pointer disabled:cursor-default"
             />
           </div>
-          <SortBtn label="Name"          k="name"        />
-          <SortBtn label="Date of Birth" k="dateOfBirth" />
+          <SortBtn label="Name"          k="name" />
+          <SortBtn label="Age"           k="age"  />
           <SortBtn label="KG"            k="kg"          />
           <SortBtn label="LBS"           k="lbs"         />
           <SortBtn label="Gender"        k="gender"      />
@@ -262,13 +292,7 @@ export default function BracketsPage() {
                   <span className="text-sm font-medium text-primary truncate">
                     {c.firstName} {c.lastName}
                   </span>
-                  <span className="text-sm text-secondary">
-                    {c.dateOfBirth
-                      ? new Date(c.dateOfBirth + "T00:00:00").toLocaleDateString(undefined, {
-                          year: "numeric", month: "short", day: "numeric",
-                        })
-                      : "—"}
-                  </span>
+                  <span className="text-sm text-secondary">{calcAge(c.dateOfBirth)}</span>
                   <span className="text-sm text-secondary">{c.weightKg}</span>
                   <span className="text-sm text-secondary">{(c.weightKg * 2.20462).toFixed(1)}</span>
                   <span className="text-sm text-secondary capitalize">{c.gender}</span>
