@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { Shell } from "@/components/Shell";
 import { useAuth } from "@/context/AuthContext";
 import { subscribeCompetitors, type Competitor } from "@/lib/competitors";
+import { subscribeActiveTournament, type Tournament } from "@/lib/tournaments";
+import { createMatch, subscribeMatches } from "@/lib/matches";
 import { getBracket, renameBracket, deleteBracket, buildRounds, type Bracket, type BracketMatchup } from "@/lib/brackets";
 
 // ─── Layout constants ─────────────────────────────────────────────────────────
@@ -17,17 +19,156 @@ const CONN_W    = 56;
 const SLOT_H    = 148;
 const ACCENT    = "#00d084";
 
-// Y-center of matchup[idx] when numMatchups items fill totalH with justify-around spacing
 function matchupCenterY(idx: number, numMatchups: number, totalH: number): number {
   return totalH * (2 * idx + 1) / (2 * numMatchups);
 }
 
-// Labels: last round = "Finals", second-to-last = "Semifinals", earlier = "Round N"
 function getRoundLabel(r: number, numRounds: number): string {
   const fromEnd = numRounds - 1 - r;
   if (fromEnd === 0) return "Finals";
   if (fromEnd === 1) return "Semifinals";
   return `Round ${r + 1}`;
+}
+
+// ─── Create-match dialog (pre-filled from bracket) ───────────────────────────
+
+interface BracketMatchDialogProps {
+  p1: Competitor;
+  p2: Competitor;
+  tournament: Tournament;
+  currentCount: number;
+  onClose: () => void;
+}
+
+function BracketMatchDialog({ p1, p2, tournament, currentCount, onClose }: BracketMatchDialogProps) {
+  const arenas = Array.from({ length: tournament.arenaCount }, (_, i) => i + 1);
+  const [arenaNumber,          setArenaNumber]          = useState<number>(arenas[0] ?? 1);
+  const [roundDurationSeconds, setRoundDurationSeconds] = useState<90 | 120>(120);
+  const [dirtyTime,            setDirtyTime]            = useState(false);
+  const [saving,               setSaving]               = useState(false);
+  const [error,                setError]                = useState("");
+
+  const sel = "w-full bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-primary focus:outline-none focus:border-accent transition-colors appearance-none [color-scheme:dark]";
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await createMatch({
+        tournamentId: tournament.id,
+        tournamentName: tournament.name,
+        arenaNumber,
+        redCornerCompetitorId: p1.id,
+        blueCornerCompetitorId: p2.id,
+        roundDurationSeconds,
+        dirtyTime,
+        currentCount,
+      });
+      onClose();
+    } catch {
+      setError("Failed to create match. Please try again.");
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-md bg-surface border border-border rounded-2xl shadow-2xl">
+        <div className="px-6 pt-6 pb-4 border-b border-border">
+          <h2 className="text-base font-semibold text-primary">Create Match</h2>
+          <p className="text-xs text-secondary mt-1">{tournament.name} · Match #{currentCount + 1}</p>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="px-6 py-5 space-y-4">
+            {/* Competitors — pre-filled, read-only */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-widest mb-1.5 text-danger">Red Corner</label>
+                <div className="px-3 py-2.5 bg-danger/5 border border-danger/20 rounded-lg">
+                  <p className="text-sm font-semibold text-primary truncate">{p1.firstName} {p1.lastName}</p>
+                  <p className="text-xs text-secondary mt-0.5">{p1.weightKg}kg</p>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-widest mb-1.5 text-blue-400">Blue Corner</label>
+                <div className="px-3 py-2.5 bg-blue-500/5 border border-blue-500/20 rounded-lg">
+                  <p className="text-sm font-semibold text-primary truncate">{p2.firstName} {p2.lastName}</p>
+                  <p className="text-xs text-secondary mt-0.5">{p2.weightKg}kg</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Arena */}
+            <div>
+              <label className="block text-xs font-semibold text-secondary uppercase tracking-widest mb-1.5">Arena</label>
+              {arenas.length <= 1 ? (
+                <p className="text-sm text-primary px-3 py-2 bg-elevated border border-border rounded-lg">Arena {arenas[0] ?? 1}</p>
+              ) : (
+                <select value={arenaNumber} onChange={(e) => setArenaNumber(Number(e.target.value))} className={sel}>
+                  {arenas.map((n) => <option key={n} value={n}>Arena {n}</option>)}
+                </select>
+              )}
+            </div>
+
+            {/* Round duration */}
+            <div>
+              <label className="block text-xs font-semibold text-secondary uppercase tracking-widest mb-1.5">Round Duration</label>
+              <div className="grid grid-cols-2 gap-2">
+                {([120, 90] as const).map((secs) => (
+                  <button
+                    key={secs}
+                    type="button"
+                    onClick={() => setRoundDurationSeconds(secs)}
+                    className={`py-2.5 rounded-lg text-sm font-semibold border transition-colors ${
+                      roundDurationSeconds === secs
+                        ? "bg-accent/10 border-accent text-accent"
+                        : "bg-elevated border-border text-secondary hover:text-primary"
+                    }`}
+                  >
+                    {secs === 120 ? "2:00" : "1:30"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Dirty time */}
+            <div
+              className="flex items-center justify-between px-4 py-3 bg-elevated border border-border rounded-lg cursor-pointer select-none"
+              onClick={() => setDirtyTime((v) => !v)}
+            >
+              <div>
+                <p className="text-sm font-semibold text-primary">Dirty Time</p>
+                <p className="text-xs text-secondary mt-0.5">Allow dewan to score while timer is running</p>
+              </div>
+              <div className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${dirtyTime ? "bg-accent" : "bg-border"}`}>
+                <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${dirtyTime ? "translate-x-4" : "translate-x-0.5"}`} />
+              </div>
+            </div>
+
+            {error && (
+              <div className="flex items-start gap-2 bg-danger/5 border border-danger/30 rounded-lg px-3 py-2.5">
+                <span className="text-danger text-xs mt-0.5 flex-shrink-0">✕</span>
+                <p className="text-xs text-danger">{error}</p>
+              </div>
+            )}
+          </div>
+
+          <div className="px-6 py-4 border-t border-border flex gap-3">
+            <button type="button" onClick={onClose}
+              className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-primary hover:bg-elevated transition-colors">
+              Cancel
+            </button>
+            <button type="submit" disabled={saving}
+              className="flex-1 px-4 py-2.5 rounded-lg bg-accent text-black text-sm font-semibold hover:bg-accent-hover transition-colors disabled:opacity-40">
+              {saving ? "Creating…" : "Create Match"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
 }
 
 // ─── Competitor card ──────────────────────────────────────────────────────────
@@ -48,9 +189,7 @@ function CompCard({ competitor }: { competitor: Competitor | null | undefined })
       style={{ width: CARD_W, height: CARD_H }}
       className="flex items-center justify-between px-3 rounded-lg border border-border bg-elevated"
     >
-      <span className="text-sm font-semibold text-primary truncate">
-        {competitor.firstName} {competitor.lastName}
-      </span>
+      <span className="text-sm font-semibold text-primary truncate">{competitor.firstName} {competitor.lastName}</span>
       <span className="text-xs text-muted flex-shrink-0 ml-2">{competitor.weightKg}kg</span>
     </div>
   );
@@ -58,14 +197,35 @@ function CompCard({ competitor }: { competitor: Competitor | null | undefined })
 
 // ─── Matchup box ──────────────────────────────────────────────────────────────
 
-function MatchupBox({ matchup, cMap }: { matchup: BracketMatchup; cMap: Map<string, Competitor> }) {
+function MatchupBox({
+  matchup,
+  cMap,
+  onCreateMatch,
+}: {
+  matchup: BracketMatchup;
+  cMap: Map<string, Competitor>;
+  onCreateMatch: (p1Id: string, p2Id: string) => void;
+}) {
   const p1 = matchup.p1Id ? cMap.get(matchup.p1Id) ?? null : null;
   const p2 = matchup.p2Id ? cMap.get(matchup.p2Id) ?? null : null;
+  const canCreate = matchup.p1Id !== null && matchup.p2Id !== null;
+
   return (
-    <div style={{ height: MATCHUP_H }} className="flex flex-col">
+    <div style={{ height: MATCHUP_H, position: "relative" }} className="flex flex-col">
       <CompCard competitor={p1} />
       <div style={{ height: GAP }} />
       <CompCard competitor={p2} />
+      {canCreate && (
+        <button
+          type="button"
+          onClick={() => onCreateMatch(matchup.p1Id!, matchup.p2Id!)}
+          style={{ position: "absolute", right: -13, top: "50%", transform: "translateY(-50%)", zIndex: 10 }}
+          className="w-[26px] h-[26px] rounded-full border border-accent/60 bg-surface text-accent text-lg leading-none flex items-center justify-center hover:bg-accent hover:text-black hover:border-accent transition-colors shadow-sm flex-shrink-0"
+          title="Create match"
+        >
+          +
+        </button>
+      )}
     </div>
   );
 }
@@ -79,6 +239,8 @@ export default function BracketViewPage() {
 
   const [bracket,       setBracket]       = useState<Bracket | null>(null);
   const [competitors,   setCompetitors]   = useState<Competitor[]>([]);
+  const [tournament,    setTournament]    = useState<Tournament | null>(null);
+  const [matchCount,    setMatchCount]    = useState(0);
   const [loading,       setLoading]       = useState(true);
   const [notFound,      setNotFound]      = useState(false);
   const [renaming,      setRenaming]      = useState(false);
@@ -86,6 +248,7 @@ export default function BracketViewPage() {
   const [saving,        setSaving]        = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting,      setDeleting]      = useState(false);
+  const [matchDialog,   setMatchDialog]   = useState<{ p1Id: string; p2Id: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -95,6 +258,16 @@ export default function BracketViewPage() {
       else setBracket(b);
     });
   }, [params?.id]);
+
+  useEffect(() => {
+    if (!user) return;
+    return subscribeActiveTournament(user.uid, setTournament);
+  }, [user]);
+
+  useEffect(() => {
+    if (!tournament?.id) { setMatchCount(0); return; }
+    return subscribeMatches(tournament.id, (ms) => setMatchCount(ms.length));
+  }, [tournament?.id]);
 
   function startRename() {
     setNameInput(bracket?.name ?? "");
@@ -129,7 +302,6 @@ export default function BracketViewPage() {
     return buildRounds(bracket.seededIds);
   }, [bracket]);
 
-  // How many competitors skip round 1 (pre-seeded into round 2)
   const numByes = useMemo(() => {
     const realIds = (bracket?.seededIds ?? []).filter((id): id is string => id !== null);
     const n = realIds.length;
@@ -140,7 +312,6 @@ export default function BracketViewPage() {
 
   const numRounds = rounds.length;
 
-  // Total height driven by the widest column, not just round 1
   const TOTAL_H = useMemo(() => {
     const maxM = rounds.length > 0 ? Math.max(...rounds.map(r => r.length)) : 1;
     return Math.max(maxM * SLOT_H, MATCHUP_H + 40);
@@ -148,7 +319,6 @@ export default function BracketViewPage() {
 
   const TOTAL_W = numRounds * CARD_W + Math.max(0, numRounds - 1) * CONN_W;
 
-  // Build SVG connector lines between round columns
   const svgLines = useMemo(() => {
     if (!rounds.length) return null;
     const els: React.ReactNode[] = [];
@@ -160,15 +330,11 @@ export default function BracketViewPage() {
     for (let r = 0; r < numRounds - 1; r++) {
       const thisRound = rounds[r];
       const nextRound = rounds[r + 1];
-      const x0 = r * (CARD_W + CONN_W) + CARD_W;   // right edge of column r
-      const mx = x0 + CONN_W / 2;                    // midpoint x between columns
-      const x1 = (r + 1) * (CARD_W + CONN_W);        // left edge of column r+1
+      const x0 = r * (CARD_W + CONN_W) + CARD_W;
+      const mx = x0 + CONN_W / 2;
+      const x1 = (r + 1) * (CARD_W + CONN_W);
 
       if (r === 0 && numByes > 0) {
-        // Round 0 → Round 1 transition with byes: mixed connection types
-        // • oneBye matchup  → 1:1 L-shape from one R0 matchup
-        // • twoTbd matchup  → 2:1 U-shape from two R0 matchups
-        // • twoByes matchup → no connector (both slots already filled)
         let r0Ptr = 0;
         nextRound.forEach((m, i) => {
           const oneBye = (m.p1Id !== null) !== (m.p2Id !== null);
@@ -178,9 +344,7 @@ export default function BracketViewPage() {
             const y0 = matchupCenterY(r0Ptr, thisRound.length, TOTAL_H);
             const y1 = matchupCenterY(i, nextRound.length, TOTAL_H);
             els.push(
-              <polyline key={`bf-${i}`}
-                points={`${x0},${y0} ${mx},${y0} ${mx},${y1} ${x1},${y1}`}
-                {...lp} />
+              <polyline key={`bf-${i}`} points={`${x0},${y0} ${mx},${y0} ${mx},${y1} ${x1},${y1}`} {...lp} />
             );
             r0Ptr++;
           } else if (twoTbd && r0Ptr + 1 < thisRound.length) {
@@ -196,10 +360,8 @@ export default function BracketViewPage() {
             );
             r0Ptr += 2;
           }
-          // both pre-filled byes: no connector drawn
         });
       } else {
-        // Standard: pair each consecutive two matchups → one in next round (2:1 U-shapes)
         const numPairs = Math.floor(thisRound.length / 2);
         for (let p = 0; p < numPairs; p++) {
           const A  = matchupCenterY(p * 2,     thisRound.length, TOTAL_H);
@@ -237,6 +399,9 @@ export default function BracketViewPage() {
     );
   }
 
+  const dialogP1 = matchDialog ? cMap.get(matchDialog.p1Id) : undefined;
+  const dialogP2 = matchDialog ? cMap.get(matchDialog.p2Id) : undefined;
+
   return (
     <Shell title={bracket?.name ?? "Bracket"}>
       {/* Rename / delete row */}
@@ -255,35 +420,23 @@ export default function BracketViewPage() {
               autoFocus
               className="flex-1 max-w-sm bg-elevated border border-accent rounded-lg px-3 py-1.5 text-sm font-semibold text-primary focus:outline-none"
             />
-            <button
-              type="submit"
-              disabled={!nameInput.trim() || saving}
-              className="px-3 py-1.5 rounded-lg bg-accent text-black text-xs font-semibold hover:bg-accent-hover transition-colors disabled:opacity-40"
-            >
+            <button type="submit" disabled={!nameInput.trim() || saving}
+              className="px-3 py-1.5 rounded-lg bg-accent text-black text-xs font-semibold hover:bg-accent-hover transition-colors disabled:opacity-40">
               {saving ? "Saving…" : "Save"}
             </button>
-            <button
-              type="button"
-              onClick={cancelRename}
-              className="px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-secondary hover:text-primary hover:bg-elevated transition-colors"
-            >
+            <button type="button" onClick={cancelRename}
+              className="px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-secondary hover:text-primary hover:bg-elevated transition-colors">
               Cancel
             </button>
           </form>
         ) : (
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={startRename}
-              className="px-3 py-1.5 rounded-lg border border-border text-xs font-semibold text-secondary hover:text-primary hover:bg-elevated transition-colors"
-            >
+            <button type="button" onClick={startRename}
+              className="px-3 py-1.5 rounded-lg border border-border text-xs font-semibold text-secondary hover:text-primary hover:bg-elevated transition-colors">
               ✎ Rename
             </button>
-            <button
-              type="button"
-              onClick={() => setConfirmDelete(true)}
-              className="px-3 py-1.5 rounded-lg border border-danger/40 text-xs font-semibold text-danger hover:bg-danger/10 transition-colors"
-            >
+            <button type="button" onClick={() => setConfirmDelete(true)}
+              className="px-3 py-1.5 rounded-lg border border-danger/40 text-xs font-semibold text-danger hover:bg-danger/10 transition-colors">
               Delete Bracket
             </button>
           </div>
@@ -291,7 +444,7 @@ export default function BracketViewPage() {
       </div>
 
       <div className="overflow-x-auto pb-6">
-        <div className="relative inline-block" style={{ width: TOTAL_W, height: TOTAL_H + 48 }}>
+        <div className="relative inline-block" style={{ width: TOTAL_W + 26, height: TOTAL_H + 48 }}>
           {/* Round column labels */}
           <div className="flex" style={{ height: 40 }}>
             {rounds.map((_round, r) => (
@@ -305,7 +458,6 @@ export default function BracketViewPage() {
 
           {/* Bracket area */}
           <div className="relative" style={{ width: TOTAL_W, height: TOTAL_H }}>
-            {/* SVG connector lines */}
             <svg
               className="absolute inset-0 pointer-events-none"
               width={TOTAL_W}
@@ -315,7 +467,6 @@ export default function BracketViewPage() {
               {svgLines}
             </svg>
 
-            {/* Round columns */}
             {rounds.map((round, r) => (
               <div
                 key={r}
@@ -323,7 +474,12 @@ export default function BracketViewPage() {
                 style={{ left: r * (CARD_W + CONN_W), top: 0, width: CARD_W, height: TOTAL_H }}
               >
                 {round.map((matchup, i) => (
-                  <MatchupBox key={i} matchup={matchup} cMap={cMap} />
+                  <MatchupBox
+                    key={i}
+                    matchup={matchup}
+                    cMap={cMap}
+                    onCreateMatch={(p1Id, p2Id) => setMatchDialog({ p1Id, p2Id })}
+                  />
                 ))}
               </div>
             ))}
@@ -343,30 +499,34 @@ export default function BracketViewPage() {
               </p>
             </div>
             <div className="px-6 py-4 flex gap-3">
-              <button
-                type="button"
-                onClick={() => setConfirmDelete(false)}
-                disabled={deleting}
-                className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-primary hover:bg-elevated transition-colors disabled:opacity-50"
-              >
+              <button type="button" onClick={() => setConfirmDelete(false)} disabled={deleting}
+                className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-primary hover:bg-elevated transition-colors disabled:opacity-50">
                 Cancel
               </button>
-              <button
-                type="button"
-                disabled={deleting}
+              <button type="button" disabled={deleting}
                 onClick={async () => {
                   if (!bracket) return;
                   setDeleting(true);
                   await deleteBracket(bracket.id);
                   router.push("/brackets");
                 }}
-                className="flex-1 px-4 py-2.5 rounded-lg bg-danger text-white text-sm font-semibold hover:bg-danger/80 transition-colors disabled:opacity-50"
-              >
+                className="flex-1 px-4 py-2.5 rounded-lg bg-danger text-white text-sm font-semibold hover:bg-danger/80 transition-colors disabled:opacity-50">
                 {deleting ? "Deleting…" : "Yes, Delete"}
               </button>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Create-match dialog (opened from bracket matchup) */}
+      {matchDialog && tournament && dialogP1 && dialogP2 && (
+        <BracketMatchDialog
+          p1={dialogP1}
+          p2={dialogP2}
+          tournament={tournament}
+          currentCount={matchCount}
+          onClose={() => setMatchDialog(null)}
+        />
       )}
     </Shell>
   );
