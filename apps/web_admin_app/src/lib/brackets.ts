@@ -49,12 +49,58 @@ export function padToPowerOfTwo(ids: string[]): (string | null)[] {
 }
 
 export function buildRounds(seededIds: (string | null)[]): BracketMatchup[][] {
-  const firstRound: BracketMatchup[] = [];
-  for (let i = 0; i < seededIds.length; i += 2) {
-    firstRound.push({ p1Id: seededIds[i] ?? null, p2Id: seededIds[i + 1] ?? null });
+  const ids = seededIds.filter((id): id is string => id !== null);
+  const n = ids.length;
+  if (n === 0) return [];
+  if (n === 1) return [[{ p1Id: ids[0], p2Id: null }]];
+
+  let P = 1;
+  while (P < n) P *= 2;
+  const numByes = P - n;
+
+  const byeIds = ids.slice(0, numByes);
+  const r1Ids  = ids.slice(numByes);
+
+  // Round 1: pair non-bye competitors — no null slots
+  const round1: BracketMatchup[] = [];
+  for (let i = 0; i < r1Ids.length; i += 2) {
+    round1.push({ p1Id: r1Ids[i], p2Id: r1Ids[i + 1] ?? null });
   }
-  const rounds: BracketMatchup[][] = [firstRound];
-  let count = firstRound.length;
+
+  if (numByes === 0) {
+    const rounds: BracketMatchup[][] = [round1];
+    let count = round1.length;
+    while (count > 1) {
+      count = Math.ceil(count / 2);
+      rounds.push(Array.from({ length: count }, () => ({ p1Id: null, p2Id: null })));
+    }
+    return rounds;
+  }
+
+  // Round 2: place bye players pre-seeded, paired with TBD slots for round-1 winners.
+  // When there are more byes than round-1 matchups, pair excess byes together.
+  const r2Count = P / 4;
+  const round2: BracketMatchup[] = [];
+  let byeIdx = 0;
+  let r1Consumed = 0;
+
+  for (let i = 0; i < r2Count; i++) {
+    if (byeIdx < byeIds.length && r1Consumed < round1.length) {
+      round2.push({ p1Id: byeIds[byeIdx++], p2Id: null });
+      r1Consumed++;
+    } else if (byeIdx + 1 < byeIds.length) {
+      round2.push({ p1Id: byeIds[byeIdx], p2Id: byeIds[byeIdx + 1] });
+      byeIdx += 2;
+    } else if (byeIdx < byeIds.length) {
+      round2.push({ p1Id: byeIds[byeIdx++], p2Id: null });
+    } else {
+      round2.push({ p1Id: null, p2Id: null });
+      r1Consumed += 2;
+    }
+  }
+
+  const rounds = [round1, round2];
+  let count = r2Count;
   while (count > 1) {
     count = Math.ceil(count / 2);
     rounds.push(Array.from({ length: count }, () => ({ p1Id: null, p2Id: null })));

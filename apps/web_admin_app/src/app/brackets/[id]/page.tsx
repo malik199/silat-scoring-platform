@@ -5,36 +5,34 @@ import { useParams, useRouter } from "next/navigation";
 import { Shell } from "@/components/Shell";
 import { useAuth } from "@/context/AuthContext";
 import { subscribeCompetitors, type Competitor } from "@/lib/competitors";
-import { getBracket, renameBracket, deleteBracket, buildRounds, getRoundName, type Bracket, type BracketMatchup } from "@/lib/brackets";
+import { getBracket, renameBracket, deleteBracket, buildRounds, type Bracket, type BracketMatchup } from "@/lib/brackets";
 
 // ─── Layout constants ─────────────────────────────────────────────────────────
 
-const CARD_W  = 200;
-const CARD_H  = 44;
-const GAP     = 8;    // gap between p1 and p2 within a matchup
+const CARD_W    = 200;
+const CARD_H    = 44;
+const GAP       = 8;
 const MATCHUP_H = CARD_H * 2 + GAP;  // 96
-const CONN_W  = 56;   // horizontal connector width between rounds
-const SLOT_H  = 148;  // vertical space allocated per first-round matchup
-const ACCENT  = "#00d084";
+const CONN_W    = 56;
+const SLOT_H    = 148;
+const ACCENT    = "#00d084";
 
-function matchupCenterY(roundIdx: number, matchupIdx: number, numRounds: number, totalH: number): number {
-  const n = Math.pow(2, numRounds - 1 - roundIdx);
-  return totalH * (2 * matchupIdx + 1) / (2 * n);
+// Y-center of matchup[idx] when numMatchups items fill totalH with justify-around spacing
+function matchupCenterY(idx: number, numMatchups: number, totalH: number): number {
+  return totalH * (2 * idx + 1) / (2 * numMatchups);
+}
+
+// Labels: last round = "Finals", second-to-last = "Semifinals", earlier = "Round N"
+function getRoundLabel(r: number, numRounds: number): string {
+  const fromEnd = numRounds - 1 - r;
+  if (fromEnd === 0) return "Finals";
+  if (fromEnd === 1) return "Semifinals";
+  return `Round ${r + 1}`;
 }
 
 // ─── Competitor card ──────────────────────────────────────────────────────────
 
-function CompCard({ competitor, isBye }: { competitor: Competitor | null | undefined; isBye: boolean }) {
-  if (isBye) {
-    return (
-      <div
-        style={{ width: CARD_W, height: CARD_H }}
-        className="flex items-center px-3 rounded-lg border border-dashed border-border/40 bg-surface/40"
-      >
-        <span className="text-xs text-muted italic">TBA</span>
-      </div>
-    );
-  }
+function CompCard({ competitor }: { competitor: Competitor | null | undefined }) {
   if (!competitor) {
     return (
       <div
@@ -60,24 +58,14 @@ function CompCard({ competitor, isBye }: { competitor: Competitor | null | undef
 
 // ─── Matchup box ──────────────────────────────────────────────────────────────
 
-function MatchupBox({
-  matchup,
-  cMap,
-  roundIdx,
-}: {
-  matchup: BracketMatchup;
-  cMap: Map<string, Competitor>;
-  roundIdx: number;
-}) {
+function MatchupBox({ matchup, cMap }: { matchup: BracketMatchup; cMap: Map<string, Competitor> }) {
   const p1 = matchup.p1Id ? cMap.get(matchup.p1Id) ?? null : null;
   const p2 = matchup.p2Id ? cMap.get(matchup.p2Id) ?? null : null;
-  const isFirstRound = roundIdx === 0;
-
   return (
     <div style={{ height: MATCHUP_H }} className="flex flex-col">
-      <CompCard competitor={p1} isBye={isFirstRound && matchup.p1Id === null} />
+      <CompCard competitor={p1} />
       <div style={{ height: GAP }} />
-      <CompCard competitor={p2} isBye={isFirstRound && matchup.p2Id === null} />
+      <CompCard competitor={p2} />
     </div>
   );
 }
@@ -89,15 +77,15 @@ export default function BracketViewPage() {
   const router   = useRouter();
   const { user } = useAuth();
 
-  const [bracket,     setBracket]     = useState<Bracket | null>(null);
-  const [competitors, setCompetitors] = useState<Competitor[]>([]);
-  const [loading,     setLoading]     = useState(true);
-  const [notFound,    setNotFound]    = useState(false);
-  const [renaming,    setRenaming]    = useState(false);
-  const [nameInput,   setNameInput]   = useState("");
-  const [saving,      setSaving]      = useState(false);
+  const [bracket,       setBracket]       = useState<Bracket | null>(null);
+  const [competitors,   setCompetitors]   = useState<Competitor[]>([]);
+  const [loading,       setLoading]       = useState(true);
+  const [notFound,      setNotFound]      = useState(false);
+  const [renaming,      setRenaming]      = useState(false);
+  const [nameInput,     setNameInput]     = useState("");
+  const [saving,        setSaving]        = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [deleting,    setDeleting]    = useState(false);
+  const [deleting,      setDeleting]      = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -123,9 +111,7 @@ export default function BracketViewPage() {
     setRenaming(false);
   }
 
-  function cancelRename() {
-    setRenaming(false);
-  }
+  function cancelRename() { setRenaming(false); }
 
   useEffect(() => {
     if (!user) return;
@@ -143,38 +129,94 @@ export default function BracketViewPage() {
     return buildRounds(bracket.seededIds);
   }, [bracket]);
 
-  const numRounds      = rounds.length;
-  const numFirstRound  = rounds[0]?.length ?? 0;
-  const TOTAL_H        = Math.max(numFirstRound * SLOT_H, MATCHUP_H + 40);
-  const TOTAL_W        = numRounds * CARD_W + (numRounds - 1) * CONN_W;
+  // How many competitors skip round 1 (pre-seeded into round 2)
+  const numByes = useMemo(() => {
+    const realIds = (bracket?.seededIds ?? []).filter((id): id is string => id !== null);
+    const n = realIds.length;
+    let P = 1;
+    while (P < n) P *= 2;
+    return P - n;
+  }, [bracket]);
 
-  // Build SVG connector lines
+  const numRounds = rounds.length;
+
+  // Total height driven by the widest column, not just round 1
+  const TOTAL_H = useMemo(() => {
+    const maxM = rounds.length > 0 ? Math.max(...rounds.map(r => r.length)) : 1;
+    return Math.max(maxM * SLOT_H, MATCHUP_H + 40);
+  }, [rounds]);
+
+  const TOTAL_W = numRounds * CARD_W + Math.max(0, numRounds - 1) * CONN_W;
+
+  // Build SVG connector lines between round columns
   const svgLines = useMemo(() => {
     if (!rounds.length) return null;
     const els: React.ReactNode[] = [];
+    const lp = {
+      stroke: ACCENT, strokeWidth: 2, strokeOpacity: 0.45,
+      fill: "none", strokeLinecap: "round" as const, strokeLinejoin: "round" as const,
+    };
 
     for (let r = 0; r < numRounds - 1; r++) {
-      const numM = rounds[r].length;
-      const numPairs = Math.floor(numM / 2);
+      const thisRound = rounds[r];
+      const nextRound = rounds[r + 1];
+      const x0 = r * (CARD_W + CONN_W) + CARD_W;   // right edge of column r
+      const mx = x0 + CONN_W / 2;                    // midpoint x between columns
+      const x1 = (r + 1) * (CARD_W + CONN_W);        // left edge of column r+1
 
-      for (let p = 0; p < numPairs; p++) {
-        const A   = matchupCenterY(r, p * 2,     numRounds, TOTAL_H);
-        const B   = matchupCenterY(r, p * 2 + 1, numRounds, TOTAL_H);
-        const M   = (A + B) / 2;
-        const x0  = r * (CARD_W + CONN_W) + CARD_W;   // right edge of round r
-        const mx  = x0 + CONN_W / 2;                   // midpoint x
-        const x1  = (r + 1) * (CARD_W + CONN_W);       // left edge of round r+1
+      if (r === 0 && numByes > 0) {
+        // Round 0 → Round 1 transition with byes: mixed connection types
+        // • oneBye matchup  → 1:1 L-shape from one R0 matchup
+        // • twoTbd matchup  → 2:1 U-shape from two R0 matchups
+        // • twoByes matchup → no connector (both slots already filled)
+        let r0Ptr = 0;
+        nextRound.forEach((m, i) => {
+          const oneBye = (m.p1Id !== null) !== (m.p2Id !== null);
+          const twoTbd = m.p1Id === null && m.p2Id === null;
 
-        els.push(
-          <g key={`${r}-${p}`} stroke={ACCENT} strokeWidth={2} strokeOpacity={0.45} fill="none" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points={`${x0},${A} ${mx},${A} ${mx},${B} ${x0},${B}`} />
-            <line x1={mx} y1={M} x2={x1} y2={M} />
-          </g>
-        );
+          if (oneBye && r0Ptr < thisRound.length) {
+            const y0 = matchupCenterY(r0Ptr, thisRound.length, TOTAL_H);
+            const y1 = matchupCenterY(i, nextRound.length, TOTAL_H);
+            els.push(
+              <polyline key={`bf-${i}`}
+                points={`${x0},${y0} ${mx},${y0} ${mx},${y1} ${x1},${y1}`}
+                {...lp} />
+            );
+            r0Ptr++;
+          } else if (twoTbd && r0Ptr + 1 < thisRound.length) {
+            const A  = matchupCenterY(r0Ptr,     thisRound.length, TOTAL_H);
+            const B  = matchupCenterY(r0Ptr + 1, thisRound.length, TOTAL_H);
+            const M  = (A + B) / 2;
+            const yN = matchupCenterY(i, nextRound.length, TOTAL_H);
+            els.push(
+              <g key={`std-${r}-${i}`} {...lp}>
+                <polyline points={`${x0},${A} ${mx},${A} ${mx},${B} ${x0},${B}`} />
+                <line x1={mx} y1={M} x2={x1} y2={yN} />
+              </g>
+            );
+            r0Ptr += 2;
+          }
+          // both pre-filled byes: no connector drawn
+        });
+      } else {
+        // Standard: pair each consecutive two matchups → one in next round (2:1 U-shapes)
+        const numPairs = Math.floor(thisRound.length / 2);
+        for (let p = 0; p < numPairs; p++) {
+          const A  = matchupCenterY(p * 2,     thisRound.length, TOTAL_H);
+          const B  = matchupCenterY(p * 2 + 1, thisRound.length, TOTAL_H);
+          const M  = (A + B) / 2;
+          const yN = matchupCenterY(p, nextRound.length, TOTAL_H);
+          els.push(
+            <g key={`${r}-${p}`} {...lp}>
+              <polyline points={`${x0},${A} ${mx},${A} ${mx},${B} ${x0},${B}`} />
+              <line x1={mx} y1={M} x2={x1} y2={yN} />
+            </g>
+          );
+        }
       }
     }
     return els;
-  }, [rounds, numRounds, TOTAL_H]);
+  }, [rounds, numRounds, TOTAL_H, numByes]);
 
   if (notFound) {
     return (
@@ -197,7 +239,7 @@ export default function BracketViewPage() {
 
   return (
     <Shell title={bracket?.name ?? "Bracket"}>
-      {/* Rename row */}
+      {/* Rename / delete row */}
       <div className="flex items-center gap-3 mb-6">
         {renaming ? (
           <form
@@ -252,10 +294,10 @@ export default function BracketViewPage() {
         <div className="relative inline-block" style={{ width: TOTAL_W, height: TOTAL_H + 48 }}>
           {/* Round column labels */}
           <div className="flex" style={{ height: 40 }}>
-            {rounds.map((round, r) => (
+            {rounds.map((_round, r) => (
               <div key={r} style={{ width: CARD_W, marginLeft: r > 0 ? CONN_W : 0 }} className="flex items-center">
                 <span className="inline-flex items-center px-3 py-1 rounded-full border border-border bg-elevated text-xs font-semibold uppercase tracking-widest text-secondary">
-                  {getRoundName(round.length)}
+                  {getRoundLabel(r, numRounds)}
                 </span>
               </div>
             ))}
@@ -281,12 +323,7 @@ export default function BracketViewPage() {
                 style={{ left: r * (CARD_W + CONN_W), top: 0, width: CARD_W, height: TOTAL_H }}
               >
                 {round.map((matchup, i) => (
-                  <MatchupBox
-                    key={i}
-                    matchup={matchup}
-                    cMap={cMap}
-                    roundIdx={r}
-                  />
+                  <MatchupBox key={i} matchup={matchup} cMap={cMap} />
                 ))}
               </div>
             ))}
