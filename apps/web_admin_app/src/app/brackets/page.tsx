@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Shell } from "@/components/Shell";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -9,6 +10,7 @@ import {
   type Competitor,
   type ExperienceLevel,
 } from "@/lib/competitors";
+import { shuffleArray, padToPowerOfTwo, createBracket } from "@/lib/brackets";
 
 // ─── Experience badge ─────────────────────────────────────────────────────────
 
@@ -73,12 +75,14 @@ const COLS = "grid-cols-[40px_1fr_120px_70px_70px_80px_1fr_1fr_110px]";
 
 export default function BracketsPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [competitors, setCompetitors] = useState<Competitor[]>([]);
   const [loading,     setLoading]     = useState(true);
   const [selected,    setSelected]    = useState<Set<string>>(new Set());
   const [sortKey,     setSortKey]     = useState<SortKey>("name");
   const [sortDir,     setSortDir]     = useState<SortDir>("asc");
   const [search,      setSearch]      = useState("");
+  const [creating,    setCreating]    = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -275,10 +279,23 @@ export default function BracketsPage() {
         </p>
         <button
           type="button"
-          onClick={() => {/* TODO: open bracket builder */}}
-          className="px-5 py-2 rounded-lg bg-accent text-black text-sm font-semibold hover:bg-accent-hover transition-colors whitespace-nowrap"
+          disabled={creating}
+          onClick={async () => {
+            if (creating) return;
+            setCreating(true);
+            try {
+              const ids = [...selected];
+              const shuffled = shuffleArray(ids);
+              const seeded = padToPowerOfTwo(shuffled);
+              const bracketId = await createBracket(seeded);
+              router.push(`/brackets/${bracketId}`);
+            } catch {
+              setCreating(false);
+            }
+          }}
+          className="px-5 py-2 rounded-lg bg-accent text-black text-sm font-semibold hover:bg-accent-hover transition-colors whitespace-nowrap disabled:opacity-60"
         >
-          Create Bracket with Selected Competitors
+          {creating ? "Creating…" : "Create Bracket with Selected Competitors"}
         </button>
         <button
           type="button"
