@@ -11,6 +11,7 @@ const NAV = [
   { label: "Tournament",  href: "/tournaments", icon: "🏆" },
   { label: "Competitors", href: "/competitors", icon: "👤" },
   { label: "Matches",     href: "/matches",     icon: "🤼" },
+  { label: "Brackets",    href: "/brackets",    icon: "🏅" },
 ];
 
 export function Sidebar() {
