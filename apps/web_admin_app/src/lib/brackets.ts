@@ -14,6 +14,8 @@ import { db } from "./firebase";
 export interface Bracket {
   id: string;
   organiserId: string;
+  tournamentId: string;
+  tournamentName: string;
   name: string;
   seededIds: (string | null)[];
   createdAt: unknown;
@@ -63,10 +65,10 @@ export function getRoundName(numMatchups: number): string {
 const COL = "brackets";
 
 export function subscribeBrackets(
-  organiserId: string,
+  tournamentId: string,
   cb: (brackets: Bracket[]) => void
 ): Unsubscribe {
-  const q = query(collection(db, COL), where("organiserId", "==", organiserId));
+  const q = query(collection(db, COL), where("tournamentId", "==", tournamentId));
   return onSnapshot(
     q,
     (snap) => {
@@ -85,11 +87,15 @@ export function subscribeBrackets(
 
 export async function createBracket(
   organiserId: string,
+  tournamentId: string,
+  tournamentName: string,
   name: string,
   seededIds: (string | null)[]
 ): Promise<string> {
   const ref = await addDoc(collection(db, COL), {
     organiserId,
+    tournamentId,
+    tournamentName,
     name,
     seededIds,
     createdAt: serverTimestamp(),

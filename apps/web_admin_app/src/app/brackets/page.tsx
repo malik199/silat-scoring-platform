@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Shell } from "@/components/Shell";
 import { useAuth } from "@/context/AuthContext";
+import { subscribeActiveTournament, type Tournament } from "@/lib/tournaments";
 import {
   subscribeCompetitors,
   EXPERIENCE_LABELS,
@@ -76,6 +77,7 @@ const COLS = "grid-cols-[40px_1fr_120px_70px_70px_80px_1fr_1fr_110px]";
 export default function BracketsPage() {
   const { user } = useAuth();
   const router = useRouter();
+  const [tournament,  setTournament]  = useState<Tournament | null | undefined>(undefined);
   const [competitors, setCompetitors] = useState<Competitor[]>([]);
   const [brackets,    setBrackets]    = useState<Bracket[]>([]);
   const [loading,     setLoading]     = useState(true);
@@ -84,6 +86,12 @@ export default function BracketsPage() {
   const [sortDir,     setSortDir]     = useState<SortDir>("asc");
   const [search,      setSearch]      = useState("");
   const [creating,    setCreating]    = useState(false);
+  const [createError, setCreateError] = useState("");
+
+  useEffect(() => {
+    if (!user) return;
+    return subscribeActiveTournament(user.uid, setTournament);
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -94,9 +102,9 @@ export default function BracketsPage() {
   }, [user]);
 
   useEffect(() => {
-    if (!user) return;
-    return subscribeBrackets(user.uid, setBrackets);
-  }, [user]);
+    if (!tournament?.id) { setBrackets([]); return; }
+    return subscribeBrackets(tournament.id, setBrackets);
+  }, [tournament?.id]);
 
   function handleSort(key: SortKey) {
     if (key === sortKey) {
@@ -276,42 +284,56 @@ export default function BracketsPage() {
 
       {/* Floating action bar — appears when at least one competitor is selected */}
       <div
-        className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-4 px-6 py-3.5 bg-surface border border-border rounded-2xl shadow-2xl transition-all duration-200 ${
+        className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-2 transition-all duration-200 ${
           selectedCount > 0 ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
         }`}
       >
-        <p className="text-sm font-semibold text-primary whitespace-nowrap">
-          {selectedCount} competitor{selectedCount !== 1 ? "s" : ""} selected
-        </p>
-        <button
-          type="button"
-          disabled={creating}
-          onClick={async () => {
-            if (creating || !user) return;
-            setCreating(true);
-            try {
-              const ids = [...selected];
-              const shuffled = shuffleArray(ids);
-              const seeded = padToPowerOfTwo(shuffled);
-              const name = `Untitled Bracket ${brackets.length + 1}`;
-              const bracketId = await createBracket(user.uid, name, seeded);
-              router.push(`/brackets/${bracketId}`);
-            } catch {
-              setCreating(false);
-            }
-          }}
-          className="px-5 py-2 rounded-lg bg-accent text-black text-sm font-semibold hover:bg-accent-hover transition-colors whitespace-nowrap disabled:opacity-60"
-        >
-          {creating ? "Creating…" : "Create Bracket with Selected Competitors"}
-        </button>
-        <button
-          type="button"
-          onClick={() => setSelected(new Set())}
-          title="Clear selection"
-          className="text-muted hover:text-primary text-lg leading-none transition-colors"
-        >
-          ✕
-        </button>
+        {createError && (
+          <div className="px-4 py-2 bg-danger/10 border border-danger/40 rounded-xl text-xs text-danger font-medium">
+            {createError}
+          </div>
+        )}
+        {!tournament && selectedCount > 0 && (
+          <div className="px-4 py-2 bg-warn/10 border border-warn/40 rounded-xl text-xs text-warn font-medium">
+            No active tournament — create one first.
+          </div>
+        )}
+        <div className="flex items-center gap-4 px-6 py-3.5 bg-surface border border-border rounded-2xl shadow-2xl">
+          <p className="text-sm font-semibold text-primary whitespace-nowrap">
+            {selectedCount} competitor{selectedCount !== 1 ? "s" : ""} selected
+          </p>
+          <button
+            type="button"
+            disabled={creating || !tournament}
+            onClick={async () => {
+              if (creating || !user || !tournament) return;
+              setCreating(true);
+              setCreateError("");
+              try {
+                const ids = [...selected];
+                const shuffled = shuffleArray(ids);
+                const seeded = padToPowerOfTwo(shuffled);
+                const name = `Untitled Bracket ${brackets.length + 1}`;
+                const bracketId = await createBracket(user.uid, tournament.id, tournament.name, name, seeded);
+                router.push(`/brackets/${bracketId}`);
+              } catch {
+                setCreateError("Failed to create bracket. Please try again.");
+                setCreating(false);
+              }
+            }}
+            className="px-5 py-2 rounded-lg bg-accent text-black text-sm font-semibold hover:bg-accent-hover transition-colors whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {creating ? "Creating…" : "Create Bracket with Selected Competitors"}
+          </button>
+          <button
+            type="button"
+            onClick={() => { setSelected(new Set()); setCreateError(""); }}
+            title="Clear selection"
+            className="text-muted hover:text-primary text-lg leading-none transition-colors"
+          >
+            ✕
+          </button>
+        </div>
       </div>
     </Shell>
   );

@@ -25,6 +25,14 @@
       ]
     },
     {
+      "collectionGroup": "brackets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tournamentId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt",    "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "competitors",
       "queryScope": "COLLECTION",
       "fields": [

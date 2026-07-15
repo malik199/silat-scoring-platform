@@ -29,9 +29,9 @@ export function Sidebar() {
   }, [user]);
 
   useEffect(() => {
-    if (!user) return;
-    return subscribeBrackets(user.uid, setBrackets);
-  }, [user]);
+    if (!tournament?.id) { setBrackets([]); return; }
+    return subscribeBrackets(tournament.id, setBrackets);
+  }, [tournament?.id]);
 
   const arenaCount = tournament?.arenaCount ?? 0;
 

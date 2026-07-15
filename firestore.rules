@@ -29,6 +29,11 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
+    match /brackets/{bracketId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
     match /matches/{matchId} {
       allow read: if true;
       allow write: if request.auth != null;
