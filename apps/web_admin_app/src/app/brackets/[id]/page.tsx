@@ -230,17 +230,14 @@ export default function BracketViewPage() {
             </button>
           </form>
         ) : (
-          <div className="flex items-center gap-2 flex-1">
-            <h2 className="text-lg font-bold text-primary">{bracket?.name}</h2>
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={startRename}
-              title="Rename bracket"
-              className="text-muted hover:text-primary text-sm px-1.5 py-1 rounded hover:bg-elevated transition-colors"
+              className="px-3 py-1.5 rounded-lg border border-border text-xs font-semibold text-secondary hover:text-primary hover:bg-elevated transition-colors"
             >
-              ✎
+              ✎ Rename
             </button>
-            <div className="flex-1" />
             <button
               type="button"
               onClick={() => setConfirmDelete(true)}
