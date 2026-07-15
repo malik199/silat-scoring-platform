@@ -39,6 +39,7 @@ function NewMatchModal({ tournament, competitors, currentCount, onClose }: NewMa
   const [redId,                setRedId]                = useState("");
   const [blueId,               setBlueId]               = useState("");
   const [roundDurationSeconds, setRoundDurationSeconds] = useState<90 | 120>(120);
+  const [dirtyTime,            setDirtyTime]            = useState(false);
   const [saving,               setSaving]               = useState(false);
   const [error,                setError]                = useState("");
 
@@ -73,6 +74,7 @@ function NewMatchModal({ tournament, competitors, currentCount, onClose }: NewMa
         redCornerCompetitorId: redId,
         blueCornerCompetitorId: blueId,
         roundDurationSeconds,
+        dirtyTime,
         currentCount,
       });
       onClose();
@@ -182,6 +184,20 @@ function NewMatchModal({ tournament, competitors, currentCount, onClose }: NewMa
                     {secs === 120 ? "2:00" : "1:30"}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Dirty time toggle */}
+            <div
+              className="flex items-center justify-between px-4 py-3 bg-elevated border border-border rounded-lg cursor-pointer select-none"
+              onClick={() => setDirtyTime((v) => !v)}
+            >
+              <div>
+                <p className="text-sm font-semibold text-primary">Dirty Time</p>
+                <p className="text-xs text-secondary mt-0.5">Allow dewan to score while timer is running</p>
+              </div>
+              <div className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${dirtyTime ? "bg-accent" : "bg-border"}`}>
+                <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${dirtyTime ? "translate-x-4" : "translate-x-0.5"}`} />
               </div>
             </div>
 

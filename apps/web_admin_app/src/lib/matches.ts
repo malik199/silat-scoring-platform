@@ -62,6 +62,8 @@ export interface Match {
   timerElapsedSeconds: number;
   /** Set when Dewan requests a drop/takedown or protest verification from judges */
   activeVerification: ActiveVerification | null;
+  /** When true, dewan can add scores while the timer is running */
+  dirtyTime: boolean;
   createdAt: string;
 }
 
@@ -89,6 +91,7 @@ export interface CreateMatchInput {
   redCornerCompetitorId: string;
   blueCornerCompetitorId: string;
   roundDurationSeconds: 90 | 120;
+  dirtyTime: boolean;
   /** Pass current match count so order = count + 1 */
   currentCount: number;
 }
@@ -125,6 +128,7 @@ export async function createMatch(input: CreateMatchInput): Promise<string> {
     timerRunning: false,
     timerStartedAt: null,
     timerElapsedSeconds: 0,
+    dirtyTime: rest.dirtyTime,
     createdAt: serverTimestamp(),
   });
   return ref.id;

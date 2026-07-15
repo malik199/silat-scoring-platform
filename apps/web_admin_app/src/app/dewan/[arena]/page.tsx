@@ -209,6 +209,7 @@ export default function DewanPage() {
   const arenaPin = tournament?.arenaPins?.[String(arenaNumber)] ?? null;
 
   const isRunning    = match?.timerRunning ?? false;
+  const dirtyTime    = match?.dirtyTime ?? false;
   const currentRound = match?.currentRound ?? 1;
   const isLastRound  = currentRound >= 3;
   const isExpired    = remaining <= 0;
@@ -393,7 +394,7 @@ export default function DewanPage() {
         </div>
 
         {/* ── Admin action buttons ── */}
-        {isRunning && (
+        {isRunning && !dirtyTime && (
           <div className="flex items-center gap-2 mb-3 px-4 py-2.5 rounded-lg bg-warn/10 border border-warn/30">
             <span className="w-1.5 h-1.5 rounded-full bg-warn animate-pulse flex-shrink-0" />
             <p className="text-xs font-semibold text-warn">Pause the timer to add takedowns or penalties.</p>
@@ -417,21 +418,21 @@ export default function DewanPage() {
                 onClick={() => apply("blue", 3)}
                 variant="blue-positive"
                 className="col-span-4"
-                disabled={isRunning}
+                disabled={isRunning && !dirtyTime}
               />
               {([-1, -2, -5, -10] as const).map((pts) => (
                 <AdminBtn
                   key={pts} label={String(pts)} sublabel="Penalty"
                   onClick={() => apply("blue", pts)}
                   variant="blue-penalty"
-                  disabled={isRunning}
+                  disabled={isRunning && !dirtyTime}
                 />
               ))}
             </div>
             <button
               type="button"
               onClick={() => undoLast("blue")}
-              disabled={isRunning || !adminEvents.some((e) => e.side === "blue")}
+              disabled={(isRunning && !dirtyTime) || !adminEvents.some((e) => e.side === "blue")}
               className="w-full py-2.5 rounded-lg text-sm font-bold text-blue-400 border border-blue-400/40 bg-blue-500/5 hover:bg-blue-500/15 hover:border-blue-400/60 transition-all duration-75 active:scale-95 active:brightness-75 select-none disabled:opacity-30 disabled:cursor-not-allowed disabled:active:scale-100"
             >
               ↩ Undo Last Blue Action
@@ -455,21 +456,21 @@ export default function DewanPage() {
                 onClick={() => apply("red", 3)}
                 variant="red-positive"
                 className="col-span-4"
-                disabled={isRunning}
+                disabled={isRunning && !dirtyTime}
               />
               {([-1, -2, -5, -10] as const).map((pts) => (
                 <AdminBtn
                   key={pts} label={String(pts)} sublabel="Penalty"
                   onClick={() => apply("red", pts)}
                   variant="red-penalty"
-                  disabled={isRunning}
+                  disabled={isRunning && !dirtyTime}
                 />
               ))}
             </div>
             <button
               type="button"
               onClick={() => undoLast("red")}
-              disabled={isRunning || !adminEvents.some((e) => e.side === "red")}
+              disabled={(isRunning && !dirtyTime) || !adminEvents.some((e) => e.side === "red")}
               className="w-full py-2.5 rounded-lg text-sm font-bold text-danger border border-danger/40 bg-danger/5 hover:bg-danger/15 hover:border-danger/60 transition-all duration-75 active:scale-95 active:brightness-75 select-none disabled:opacity-30 disabled:cursor-not-allowed disabled:active:scale-100"
             >
               ↩ Undo Last Red Action
