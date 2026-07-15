@@ -100,6 +100,8 @@ export default function BracketsPage() {
   const [genderFilter, setGenderFilter] = useState<"all" | "male" | "female">("all");
   const [creating,    setCreating]    = useState(false);
   const [createError, setCreateError] = useState("");
+  const [nameDialog,  setNameDialog]  = useState(false);
+  const [bracketName, setBracketName] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -328,28 +330,16 @@ export default function BracketsPage() {
           </p>
           <button
             type="button"
-            disabled={creating || !tournament}
-            onClick={async () => {
-              if (creating || !user || !tournament) return;
-              setCreating(true);
+            disabled={!tournament}
+            onClick={() => {
+              if (!tournament) return;
+              setBracketName(`Untitled Bracket ${brackets.length + 1}`);
               setCreateError("");
-              try {
-                const ids = [...selected];
-                const shuffled = shuffleArray(ids);
-                const seeded = padToPowerOfTwo(shuffled);
-                const name = `Untitled Bracket ${brackets.length + 1}`;
-                const bracketId = await createBracket(user.uid, tournament.id, tournament.name, name, seeded);
-                router.push(`/brackets/${bracketId}`);
-              } catch (err) {
-                console.error("createBracket failed:", err);
-                const msg = err instanceof Error ? err.message : String(err);
-                setCreateError(`Failed: ${msg}`);
-                setCreating(false);
-              }
+              setNameDialog(true);
             }}
             className="px-5 py-2 rounded-lg bg-accent text-black text-sm font-semibold hover:bg-accent-hover transition-colors whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {creating ? "Creating…" : "Create Bracket with Selected Competitors"}
+            Create Bracket with Selected Competitors
           </button>
           <button
             type="button"
@@ -361,6 +351,70 @@ export default function BracketsPage() {
           </button>
         </div>
       </div>
+
+      {/* Name dialog */}
+      {nameDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setNameDialog(false)} />
+          <div className="relative z-10 w-full max-w-sm bg-surface border border-border rounded-2xl shadow-2xl">
+            <div className="px-6 pt-6 pb-4 border-b border-border">
+              <h2 className="text-base font-semibold text-primary">Name this bracket</h2>
+              <p className="text-xs text-secondary mt-1">{selectedCount} competitor{selectedCount !== 1 ? "s" : ""} selected</p>
+            </div>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!bracketName.trim() || !user || !tournament) return;
+                setCreating(true);
+                setCreateError("");
+                try {
+                  const ids = [...selected];
+                  const shuffled = shuffleArray(ids);
+                  const seeded = padToPowerOfTwo(shuffled);
+                  const bracketId = await createBracket(user.uid, tournament.id, tournament.name, bracketName.trim(), seeded);
+                  setNameDialog(false);
+                  router.push(`/brackets/${bracketId}`);
+                } catch (err) {
+                  console.error("createBracket failed:", err);
+                  const msg = err instanceof Error ? err.message : String(err);
+                  setCreateError(`Failed: ${msg}`);
+                  setCreating(false);
+                }
+              }}
+            >
+              <div className="px-6 py-5">
+                <input
+                  type="text"
+                  value={bracketName}
+                  onChange={(e) => setBracketName(e.target.value)}
+                  placeholder="e.g. Boys Under 13 — Bantam"
+                  autoFocus
+                  className="w-full bg-elevated border border-border rounded-lg px-3 py-2.5 text-sm text-primary placeholder-muted focus:outline-none focus:border-accent transition-colors"
+                />
+                {createError && (
+                  <p className="text-xs text-danger mt-2">{createError}</p>
+                )}
+              </div>
+              <div className="px-6 py-4 border-t border-border flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setNameDialog(false)}
+                  className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-primary hover:bg-elevated transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!bracketName.trim() || creating}
+                  className="flex-1 px-4 py-2.5 rounded-lg bg-accent text-black text-sm font-semibold hover:bg-accent-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {creating ? "Creating…" : "Create Bracket"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </Shell>
   );
 }
