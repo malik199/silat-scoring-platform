@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Shell } from "@/components/Shell";
 import { useAuth } from "@/context/AuthContext";
 import { subscribeCompetitors, type Competitor } from "@/lib/competitors";
-import { getBracket, renameBracket, buildRounds, getRoundName, type Bracket, type BracketMatchup } from "@/lib/brackets";
+import { getBracket, renameBracket, deleteBracket, buildRounds, getRoundName, type Bracket, type BracketMatchup } from "@/lib/brackets";
 
 // ─── Layout constants ─────────────────────────────────────────────────────────
 
@@ -87,6 +87,7 @@ function MatchupBox({
 
 export default function BracketViewPage() {
   const params   = useParams<{ id: string }>();
+  const router   = useRouter();
   const { user } = useAuth();
 
   const [bracket,     setBracket]     = useState<Bracket | null>(null);
@@ -96,6 +97,8 @@ export default function BracketViewPage() {
   const [renaming,    setRenaming]    = useState(false);
   const [nameInput,   setNameInput]   = useState("");
   const [saving,      setSaving]      = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting,    setDeleting]    = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -227,7 +230,7 @@ export default function BracketViewPage() {
             </button>
           </form>
         ) : (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-1">
             <h2 className="text-lg font-bold text-primary">{bracket?.name}</h2>
             <button
               type="button"
@@ -236,6 +239,14 @@ export default function BracketViewPage() {
               className="text-muted hover:text-primary text-sm px-1.5 py-1 rounded hover:bg-elevated transition-colors"
             >
               ✎
+            </button>
+            <div className="flex-1" />
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(true)}
+              className="px-3 py-1.5 rounded-lg border border-danger/40 text-xs font-semibold text-danger hover:bg-danger/10 transition-colors"
+            >
+              Delete Bracket
             </button>
           </div>
         )}
@@ -286,6 +297,44 @@ export default function BracketViewPage() {
           </div>
         </div>
       </div>
+
+      {/* Delete confirmation dialog */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setConfirmDelete(false)} />
+          <div className="relative z-10 w-full max-w-sm bg-surface border border-border rounded-2xl shadow-2xl">
+            <div className="px-6 pt-6 pb-4 border-b border-border">
+              <h2 className="text-base font-semibold text-primary">Delete bracket?</h2>
+              <p className="text-xs text-secondary mt-1">
+                Are you sure you want to delete <span className="font-semibold text-primary">{bracket?.name}</span>? This cannot be undone.
+              </p>
+            </div>
+            <div className="px-6 py-4 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(false)}
+                disabled={deleting}
+                className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-primary hover:bg-elevated transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={async () => {
+                  if (!bracket) return;
+                  setDeleting(true);
+                  await deleteBracket(bracket.id);
+                  router.push("/brackets");
+                }}
+                className="flex-1 px-4 py-2.5 rounded-lg bg-danger text-white text-sm font-semibold hover:bg-danger/80 transition-colors disabled:opacity-50"
+              >
+                {deleting ? "Deleting…" : "Yes, Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Shell>
   );
 }

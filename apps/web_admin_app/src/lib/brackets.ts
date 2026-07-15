@@ -1,6 +1,7 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   onSnapshot,
@@ -106,6 +107,10 @@ export async function createBracket(
 
 export async function renameBracket(id: string, name: string): Promise<void> {
   await updateDoc(doc(db, COL, id), { name });
+}
+
+export async function deleteBracket(id: string): Promise<void> {
+  await deleteDoc(doc(db, COL, id));
 }
 
 export async function getBracket(id: string): Promise<Bracket | null> {
