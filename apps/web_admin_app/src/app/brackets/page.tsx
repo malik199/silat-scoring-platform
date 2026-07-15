@@ -340,8 +340,10 @@ export default function BracketsPage() {
                 const name = `Untitled Bracket ${brackets.length + 1}`;
                 const bracketId = await createBracket(user.uid, tournament.id, tournament.name, name, seeded);
                 router.push(`/brackets/${bracketId}`);
-              } catch {
-                setCreateError("Failed to create bracket. Please try again.");
+              } catch (err) {
+                console.error("createBracket failed:", err);
+                const msg = err instanceof Error ? err.message : String(err);
+                setCreateError(`Failed: ${msg}`);
                 setCreating(false);
               }
             }}
