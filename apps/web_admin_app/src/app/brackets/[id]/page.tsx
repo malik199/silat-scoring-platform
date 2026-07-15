@@ -220,10 +220,10 @@ function MatchupBox({
           type="button"
           onClick={() => onCreateMatch(matchup.p1Id!, matchup.p2Id!)}
           style={{ position: "absolute", right: -13, top: "50%", transform: "translateY(-50%)", zIndex: 10 }}
-          className="w-[26px] h-[26px] rounded-full border border-accent/60 bg-surface text-accent text-lg leading-none flex items-center justify-center hover:bg-accent hover:text-black hover:border-accent transition-colors shadow-sm flex-shrink-0"
+          className="w-[26px] h-[26px] flex items-center justify-center hover:opacity-70 transition-opacity flex-shrink-0"
           title="Create match"
         >
-          +
+          <img src="/play.svg" alt="Create match" className="w-[26px] h-[26px]" />
         </button>
       )}
     </div>
