@@ -89,7 +89,7 @@ function NewMatchModal({ tournament, competitors, currentCount, onClose }: NewMa
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative z-10 w-full max-w-md bg-surface border border-border rounded-2xl shadow-2xl">
         <div className="px-6 pt-6 pb-4 border-b border-border">
-          <h2 className="text-base font-semibold text-primary">New Match</h2>
+          <h2 className="text-base font-semibold text-primary">Create New Match</h2>
           <p className="text-xs text-secondary mt-1">{tournament.name} · Match #{currentCount + 1}</p>
         </div>
 
