@@ -333,7 +333,7 @@ export default function BracketsPage() {
             disabled={!tournament}
             onClick={() => {
               if (!tournament) return;
-              setBracketName(`Untitled Bracket ${brackets.length + 1}`);
+              setBracketName("");
               setCreateError("");
               setNameDialog(true);
             }}
