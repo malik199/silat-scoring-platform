@@ -169,3 +169,7 @@ export async function getBracket(id: string): Promise<Bracket | null> {
   if (!snap.exists()) return null;
   return { id: snap.id, ...(snap.data() as Omit<Bracket, "id">) };
 }
+
+export async function updateBracketSeededIds(id: string, seededIds: (string | null)[]): Promise<void> {
+  await updateDoc(doc(db, COL, id), { seededIds });
+}
