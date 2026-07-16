@@ -96,6 +96,69 @@ function AddCompetitorDialog({
   );
 }
 
+// ─── Remove-competitor dialog ─────────────────────────────────────────────────
+
+function RemoveCompetitorDialog({
+  bracketCompetitors,
+  onRemove,
+  onClose,
+}: {
+  bracketCompetitors: Competitor[];
+  onRemove: (competitorId: string) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [selectedId, setSelectedId] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const sel = "w-full bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-primary focus:outline-none focus:border-accent transition-colors appearance-none [color-scheme:dark]";
+
+  async function handleRemove() {
+    if (!selectedId || saving) return;
+    setSaving(true);
+    await onRemove(selectedId);
+    setSaving(false);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-sm bg-surface border border-border rounded-2xl shadow-2xl">
+        <div className="px-6 pt-6 pb-4 border-b border-border">
+          <h2 className="text-base font-semibold text-primary">Remove Competitor</h2>
+          <p className="text-xs text-secondary mt-1">Select a competitor to remove from this bracket.</p>
+        </div>
+        <div className="px-6 py-5">
+          {bracketCompetitors.length === 0 ? (
+            <p className="text-sm text-secondary">No competitors in this bracket.</p>
+          ) : (
+            <div>
+              <label className="block text-xs font-semibold text-secondary uppercase tracking-widest mb-1.5">Competitor</label>
+              <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)} className={sel}>
+                <option value="">Select a competitor…</option>
+                {bracketCompetitors.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.firstName} {c.lastName} · {c.schoolName} · {c.weightKg}kg
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+        <div className="px-6 py-4 border-t border-border flex gap-3">
+          <button type="button" onClick={onClose}
+            className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-primary hover:bg-elevated transition-colors">
+            Cancel
+          </button>
+          <button type="button" onClick={handleRemove} disabled={!selectedId || saving || bracketCompetitors.length === 0}
+            className="flex-1 px-4 py-2.5 rounded-lg bg-danger text-white text-sm font-semibold hover:bg-danger/80 transition-colors disabled:opacity-40">
+            {saving ? "Removing…" : "Remove"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Swap-competitor dialog ───────────────────────────────────────────────────
 
 function SwapCompetitorDialog({
@@ -429,6 +492,7 @@ export default function BracketViewPage() {
   const [deleting,      setDeleting]      = useState(false);
   const [matchDialog,   setMatchDialog]   = useState<{ p1Id: string; p2Id: string } | null>(null);
   const [addDialog,     setAddDialog]     = useState(false);
+  const [removeDialog,  setRemoveDialog]  = useState(false);
   const [swapDialog,    setSwapDialog]    = useState<{ targetId: string; opponentId: string | null } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -531,6 +595,14 @@ export default function BracketViewPage() {
     await updateBracketSeededIds(bracket.id, newSeededIds);
     setBracket((b) => b ? { ...b, seededIds: newSeededIds } : b);
     setAddDialog(false);
+  }
+
+  async function handleRemoveCompetitor(competitorId: string) {
+    if (!bracket) return;
+    const newSeededIds = bracket.seededIds.filter((id) => id !== competitorId);
+    await updateBracketSeededIds(bracket.id, newSeededIds);
+    setBracket((b) => b ? { ...b, seededIds: newSeededIds } : b);
+    setRemoveDialog(false);
   }
 
   async function handleSwap(targetId: string, replaceWithId: string) {
@@ -663,6 +735,10 @@ export default function BracketViewPage() {
               className="px-3 py-1.5 rounded-lg border border-accent/40 text-xs font-semibold text-accent hover:bg-accent/10 transition-colors">
               + Add Competitor
             </button>
+            <button type="button" onClick={() => setRemoveDialog(true)}
+              className="px-3 py-1.5 rounded-lg border border-danger/40 text-xs font-semibold text-danger hover:bg-danger/10 transition-colors">
+              − Remove Competitor
+            </button>
             <button type="button" onClick={() => setConfirmDelete(true)}
               className="px-3 py-1.5 rounded-lg border border-danger/40 text-xs font-semibold text-danger hover:bg-danger/10 transition-colors">
               Delete Bracket
@@ -765,6 +841,15 @@ export default function BracketViewPage() {
           available={availableToAdd}
           onAdd={handleAddCompetitor}
           onClose={() => setAddDialog(false)}
+        />
+      )}
+
+      {/* Remove competitor dialog */}
+      {removeDialog && (
+        <RemoveCompetitorDialog
+          bracketCompetitors={bracketCompetitors}
+          onRemove={handleRemoveCompetitor}
+          onClose={() => setRemoveDialog(false)}
         />
       )}
 
