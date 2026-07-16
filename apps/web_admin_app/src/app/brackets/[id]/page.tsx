@@ -494,6 +494,7 @@ export default function BracketViewPage() {
   const [deleting,      setDeleting]      = useState(false);
   const [matchDialog,   setMatchDialog]   = useState<{ p1Id: string; p2Id: string } | null>(null);
   const [addDialog,     setAddDialog]     = useState(false);
+  const [linkCopied,    setLinkCopied]    = useState(false);
   const [removeDialog,  setRemoveDialog]  = useState(false);
   const [swapDialog,    setSwapDialog]    = useState<{ targetId: string; opponentId: string | null } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -738,6 +739,17 @@ export default function BracketViewPage() {
           </form>
         ) : (
           <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(`${window.location.origin}/b/${bracket?.id}`);
+                setLinkCopied(true);
+                setTimeout(() => setLinkCopied(false), 2000);
+              }}
+              className="px-3 py-1.5 rounded-lg border border-border text-xs font-semibold text-secondary hover:text-primary hover:bg-elevated transition-colors"
+            >
+              {linkCopied ? "✓ Copied!" : "🔗 Share"}
+            </button>
             <button type="button" onClick={startRename}
               className="px-3 py-1.5 rounded-lg border border-border text-xs font-semibold text-secondary hover:text-primary hover:bg-elevated transition-colors">
               ✎ Rename

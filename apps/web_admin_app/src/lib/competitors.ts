@@ -6,11 +6,13 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
+  getDocs,
   writeBatch,
   onSnapshot,
   query,
   where,
   orderBy,
+  documentId,
   serverTimestamp,
   type Unsubscribe,
 } from "firebase/firestore";
@@ -212,6 +214,17 @@ export async function addCompetitor(input: CompetitorInput): Promise<string> {
     createdAt: serverTimestamp(),
   });
   return ref.id;
+}
+
+export async function getCompetitorsByIds(ids: string[]): Promise<Competitor[]> {
+  if (ids.length === 0) return [];
+  const results: Competitor[] = [];
+  for (let i = 0; i < ids.length; i += 30) {
+    const chunk = ids.slice(i, i + 30);
+    const snap = await getDocs(query(collection(db, COL), where(documentId(), "in", chunk)));
+    snap.docs.forEach((d) => results.push({ id: d.id, ...(d.data() as Omit<Competitor, "id">) }));
+  }
+  return results;
 }
 
 export async function bulkAddCompetitors(
