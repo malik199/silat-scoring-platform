@@ -474,7 +474,7 @@ function CompCard({
         <span className="text-xs font-semibold text-primary truncate leading-tight">
           {competitor.firstName} {competitor.lastName}
         </span>
-        <span className="text-[10px] text-muted truncate leading-tight mt-0.5">
+        <span className="text-[10px] text-secondary truncate leading-tight mt-0.5">
           {competitor.schoolName}
         </span>
       </div>
