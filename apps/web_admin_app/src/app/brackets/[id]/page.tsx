@@ -431,12 +431,14 @@ function MatchupBox({
   matchup,
   cMap,
   matchPairSet,
+  matchedCompetitorIds,
   onCreateMatch,
   onSwap,
 }: {
   matchup: BracketMatchup;
   cMap: Map<string, Competitor>;
   matchPairSet: Set<string>;
+  matchedCompetitorIds: Set<string>;
   onCreateMatch: (p1Id: string, p2Id: string) => void;
   onSwap: (targetId: string, opponentId: string | null) => void;
 }) {
@@ -449,12 +451,12 @@ function MatchupBox({
     <div style={{ height: MATCHUP_H, position: "relative" }} className="flex flex-col">
       <CompCard
         competitor={p1}
-        onSwap={p1 ? () => onSwap(p1.id, matchup.p2Id) : undefined}
+        onSwap={p1 && !matchedCompetitorIds.has(p1.id) ? () => onSwap(p1.id, matchup.p2Id) : undefined}
       />
       <div style={{ height: GAP }} />
       <CompCard
         competitor={p2}
-        onSwap={p2 ? () => onSwap(p2.id, matchup.p1Id) : undefined}
+        onSwap={p2 && !matchedCompetitorIds.has(p2.id) ? () => onSwap(p2.id, matchup.p1Id) : undefined}
       />
       {canCreate && (
         <button
@@ -563,6 +565,15 @@ export default function BracketViewPage() {
     matches.forEach((m) => {
       s.add(`${m.redCornerCompetitorId}|${m.blueCornerCompetitorId}`);
       s.add(`${m.blueCornerCompetitorId}|${m.redCornerCompetitorId}`);
+    });
+    return s;
+  }, [matches]);
+
+  const matchedCompetitorIds = useMemo(() => {
+    const s = new Set<string>();
+    matches.forEach((m) => {
+      s.add(m.redCornerCompetitorId);
+      s.add(m.blueCornerCompetitorId);
     });
     return s;
   }, [matches]);
@@ -783,6 +794,7 @@ export default function BracketViewPage() {
                     matchup={matchup}
                     cMap={cMap}
                     matchPairSet={matchPairSet}
+                    matchedCompetitorIds={matchedCompetitorIds}
                     onCreateMatch={(p1Id, p2Id) => setMatchDialog({ p1Id, p2Id })}
                     onSwap={(targetId, opponentId) => setSwapDialog({ targetId, opponentId })}
                   />
