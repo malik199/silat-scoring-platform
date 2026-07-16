@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { getBracket, buildRounds, type BracketMatchup } from "@/lib/brackets";
+import { getBracket, buildRounds, buildFeedMap, type BracketMatchup } from "@/lib/brackets";
 import { getCompetitorsByIds, type Competitor } from "@/lib/competitors";
 
 // ─── Layout constants (must match admin view) ─────────────────────────────────
@@ -61,13 +61,20 @@ function CompCard({ competitor }: { competitor: Competitor | null | undefined })
 
 function MatchupBox({
   matchup,
+  roundIdx,
+  matchupIdx,
   cMap,
+  effectiveGrid,
 }: {
   matchup: BracketMatchup;
+  roundIdx: number;
+  matchupIdx: number;
   cMap: Map<string, Competitor>;
+  effectiveGrid: Array<Array<{ p1Id: string | null; p2Id: string | null }>>;
 }) {
-  const p1 = matchup.p1Id ? cMap.get(matchup.p1Id) ?? null : null;
-  const p2 = matchup.p2Id ? cMap.get(matchup.p2Id) ?? null : null;
+  const eff = effectiveGrid[roundIdx]?.[matchupIdx];
+  const p1  = eff?.p1Id ? cMap.get(eff.p1Id) ?? null : null;
+  const p2  = eff?.p2Id ? cMap.get(eff.p2Id) ?? null : null;
 
   return (
     <div style={{ height: MATCHUP_H }} className="flex flex-col">
@@ -83,12 +90,13 @@ function MatchupBox({
 export default function PublicBracketPage() {
   const params = useParams<{ id: string }>();
 
-  const [bracketName,      setBracketName]      = useState("");
-  const [tournamentName,   setTournamentName]   = useState("");
-  const [seededIds,        setSeededIds]        = useState<(string | null)[]>([]);
-  const [competitors,      setCompetitors]      = useState<Competitor[]>([]);
-  const [loading,          setLoading]          = useState(true);
-  const [notFound,         setNotFound]         = useState(false);
+  const [bracketName,    setBracketName]    = useState("");
+  const [tournamentName, setTournamentName] = useState("");
+  const [seededIds,      setSeededIds]      = useState<(string | null)[]>([]);
+  const [winners,        setWinners]        = useState<Record<string, string>>({});
+  const [competitors,    setCompetitors]    = useState<Competitor[]>([]);
+  const [loading,        setLoading]        = useState(true);
+  const [notFound,       setNotFound]       = useState(false);
 
   useEffect(() => {
     if (!params?.id) return;
@@ -97,6 +105,7 @@ export default function PublicBracketPage() {
       setBracketName(b.name);
       setTournamentName(b.tournamentName);
       setSeededIds(b.seededIds);
+      setWinners(b.winners ?? {});
       const ids = b.seededIds.filter((id): id is string => id !== null);
       const comps = await getCompetitorsByIds(ids);
       setCompetitors(comps);
@@ -115,6 +124,23 @@ export default function PublicBracketPage() {
     while (P < n) P *= 2;
     return P - n;
   }, [seededIds]);
+
+  const feedMap = useMemo(() => buildFeedMap(rounds, numByes), [rounds, numByes]);
+
+  const effectiveGrid = useMemo(() =>
+    rounds.map((round, r) =>
+      round.map((matchup, i) => {
+        const resolve = (rawId: string | null, slot: "p1" | "p2"): string | null => {
+          if (rawId !== null) return rawId;
+          const src = feedMap.get(`r${r}_m${i}_${slot}`);
+          if (!src) return null;
+          return winners[`r${src.round}_m${src.idx}`] ?? null;
+        };
+        return { p1Id: resolve(matchup.p1Id, "p1"), p2Id: resolve(matchup.p2Id, "p2") };
+      })
+    ),
+    [rounds, feedMap, winners]
+  );
 
   const numRounds = rounds.length;
 
@@ -145,7 +171,6 @@ export default function PublicBracketPage() {
         nextRound.forEach((m, i) => {
           const oneBye = (m.p1Id !== null) !== (m.p2Id !== null);
           const twoTbd = m.p1Id === null && m.p2Id === null;
-
           if (oneBye && r0Ptr < thisRound.length) {
             const y0 = matchupCenterY(r0Ptr, thisRound.length, TOTAL_H);
             const y1 = matchupCenterY(i, nextRound.length, TOTAL_H);
@@ -217,7 +242,6 @@ export default function PublicBracketPage() {
 
         <div className="overflow-x-auto pb-6">
           <div className="relative inline-block" style={{ width: TOTAL_W, height: TOTAL_H + 48 }}>
-            {/* Round labels */}
             <div className="flex" style={{ height: 40 }}>
               {rounds.map((_round, r) => (
                 <div key={r} style={{ width: CARD_W, marginLeft: r > 0 ? CONN_W : 0 }} className="flex items-center">
@@ -228,7 +252,6 @@ export default function PublicBracketPage() {
               ))}
             </div>
 
-            {/* Bracket area */}
             <div className="relative" style={{ width: TOTAL_W, height: TOTAL_H }}>
               <svg
                 className="absolute inset-0 pointer-events-none"
@@ -246,7 +269,14 @@ export default function PublicBracketPage() {
                   style={{ left: r * (CARD_W + CONN_W), top: 0, width: CARD_W, height: TOTAL_H }}
                 >
                   {round.map((matchup, i) => (
-                    <MatchupBox key={i} matchup={matchup} cMap={cMap} />
+                    <MatchupBox
+                      key={i}
+                      matchup={matchup}
+                      roundIdx={r}
+                      matchupIdx={i}
+                      cMap={cMap}
+                      effectiveGrid={effectiveGrid}
+                    />
                   ))}
                 </div>
               ))}

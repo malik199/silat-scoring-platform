@@ -20,7 +20,13 @@ export interface Bracket {
   tournamentName: string;
   name: string;
   seededIds: (string | null)[];
+  winners?: Record<string, string>;
   createdAt: unknown;
+}
+
+export interface FeedSource {
+  round: number;
+  idx: number;
 }
 
 export interface BracketMatchup {
@@ -172,4 +178,45 @@ export async function getBracket(id: string): Promise<Bracket | null> {
 
 export async function updateBracketSeededIds(id: string, seededIds: (string | null)[]): Promise<void> {
   await updateDoc(doc(db, COL, id), { seededIds });
+}
+
+export async function setMatchWinner(
+  bracketId: string,
+  winnerKey: string,
+  competitorId: string
+): Promise<void> {
+  await updateDoc(doc(db, COL, bracketId), { [`winners.${winnerKey}`]: competitorId });
+}
+
+export function buildFeedMap(
+  rounds: BracketMatchup[][],
+  numByes: number
+): Map<string, FeedSource> {
+  const map = new Map<string, FeedSource>();
+  for (let r = 0; r < rounds.length - 1; r++) {
+    const thisRound = rounds[r];
+    const nextRound = rounds[r + 1];
+    if (r === 0 && numByes > 0) {
+      let r0Ptr = 0;
+      nextRound.forEach((m, i) => {
+        const oneBye = (m.p1Id !== null) !== (m.p2Id !== null);
+        const twoTbd = m.p1Id === null && m.p2Id === null;
+        if (oneBye && r0Ptr < thisRound.length) {
+          if (m.p1Id === null) map.set(`r${r + 1}_m${i}_p1`, { round: r, idx: r0Ptr });
+          else                 map.set(`r${r + 1}_m${i}_p2`, { round: r, idx: r0Ptr });
+          r0Ptr++;
+        } else if (twoTbd && r0Ptr + 1 < thisRound.length) {
+          map.set(`r${r + 1}_m${i}_p1`, { round: r, idx: r0Ptr });
+          map.set(`r${r + 1}_m${i}_p2`, { round: r, idx: r0Ptr + 1 });
+          r0Ptr += 2;
+        }
+      });
+    } else {
+      nextRound.forEach((_m, i) => {
+        map.set(`r${r + 1}_m${i}_p1`, { round: r, idx: 2 * i });
+        map.set(`r${r + 1}_m${i}_p2`, { round: r, idx: 2 * i + 1 });
+      });
+    }
+  }
+  return map;
 }

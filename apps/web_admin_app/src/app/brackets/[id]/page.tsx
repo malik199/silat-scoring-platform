@@ -8,8 +8,9 @@ import { subscribeCompetitors, type Competitor } from "@/lib/competitors";
 import { subscribeActiveTournament, type Tournament } from "@/lib/tournaments";
 import { createMatch, subscribeMatches, type Match } from "@/lib/matches";
 import {
-  getBracket, renameBracket, deleteBracket, buildRounds, updateBracketSeededIds,
-  type Bracket, type BracketMatchup,
+  getBracket, renameBracket, deleteBracket, buildRounds, buildFeedMap,
+  updateBracketSeededIds, setMatchWinner,
+  type Bracket, type BracketMatchup, type FeedSource,
 } from "@/lib/brackets";
 
 // ─── Layout constants ─────────────────────────────────────────────────────────
@@ -235,6 +236,63 @@ function SwapCompetitorDialog({
   );
 }
 
+// ─── Who-won dialog ───────────────────────────────────────────────────────────
+
+function WinnerDialog({
+  option1,
+  option2,
+  onSelect,
+  onClose,
+}: {
+  option1: Competitor;
+  option2: Competitor;
+  onSelect: (competitorId: string) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [saving, setSaving] = useState(false);
+
+  async function pick(id: string) {
+    if (saving) return;
+    setSaving(true);
+    await onSelect(id);
+    setSaving(false);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-sm bg-surface border border-border rounded-2xl shadow-2xl">
+        <div className="px-6 pt-6 pb-4 border-b border-border">
+          <h2 className="text-base font-semibold text-primary">Who won?</h2>
+          <p className="text-xs text-secondary mt-1">Select the winner to advance them to the next round.</p>
+        </div>
+        <div className="px-6 py-5 flex flex-col gap-3">
+          {[option1, option2].map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              disabled={saving}
+              onClick={() => pick(c.id)}
+              className="w-full px-4 py-3.5 rounded-xl border border-border bg-elevated hover:border-accent hover:bg-accent/5 text-left transition-colors disabled:opacity-40 group"
+            >
+              <p className="text-sm font-semibold text-primary group-hover:text-accent transition-colors">
+                {c.firstName} {c.lastName}
+              </p>
+              <p className="text-xs text-muted mt-0.5">{c.schoolName} · {c.weightKg}kg</p>
+            </button>
+          ))}
+        </div>
+        <div className="px-6 py-4 border-t border-border">
+          <button type="button" onClick={onClose} disabled={saving}
+            className="w-full px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-primary hover:bg-elevated transition-colors disabled:opacity-50">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Create-match dialog (pre-filled from bracket) ───────────────────────────
 
 function BracketMatchDialog({
@@ -381,9 +439,11 @@ function BracketMatchDialog({
 function CompCard({
   competitor,
   onSwap,
+  onWhoWon,
 }: {
   competitor: Competitor | null | undefined;
   onSwap?: () => void;
+  onWhoWon?: () => void;
 }) {
   if (!competitor) {
     return (
@@ -391,7 +451,17 @@ function CompCard({
         style={{ width: CARD_W, height: CARD_H }}
         className="flex items-center px-3 rounded-lg border border-dashed border-border/50 bg-elevated/40"
       >
-        <span className="text-xs text-muted">TBD</span>
+        {onWhoWon ? (
+          <button
+            type="button"
+            onClick={onWhoWon}
+            className="text-xs font-semibold text-accent hover:underline"
+          >
+            Who won?
+          </button>
+        ) : (
+          <span className="text-xs text-muted">TBD</span>
+        )}
       </div>
     );
   }
@@ -429,40 +499,98 @@ function CompCard({
 
 function MatchupBox({
   matchup,
+  roundIdx,
+  matchupIdx,
   cMap,
+  effectiveGrid,
+  feedMap,
+  winners,
   matchPairSet,
   matchedCompetitorIds,
   onCreateMatch,
   onSwap,
+  onWhoWon,
 }: {
   matchup: BracketMatchup;
+  roundIdx: number;
+  matchupIdx: number;
   cMap: Map<string, Competitor>;
+  effectiveGrid: Array<Array<{ p1Id: string | null; p2Id: string | null }>>;
+  feedMap: Map<string, FeedSource>;
+  winners: Record<string, string>;
   matchPairSet: Set<string>;
   matchedCompetitorIds: Set<string>;
   onCreateMatch: (p1Id: string, p2Id: string) => void;
   onSwap: (targetId: string, opponentId: string | null) => void;
+  onWhoWon: (winnerKey: string, opt1: Competitor, opt2: Competitor) => void;
 }) {
-  const p1 = matchup.p1Id ? cMap.get(matchup.p1Id) ?? null : null;
-  const p2 = matchup.p2Id ? cMap.get(matchup.p2Id) ?? null : null;
-  const canCreate = matchup.p1Id !== null && matchup.p2Id !== null;
-  const hasMatch  = canCreate && matchPairSet.has(`${matchup.p1Id}|${matchup.p2Id}`);
+  // Resolve a single slot: returns the effective competitor ID, the competitor
+  // object, and an optional "Who won?" opener if eligible.
+  function resolveSlot(slot: "p1" | "p2", rawId: string | null): {
+    effectiveId: string | null;
+    competitor: Competitor | null;
+    whoWon?: () => void;
+  } {
+    if (rawId !== null) {
+      return { effectiveId: rawId, competitor: cMap.get(rawId) ?? null };
+    }
+
+    const slotKey = `r${roundIdx}_m${matchupIdx}_${slot}`;
+    const src = feedMap.get(slotKey);
+    if (!src) return { effectiveId: null, competitor: null };
+
+    const winnerKey = `r${src.round}_m${src.idx}`;
+    const winnerId  = winners[winnerKey];
+    if (winnerId) {
+      return { effectiveId: winnerId, competitor: cMap.get(winnerId) ?? null };
+    }
+
+    // No winner yet — check if the upstream match has been created
+    const upEff = effectiveGrid[src.round]?.[src.idx];
+    if (!upEff?.p1Id || !upEff?.p2Id) return { effectiveId: null, competitor: null };
+    if (!matchPairSet.has(`${upEff.p1Id}|${upEff.p2Id}`)) return { effectiveId: null, competitor: null };
+
+    const opt1 = cMap.get(upEff.p1Id);
+    const opt2 = cMap.get(upEff.p2Id);
+    if (!opt1 || !opt2) return { effectiveId: null, competitor: null };
+
+    return {
+      effectiveId: null,
+      competitor: null,
+      whoWon: () => onWhoWon(winnerKey, opt1, opt2),
+    };
+  }
+
+  const p1Slot = resolveSlot("p1", matchup.p1Id);
+  const p2Slot = resolveSlot("p2", matchup.p2Id);
+
+  const effectiveP1Id = p1Slot.effectiveId;
+  const effectiveP2Id = p2Slot.effectiveId;
+  const canCreate     = effectiveP1Id !== null && effectiveP2Id !== null;
+  const hasMatch      = canCreate && matchPairSet.has(`${effectiveP1Id}|${effectiveP2Id}`);
 
   return (
     <div style={{ height: MATCHUP_H, position: "relative" }} className="flex flex-col">
       <CompCard
-        competitor={p1}
-        onSwap={p1 && !matchedCompetitorIds.has(p1.id) ? () => onSwap(p1.id, matchup.p2Id) : undefined}
+        competitor={p1Slot.competitor}
+        onWhoWon={p1Slot.whoWon}
+        onSwap={p1Slot.competitor && !matchedCompetitorIds.has(p1Slot.competitor.id)
+          ? () => onSwap(p1Slot.competitor!.id, effectiveP2Id)
+          : undefined}
       />
       <div style={{ height: GAP }} />
       <CompCard
-        competitor={p2}
-        onSwap={p2 && !matchedCompetitorIds.has(p2.id) ? () => onSwap(p2.id, matchup.p1Id) : undefined}
+        competitor={p2Slot.competitor}
+        onWhoWon={p2Slot.whoWon}
+        onSwap={p2Slot.competitor && !matchedCompetitorIds.has(p2Slot.competitor.id)
+          ? () => onSwap(p2Slot.competitor!.id, effectiveP1Id)
+          : undefined}
       />
       {canCreate && (
         <button
           type="button"
           disabled={hasMatch}
-          onClick={hasMatch ? undefined : () => onCreateMatch(matchup.p1Id!, matchup.p2Id!)}
+          onClick={hasMatch ? undefined : () => onCreateMatch(effectiveP1Id!, effectiveP2Id!)}
           style={{ position: "absolute", right: -13, top: "50%", transform: "translateY(-50%)", zIndex: 10 }}
           className={`w-[26px] h-[26px] flex items-center justify-center transition-opacity flex-shrink-0 ${hasMatch ? "cursor-default" : "hover:opacity-70"}`}
           title={hasMatch ? "Match already created" : "Create match"}
@@ -494,9 +622,10 @@ export default function BracketViewPage() {
   const [deleting,      setDeleting]      = useState(false);
   const [matchDialog,   setMatchDialog]   = useState<{ p1Id: string; p2Id: string } | null>(null);
   const [addDialog,     setAddDialog]     = useState(false);
-  const [linkCopied,    setLinkCopied]    = useState(false);
   const [removeDialog,  setRemoveDialog]  = useState(false);
   const [swapDialog,    setSwapDialog]    = useState<{ targetId: string; opponentId: string | null } | null>(null);
+  const [winnerDialog,  setWinnerDialog]  = useState<{ winnerKey: string; opt1: Competitor; opt2: Competitor } | null>(null);
+  const [linkCopied,    setLinkCopied]    = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -592,6 +721,27 @@ export default function BracketViewPage() {
     return P - n;
   }, [bracket]);
 
+  const winners = useMemo(() => bracket?.winners ?? {}, [bracket]);
+
+  const feedMap = useMemo(() => buildFeedMap(rounds, numByes), [rounds, numByes]);
+
+  // Effective grid: for every matchup slot, the real competitor ID (from seededIds
+  // or the winners map) or null if still unknown.
+  const effectiveGrid = useMemo(() =>
+    rounds.map((round, r) =>
+      round.map((matchup, i) => {
+        const resolve = (rawId: string | null, slot: "p1" | "p2"): string | null => {
+          if (rawId !== null) return rawId;
+          const src = feedMap.get(`r${r}_m${i}_${slot}`);
+          if (!src) return null;
+          return winners[`r${src.round}_m${src.idx}`] ?? null;
+        };
+        return { p1Id: resolve(matchup.p1Id, "p1"), p2Id: resolve(matchup.p2Id, "p2") };
+      })
+    ),
+    [rounds, feedMap, winners]
+  );
+
   const numRounds = rounds.length;
 
   const TOTAL_H = useMemo(() => {
@@ -625,6 +775,13 @@ export default function BracketViewPage() {
     await updateBracketSeededIds(bracket.id, newSeededIds);
     setBracket((b) => b ? { ...b, seededIds: newSeededIds } : b);
     setSwapDialog(null);
+  }
+
+  async function handleSelectWinner(winnerKey: string, competitorId: string) {
+    if (!bracket) return;
+    await setMatchWinner(bracket.id, winnerKey, competitorId);
+    setBracket((b) => b ? { ...b, winners: { ...(b.winners ?? {}), [winnerKey]: competitorId } } : b);
+    setWinnerDialog(null);
   }
 
   const svgLines = useMemo(() => {
@@ -712,7 +869,7 @@ export default function BracketViewPage() {
 
   return (
     <Shell title={bracket?.name ?? "Bracket"}>
-      {/* Rename / add / delete row */}
+      {/* Rename / add / remove / delete row */}
       <div className="flex items-center gap-3 mb-6 flex-wrap">
         {renaming ? (
           <form
@@ -804,11 +961,17 @@ export default function BracketViewPage() {
                   <MatchupBox
                     key={i}
                     matchup={matchup}
+                    roundIdx={r}
+                    matchupIdx={i}
                     cMap={cMap}
+                    effectiveGrid={effectiveGrid}
+                    feedMap={feedMap}
+                    winners={winners}
                     matchPairSet={matchPairSet}
                     matchedCompetitorIds={matchedCompetitorIds}
                     onCreateMatch={(p1Id, p2Id) => setMatchDialog({ p1Id, p2Id })}
                     onSwap={(targetId, opponentId) => setSwapDialog({ targetId, opponentId })}
+                    onWhoWon={(winnerKey, opt1, opt2) => setWinnerDialog({ winnerKey, opt1, opt2 })}
                   />
                 ))}
               </div>
@@ -886,6 +1049,16 @@ export default function BracketViewPage() {
           cMap={cMap}
           onSwap={handleSwap}
           onClose={() => setSwapDialog(null)}
+        />
+      )}
+
+      {/* Who won dialog */}
+      {winnerDialog && (
+        <WinnerDialog
+          option1={winnerDialog.opt1}
+          option2={winnerDialog.opt2}
+          onSelect={(competitorId) => handleSelectWinner(winnerDialog.winnerKey, competitorId)}
+          onClose={() => setWinnerDialog(null)}
         />
       )}
     </Shell>
