@@ -23,6 +23,25 @@ import {
   type AdminEvent,
 } from "@/lib/matches";
 
+// ─── Age categories (Pencak Silat / PERSILAT) ─────────────────────────────────
+
+function getAgeYears(dob: string): number {
+  if (!dob) return 0;
+  const d = new Date(dob + "T00:00:00");
+  const now = new Date();
+  let years = now.getFullYear() - d.getFullYear();
+  if (now.getMonth() < d.getMonth() || (now.getMonth() === d.getMonth() && now.getDate() < d.getDate())) years--;
+  return Math.max(0, years);
+}
+
+const AGE_CATS = [
+  { key: "all",       label: "All Ages",     min: 0,  max: 999 },
+  { key: "kids",      label: "Kids (U10)",   min: 0,  max: 9   },
+  { key: "prejunior", label: "Pre-Junior",   min: 10, max: 12  },
+  { key: "junior",    label: "Junior",       min: 13, max: 17  },
+  { key: "senior",    label: "Senior (18+)", min: 18, max: 999 },
+];
+
 // ─── New Match Modal ──────────────────────────────────────────────────────────
 
 interface NewMatchModalProps {
@@ -36,6 +55,8 @@ function NewMatchModal({ tournament, competitors, currentCount, onClose }: NewMa
   const arenas = Array.from({ length: tournament.arenaCount }, (_, i) => i + 1);
 
   const [arenaNumber,          setArenaNumber]          = useState<number>(arenas[0]);
+  const [genderFilter,         setGenderFilter]         = useState<"male" | "female" | null>(null);
+  const [ageCat,               setAgeCat]               = useState("all");
   const [redId,                setRedId]                = useState("");
   const [blueId,               setBlueId]               = useState("");
   const [roundDurationSeconds, setRoundDurationSeconds] = useState<90 | 120>(120);
@@ -43,13 +64,32 @@ function NewMatchModal({ tournament, competitors, currentCount, onClose }: NewMa
   const [saving,               setSaving]               = useState(false);
   const [error,                setError]                = useState("");
 
-  const arenaCompetitorIds = new Set(tournament.arenaAssignments?.[String(arenaNumber)] ?? []);
-  const arenaCompetitors   = competitors.filter((c) => arenaCompetitorIds.has(c.id));
-
   function handleArenaChange(n: number) {
     setArenaNumber(n);
     setRedId(""); setBlueId(""); setError("");
   }
+
+  function handleGenderFilter(g: "male" | "female") {
+    setGenderFilter((prev) => (prev === g ? null : g));
+    setRedId(""); setBlueId("");
+  }
+
+  function handleAgeCat(key: string) {
+    setAgeCat(key);
+    setRedId(""); setBlueId("");
+  }
+
+  const filteredCompetitors = competitors.filter((c) => {
+    if (genderFilter && c.gender !== genderFilter) return false;
+    if (ageCat !== "all") {
+      const cat = AGE_CATS.find((a) => a.key === ageCat);
+      if (cat) {
+        const age = getAgeYears(c.dateOfBirth);
+        if (age < cat.min || age > cat.max) return false;
+      }
+    }
+    return true;
+  });
 
   const redComp  = competitors.find((c) => c.id === redId);
   const blueComp = competitors.find((c) => c.id === blueId);
@@ -85,36 +125,69 @@ function NewMatchModal({ tournament, competitors, currentCount, onClose }: NewMa
   }
 
   const sel = "w-full bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-primary focus:outline-none focus:border-accent transition-colors appearance-none [color-scheme:dark]";
+  const filterBtn = (active: boolean) =>
+    `px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+      active
+        ? "bg-accent/10 border-accent text-accent"
+        : "bg-elevated border-border text-secondary hover:text-warn"
+    }`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-md bg-surface border border-border rounded-2xl shadow-2xl">
-        <div className="px-6 pt-6 pb-4 border-b border-border">
+      <div className="relative z-10 w-full max-w-md bg-surface border border-border rounded-2xl shadow-2xl max-h-[90vh] flex flex-col">
+        <div className="px-6 pt-6 pb-4 border-b border-border flex-shrink-0">
           <h2 className="text-base font-semibold text-primary">Create New Match</h2>
           <p className="text-xs text-secondary mt-1">{tournament.name} · Match #{currentCount + 1}</p>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="px-6 py-5 space-y-4">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
             {/* Arena */}
-            <div>
-              <label className="block text-xs font-semibold text-secondary uppercase tracking-widest mb-1.5">Arena</label>
-              {arenas.length === 1 ? (
-                <p className="text-sm text-primary px-3 py-2 bg-elevated border border-border rounded-lg">Arena {arenas[0]}</p>
-              ) : (
+            {arenas.length > 1 && (
+              <div>
+                <label className="block text-xs font-semibold text-secondary uppercase tracking-widest mb-1.5">Arena</label>
                 <select value={arenaNumber} onChange={(e) => handleArenaChange(Number(e.target.value))} className={sel}>
                   {arenas.map((n) => <option key={n} value={n}>Arena {n}</option>)}
                 </select>
+              </div>
+            )}
+
+            {/* Filters */}
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold text-secondary uppercase tracking-widest">Filter Competitors</label>
+              {/* Gender */}
+              <div className="flex gap-1.5">
+                {(["male", "female"] as const).map((g) => (
+                  <button key={g} type="button" onClick={() => handleGenderFilter(g)}
+                    className={filterBtn(genderFilter === g) + " capitalize"}>
+                    {g}
+                  </button>
+                ))}
+                {genderFilter && (
+                  <button type="button" onClick={() => { setGenderFilter(null); setRedId(""); setBlueId(""); }}
+                    className="px-2 py-1.5 rounded-lg text-xs text-muted hover:text-danger border border-border bg-elevated transition-colors">
+                    ✕
+                  </button>
+                )}
+              </div>
+              {/* Age category */}
+              <div className="flex flex-wrap gap-1.5">
+                {AGE_CATS.map((cat) => (
+                  <button key={cat.key} type="button" onClick={() => handleAgeCat(cat.key)}
+                    className={filterBtn(ageCat === cat.key)}>
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+              {filteredCompetitors.length > 0 && (
+                <p className="text-xs text-muted">{filteredCompetitors.length} competitor{filteredCompetitors.length !== 1 ? "s" : ""} match</p>
               )}
             </div>
 
-            {arenaCompetitors.length < 2 ? (
+            {filteredCompetitors.length === 0 ? (
               <div className="bg-elevated border border-border rounded-lg px-4 py-4 text-center">
-                <p className="text-sm text-secondary">Arena {arenaNumber} needs at least 2 competitors assigned.</p>
-                <a href={`/tournaments/${tournament.id}`} className="text-xs text-accent hover:underline mt-1 block">
-                  Assign competitors →
-                </a>
+                <p className="text-sm text-secondary">No competitors match these filters.</p>
               </div>
             ) : (
               <>
@@ -123,7 +196,7 @@ function NewMatchModal({ tournament, competitors, currentCount, onClose }: NewMa
                   <label className="block text-xs font-semibold uppercase tracking-widest mb-1.5 text-danger">Red Corner</label>
                   <select value={redId} onChange={(e) => { setRedId(e.target.value); setError(""); }} className={sel}>
                     <option value="">Select competitor…</option>
-                    {arenaCompetitors.map((c) => (
+                    {filteredCompetitors.map((c) => (
                       <option key={c.id} value={c.id} disabled={c.id === blueId}>
                         {c.firstName} {c.lastName} ({c.gender === "male" ? "M" : "F"} · {c.weightKg}kg)
                       </option>
@@ -135,7 +208,7 @@ function NewMatchModal({ tournament, competitors, currentCount, onClose }: NewMa
                         {redComp.firstName[0]}{redComp.lastName[0]}
                       </div>
                       <span className="text-xs text-secondary truncate">
-                        {redComp.schoolName || redComp.country || "—"} · {redComp.gender === "male" ? "Male" : "Female"}
+                        {redComp.schoolName || redComp.country || "—"} · {redComp.gender === "male" ? "Male" : "Female"} · {getAgeYears(redComp.dateOfBirth)}y
                       </span>
                     </div>
                   )}
@@ -146,7 +219,7 @@ function NewMatchModal({ tournament, competitors, currentCount, onClose }: NewMa
                   <label className="block text-xs font-semibold uppercase tracking-widest mb-1.5 text-blue-400">Blue Corner</label>
                   <select value={blueId} onChange={(e) => { setBlueId(e.target.value); setError(""); }} className={sel}>
                     <option value="">Select competitor…</option>
-                    {arenaCompetitors.map((c) => (
+                    {filteredCompetitors.map((c) => (
                       <option key={c.id} value={c.id} disabled={c.id === redId}>
                         {c.firstName} {c.lastName} ({c.gender === "male" ? "M" : "F"} · {c.weightKg}kg)
                       </option>
@@ -158,7 +231,7 @@ function NewMatchModal({ tournament, competitors, currentCount, onClose }: NewMa
                         {blueComp.firstName[0]}{blueComp.lastName[0]}
                       </div>
                       <span className="text-xs text-secondary truncate">
-                        {blueComp.schoolName || blueComp.country || "—"} · {blueComp.gender === "male" ? "Male" : "Female"}
+                        {blueComp.schoolName || blueComp.country || "—"} · {blueComp.gender === "male" ? "Male" : "Female"} · {getAgeYears(blueComp.dateOfBirth)}y
                       </span>
                     </div>
                   )}
@@ -209,12 +282,12 @@ function NewMatchModal({ tournament, competitors, currentCount, onClose }: NewMa
             )}
           </div>
 
-          <div className="px-6 py-4 border-t border-border flex gap-3">
+          <div className="px-6 py-4 border-t border-border flex gap-3 flex-shrink-0">
             <button type="button" onClick={onClose}
               className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-warn hover:bg-elevated transition-colors">
               Cancel
             </button>
-            <button type="submit" disabled={saving || arenaCompetitors.length < 2}
+            <button type="submit" disabled={saving}
               className="flex-1 px-4 py-2.5 rounded-lg bg-accent text-black text-sm font-semibold hover:bg-accent-hover transition-colors disabled:opacity-40">
               {saving ? "Creating…" : "Create Match"}
             </button>
