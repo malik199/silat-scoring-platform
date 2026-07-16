@@ -156,7 +156,7 @@ function ManualModal({ existing, organiserId, atLimit, onClose }: ManualModalPro
             <span className="text-4xl">🔒</span>
             <p className="text-sm font-bold text-primary">Free plan limit reached</p>
             <p className="text-xs text-secondary leading-relaxed max-w-xs">
-              Your free plan includes up to 20 competitors. Upgrade to add more.
+              Your free plan includes up to 10 competitors. Upgrade to add more.
             </p>
             <button
               type="button"
@@ -643,7 +643,7 @@ export default function CompetitorsPage() {
 
   const slotsRemaining = Math.max(0, tierLimit - competitors.length);
   const atLimit        = competitors.length >= tierLimit;
-  const isFreeTier     = tierLimit === 20;
+  const isFreeTier     = tierLimit === 10;
 
   const filtered = competitors.filter((c) => {
     const q = search.toLowerCase();
@@ -713,7 +713,7 @@ export default function CompetitorsPage() {
           <button
             onClick={() => setModal("manual")}
             disabled={atLimit}
-            title={atLimit ? "Free plan limit reached (20/20)" : undefined}
+            title={atLimit ? `Free plan limit reached (${tierLimit}/${tierLimit})` : undefined}
             className="px-4 py-2 rounded-lg bg-accent text-black text-sm font-semibold hover:bg-accent-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             + Add Manually

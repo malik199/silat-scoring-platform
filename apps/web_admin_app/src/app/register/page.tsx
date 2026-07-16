@@ -69,7 +69,7 @@ export default function RegisterPage() {
         <div className="flex justify-center mb-6">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-accent text-xs font-bold">
             <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-            Free — up to 20 competitors
+            Free — up to 10 competitors
           </span>
         </div>
 

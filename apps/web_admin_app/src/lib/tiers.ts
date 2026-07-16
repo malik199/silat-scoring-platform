@@ -2,15 +2,15 @@ export const TIERS = [
   {
     id:             "free",
     name:           "Free",
-    maxCompetitors: 20,
-    range:          "Up to 20 competitors",
+    maxCompetitors: 10,
+    range:          "Up to 10 competitors",
     description:    "Perfect for small local events and club training sessions.",
   },
   {
     id:             "starter",
     name:           "Starter",
     maxCompetitors: 50,
-    range:          "21–50 competitors",
+    range:          "11–50 competitors",
     description:    "For growing clubs hosting inter-club and regional events.",
   },
   {

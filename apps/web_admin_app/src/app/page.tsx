@@ -254,7 +254,7 @@ export default function LandingPage() {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/10 border border-accent/20 text-accent text-xs font-bold mb-7 uppercase tracking-widest">
             <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-            Free for up to 20 competitors
+            Free for up to 10 competitors
           </div>
 
           <h1 className="text-5xl sm:text-6xl font-black leading-[1.1] tracking-tight mb-5">
@@ -326,7 +326,7 @@ export default function LandingPage() {
             </div>
             <div className="mb-5 pt-1">
               <p className="text-xl font-black text-primary">Free</p>
-              <p className="text-xs text-muted mt-0.5">Up to 20 competitors</p>
+              <p className="text-xs text-muted mt-0.5">Up to 10 competitors</p>
             </div>
             <div className="mb-6">
               <span className="text-5xl font-black text-accent">$0</span>
@@ -354,7 +354,7 @@ export default function LandingPage() {
               <div className="w-12 h-12 rounded-xl bg-elevated border border-border flex items-center justify-center text-2xl mb-5">
                 🏆
               </div>
-              <p className="text-xl font-black text-primary mb-2">More than 20 competitors?</p>
+              <p className="text-xl font-black text-primary mb-2">More than 10 competitors?</p>
               <p className="text-sm text-secondary leading-relaxed mb-6">
                 We offer custom plans for clubs, regional federations, and national championships.
                 Tell us about your event and we&apos;ll find the right fit.
