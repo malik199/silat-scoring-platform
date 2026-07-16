@@ -6,7 +6,7 @@ import { Shell } from "@/components/Shell";
 import { useAuth } from "@/context/AuthContext";
 import { subscribeCompetitors, type Competitor } from "@/lib/competitors";
 import { subscribeActiveTournament, type Tournament } from "@/lib/tournaments";
-import { createMatch, subscribeMatches } from "@/lib/matches";
+import { createMatch, subscribeMatches, type Match } from "@/lib/matches";
 import { getBracket, renameBracket, deleteBracket, buildRounds, type Bracket, type BracketMatchup } from "@/lib/brackets";
 
 // ─── Layout constants ─────────────────────────────────────────────────────────
@@ -200,15 +200,18 @@ function CompCard({ competitor }: { competitor: Competitor | null | undefined })
 function MatchupBox({
   matchup,
   cMap,
+  matchPairSet,
   onCreateMatch,
 }: {
   matchup: BracketMatchup;
   cMap: Map<string, Competitor>;
+  matchPairSet: Set<string>;
   onCreateMatch: (p1Id: string, p2Id: string) => void;
 }) {
   const p1 = matchup.p1Id ? cMap.get(matchup.p1Id) ?? null : null;
   const p2 = matchup.p2Id ? cMap.get(matchup.p2Id) ?? null : null;
   const canCreate = matchup.p1Id !== null && matchup.p2Id !== null;
+  const hasMatch  = canCreate && matchPairSet.has(`${matchup.p1Id}|${matchup.p2Id}`);
 
   return (
     <div style={{ height: MATCHUP_H, position: "relative" }} className="flex flex-col">
@@ -218,12 +221,13 @@ function MatchupBox({
       {canCreate && (
         <button
           type="button"
-          onClick={() => onCreateMatch(matchup.p1Id!, matchup.p2Id!)}
+          disabled={hasMatch}
+          onClick={hasMatch ? undefined : () => onCreateMatch(matchup.p1Id!, matchup.p2Id!)}
           style={{ position: "absolute", right: -13, top: "50%", transform: "translateY(-50%)", zIndex: 10 }}
-          className="w-[26px] h-[26px] flex items-center justify-center hover:opacity-70 transition-opacity flex-shrink-0"
-          title="Create match"
+          className={`w-[26px] h-[26px] flex items-center justify-center transition-opacity flex-shrink-0 ${hasMatch ? "cursor-default" : "hover:opacity-70"}`}
+          title={hasMatch ? "Match already created" : "Create match"}
         >
-          <img src="/play.svg" alt="Create match" className="w-[26px] h-[26px]" />
+          <img src={hasMatch ? "/check.svg" : "/play.svg"} alt={hasMatch ? "Match created" : "Create match"} className="w-[26px] h-[26px]" />
         </button>
       )}
     </div>
@@ -240,7 +244,7 @@ export default function BracketViewPage() {
   const [bracket,       setBracket]       = useState<Bracket | null>(null);
   const [competitors,   setCompetitors]   = useState<Competitor[]>([]);
   const [tournament,    setTournament]    = useState<Tournament | null>(null);
-  const [matchCount,    setMatchCount]    = useState(0);
+  const [matches,       setMatches]       = useState<Match[]>([]);
   const [loading,       setLoading]       = useState(true);
   const [notFound,      setNotFound]      = useState(false);
   const [renaming,      setRenaming]      = useState(false);
@@ -265,8 +269,8 @@ export default function BracketViewPage() {
   }, [user]);
 
   useEffect(() => {
-    if (!tournament?.id) { setMatchCount(0); return; }
-    return subscribeMatches(tournament.id, (ms) => setMatchCount(ms.length));
+    if (!tournament?.id) { setMatches([]); return; }
+    return subscribeMatches(tournament.id, setMatches);
   }, [tournament?.id]);
 
   function startRename() {
@@ -296,6 +300,16 @@ export default function BracketViewPage() {
   }, [bracket, competitors]);
 
   const cMap = useMemo(() => new Map(competitors.map((c) => [c.id, c])), [competitors]);
+
+  // Set of "p1Id|p2Id" and "p2Id|p1Id" pairs that already have a match
+  const matchPairSet = useMemo(() => {
+    const s = new Set<string>();
+    matches.forEach((m) => {
+      s.add(`${m.redCornerCompetitorId}|${m.blueCornerCompetitorId}`);
+      s.add(`${m.blueCornerCompetitorId}|${m.redCornerCompetitorId}`);
+    });
+    return s;
+  }, [matches]);
 
   const rounds = useMemo(() => {
     if (!bracket) return [];
@@ -478,6 +492,7 @@ export default function BracketViewPage() {
                     key={i}
                     matchup={matchup}
                     cMap={cMap}
+                    matchPairSet={matchPairSet}
                     onCreateMatch={(p1Id, p2Id) => setMatchDialog({ p1Id, p2Id })}
                   />
                 ))}
@@ -524,7 +539,7 @@ export default function BracketViewPage() {
           p1={dialogP1}
           p2={dialogP2}
           tournament={tournament}
-          currentCount={matchCount}
+          currentCount={matches.length}
           onClose={() => setMatchDialog(null)}
         />
       )}
