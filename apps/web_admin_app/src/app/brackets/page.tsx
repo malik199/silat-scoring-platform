@@ -345,7 +345,7 @@ export default function BracketsPage() {
             type="button"
             onClick={() => { setSelected(new Set()); setCreateError(""); }}
             title="Clear selection"
-            className="text-muted hover:text-primary text-lg leading-none transition-colors"
+            className="text-muted hover:text-warn text-lg leading-none transition-colors"
           >
             ✕
           </button>
@@ -399,7 +399,7 @@ export default function BracketsPage() {
                 <button
                   type="button"
                   onClick={() => setNameDialog(false)}
-                  className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-primary hover:bg-elevated transition-colors"
+                  className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-warn hover:bg-elevated transition-colors"
                 >
                   Cancel
                 </button>

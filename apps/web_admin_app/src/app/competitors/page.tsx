@@ -161,7 +161,7 @@ function ManualModal({ existing, organiserId, atLimit, onClose }: ManualModalPro
             <button
               type="button"
               onClick={onClose}
-              className="mt-2 px-5 py-2 rounded-lg border border-border text-sm font-medium text-secondary hover:text-primary hover:bg-elevated transition-colors"
+              className="mt-2 px-5 py-2 rounded-lg border border-border text-sm font-medium text-secondary hover:text-warn hover:bg-elevated transition-colors"
             >
               Close
             </button>
@@ -374,7 +374,7 @@ function ManualModal({ existing, organiserId, atLimit, onClose }: ManualModalPro
             <button
               type="button"
               onClick={confirmDelete ? () => setConfirmDelete(false) : onClose}
-              className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-primary hover:bg-elevated transition-colors"
+              className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-warn hover:bg-elevated transition-colors"
             >
               {confirmDelete ? "No, keep" : "Cancel"}
             </button>
@@ -587,7 +587,7 @@ function CsvModal({ organiserId, slotsRemaining, onClose }: CsvModalProps) {
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-primary hover:bg-elevated transition-colors"
+            className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-warn hover:bg-elevated transition-colors"
           >
             {done ? "Close" : "Cancel"}
           </button>
@@ -706,7 +706,7 @@ export default function CompetitorsPage() {
         <div className="flex gap-2 flex-shrink-0">
           <button
             onClick={() => setModal("csv")}
-            className="px-4 py-2 rounded-lg border border-border text-sm font-semibold text-secondary hover:text-primary hover:bg-elevated transition-colors"
+            className="px-4 py-2 rounded-lg border border-border text-sm font-semibold text-secondary hover:text-warn hover:bg-elevated transition-colors"
           >
             Upload CSV
           </button>
@@ -783,7 +783,7 @@ export default function CompetitorsPage() {
                 <ExperienceBadge level={c.experience} />
                 <button
                   onClick={() => setEditingCompetitor(c)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity text-muted hover:text-primary text-xs px-1 py-1 rounded hover:bg-elevated"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity text-muted hover:text-warn text-xs px-1 py-1 rounded hover:bg-elevated"
                   title="Edit"
                 >
                   ✎

@@ -84,7 +84,7 @@ function AddCompetitorDialog({
         </div>
         <div className="px-6 py-4 border-t border-border flex gap-3">
           <button type="button" onClick={onClose}
-            className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-primary hover:bg-elevated transition-colors">
+            className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-warn hover:bg-elevated transition-colors">
             Cancel
           </button>
           <button type="button" onClick={handleAdd} disabled={!selectedId || saving || available.length === 0}
@@ -147,7 +147,7 @@ function RemoveCompetitorDialog({
         </div>
         <div className="px-6 py-4 border-t border-border flex gap-3">
           <button type="button" onClick={onClose}
-            className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-primary hover:bg-elevated transition-colors">
+            className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-warn hover:bg-elevated transition-colors">
             Cancel
           </button>
           <button type="button" onClick={handleRemove} disabled={!selectedId || saving || bracketCompetitors.length === 0}
@@ -223,7 +223,7 @@ function SwapCompetitorDialog({
         </div>
         <div className="px-6 py-4 border-t border-border flex gap-3">
           <button type="button" onClick={onClose}
-            className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-primary hover:bg-elevated transition-colors">
+            className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-warn hover:bg-elevated transition-colors">
             Cancel
           </button>
           <button type="button" onClick={handleSwap} disabled={!selectedId || saving || options.length === 0}
@@ -284,7 +284,7 @@ function WinnerDialog({
         </div>
         <div className="px-6 py-4 border-t border-border">
           <button type="button" onClick={onClose} disabled={saving}
-            className="w-full px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-primary hover:bg-elevated transition-colors disabled:opacity-50">
+            className="w-full px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-warn hover:bg-elevated transition-colors disabled:opacity-50">
             Cancel
           </button>
         </div>
@@ -420,7 +420,7 @@ function BracketMatchDialog({
 
           <div className="px-6 py-4 border-t border-border flex gap-3">
             <button type="button" onClick={onClose}
-              className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-primary hover:bg-elevated transition-colors">
+              className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-warn hover:bg-elevated transition-colors">
               Cancel
             </button>
             <button type="submit" disabled={saving}
@@ -484,7 +484,7 @@ function CompCard({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onSwap(); }}
-            className="w-5 h-5 flex items-center justify-center rounded text-muted hover:text-primary hover:bg-border/50 transition-colors text-[11px] leading-none"
+            className="w-5 h-5 flex items-center justify-center rounded text-muted hover:text-warn hover:bg-border/50 transition-colors text-[11px] leading-none"
             title="Swap with another competitor"
           >
             ⇄
@@ -890,7 +890,7 @@ export default function BracketViewPage() {
               {saving ? "Saving…" : "Save"}
             </button>
             <button type="button" onClick={cancelRename}
-              className="px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-secondary hover:text-primary hover:bg-elevated transition-colors">
+              className="px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-secondary hover:text-warn hover:bg-elevated transition-colors">
               Cancel
             </button>
           </form>
@@ -903,12 +903,12 @@ export default function BracketViewPage() {
                 setLinkCopied(true);
                 setTimeout(() => setLinkCopied(false), 2000);
               }}
-              className="px-3 py-1.5 rounded-lg border border-border text-xs font-semibold text-secondary hover:text-primary hover:bg-elevated transition-colors"
+              className="px-3 py-1.5 rounded-lg border border-border text-xs font-semibold text-secondary hover:text-warn hover:bg-elevated transition-colors"
             >
               {linkCopied ? "✓ Copied!" : "🔗 Share"}
             </button>
             <button type="button" onClick={startRename}
-              className="px-3 py-1.5 rounded-lg border border-border text-xs font-semibold text-secondary hover:text-primary hover:bg-elevated transition-colors">
+              className="px-3 py-1.5 rounded-lg border border-border text-xs font-semibold text-secondary hover:text-warn hover:bg-elevated transition-colors">
               ✎ Rename
             </button>
             <button type="button" onClick={() => setAddDialog(true)}
@@ -993,7 +993,7 @@ export default function BracketViewPage() {
             </div>
             <div className="px-6 py-4 flex gap-3">
               <button type="button" onClick={() => setConfirmDelete(false)} disabled={deleting}
-                className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-primary hover:bg-elevated transition-colors disabled:opacity-50">
+                className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-warn hover:bg-elevated transition-colors disabled:opacity-50">
                 Cancel
               </button>
               <button type="button" disabled={deleting}

@@ -178,7 +178,7 @@ function NewMatchModal({ tournament, competitors, currentCount, onClose }: NewMa
                     className={`py-2.5 rounded-lg text-sm font-semibold border transition-colors ${
                       roundDurationSeconds === secs
                         ? "bg-accent/10 border-accent text-accent"
-                        : "bg-elevated border-border text-secondary hover:text-primary hover:bg-elevated/80"
+                        : "bg-elevated border-border text-secondary hover:text-warn hover:bg-elevated/80"
                     }`}
                   >
                     {secs === 120 ? "2:00" : "1:30"}
@@ -211,7 +211,7 @@ function NewMatchModal({ tournament, competitors, currentCount, onClose }: NewMa
 
           <div className="px-6 py-4 border-t border-border flex gap-3">
             <button type="button" onClick={onClose}
-              className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-primary hover:bg-elevated transition-colors">
+              className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-warn hover:bg-elevated transition-colors">
               Cancel
             </button>
             <button type="submit" disabled={saving || arenaCompetitors.length < 2}
@@ -287,7 +287,7 @@ function MatchDetailModal({ match, redName, blueName, onClose }: MatchDetailModa
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-muted hover:text-primary hover:bg-elevated transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-muted hover:text-warn hover:bg-elevated transition-colors"
           >✕</button>
         </div>
 
@@ -495,7 +495,7 @@ function MatchRow({
               onClick={onMoveUp}
               disabled={isFirst}
               title="Move up"
-              className="w-7 h-7 flex items-center justify-center rounded-md text-muted hover:text-primary hover:bg-elevated transition-colors disabled:opacity-20"
+              className="w-7 h-7 flex items-center justify-center rounded-md text-muted hover:text-warn hover:bg-elevated transition-colors disabled:opacity-20"
             >
               ↑
             </button>
@@ -503,7 +503,7 @@ function MatchRow({
               onClick={onMoveDown}
               disabled={isLast}
               title="Move down"
-              className="w-7 h-7 flex items-center justify-center rounded-md text-muted hover:text-primary hover:bg-elevated transition-colors disabled:opacity-20"
+              className="w-7 h-7 flex items-center justify-center rounded-md text-muted hover:text-warn hover:bg-elevated transition-colors disabled:opacity-20"
             >
               ↓
             </button>

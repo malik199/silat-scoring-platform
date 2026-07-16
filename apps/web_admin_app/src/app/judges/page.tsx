@@ -188,7 +188,7 @@ function JudgeModal({ existing, onClose }: JudgeModalProps) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-primary hover:bg-elevated transition-colors"
+              className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-warn hover:bg-elevated transition-colors"
             >
               Cancel
             </button>
@@ -359,7 +359,7 @@ function CsvModal({ onClose }: CsvModalProps) {
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-primary hover:bg-elevated transition-colors"
+            className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-warn hover:bg-elevated transition-colors"
           >
             {done ? "Close" : "Cancel"}
           </button>
@@ -402,7 +402,7 @@ export default function JudgesPage() {
         <div className="flex gap-2">
           <button
             onClick={() => setShowCsv(true)}
-            className="px-4 py-2 rounded-lg border border-border text-sm font-medium text-secondary hover:text-primary hover:bg-elevated transition-colors"
+            className="px-4 py-2 rounded-lg border border-border text-sm font-medium text-secondary hover:text-warn hover:bg-elevated transition-colors"
           >
             Upload CSV
           </button>
@@ -452,7 +452,7 @@ export default function JudgesPage() {
                 </span>
                 <button
                   onClick={() => setEditingJudge(j)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity text-muted hover:text-primary text-xs px-1 py-1 rounded hover:bg-elevated"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity text-muted hover:text-warn text-xs px-1 py-1 rounded hover:bg-elevated"
                   title="Edit"
                 >
                   ✎

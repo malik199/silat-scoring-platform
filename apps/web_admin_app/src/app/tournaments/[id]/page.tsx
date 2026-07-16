@@ -164,7 +164,7 @@ function PickListModal({
 
         <div className="px-6 py-4 border-t border-border flex gap-3 flex-shrink-0">
           <button type="button" onClick={onClose}
-            className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-primary hover:bg-elevated transition-colors">
+            className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-warn hover:bg-elevated transition-colors">
             Cancel
           </button>
           <button type="button" onClick={() => onSave(selected)} disabled={saving}
@@ -217,7 +217,7 @@ function ArenaCard({
           <button
             onClick={() => onRegeneratePin(arenaNumber)}
             title="Generate new PIN"
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-muted hover:text-primary hover:bg-elevated transition-colors text-sm"
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-muted hover:text-warn hover:bg-elevated transition-colors text-sm"
           >
             ↻
           </button>
@@ -360,7 +360,7 @@ function MatchDetailModal({ match, redName, blueName, onClose }: MatchDetailModa
             <p className="text-sm font-semibold text-primary mt-0.5">{redName} vs {blueName}</p>
           </div>
           <button type="button" onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-muted hover:text-primary hover:bg-elevated transition-colors">
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-muted hover:text-warn hover:bg-elevated transition-colors">
             ✕
           </button>
         </div>
