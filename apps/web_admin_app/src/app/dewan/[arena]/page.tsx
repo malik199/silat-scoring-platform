@@ -26,6 +26,7 @@ import {
   timerStop,
   timerReset,
   advanceRound,
+  endMatch,
   startVerification,
   clearVerification,
   LIGHT_VIOLATION_TYPES,
@@ -215,6 +216,7 @@ export default function DewanPage() {
   const isExpired    = remaining <= 0;
 
   const [confirmNextRound,      setConfirmNextRound]      = useState(false);
+  const [confirmEndEarly,       setConfirmEndEarly]       = useState(false);
   const [breakdownOpen,         setBreakdownOpen]         = useState(false);
   const [judgeTapsOpen,         setJudgeTapsOpen]         = useState(false);
   const [verificationOpen,      setVerificationOpen]      = useState(false);
@@ -226,6 +228,13 @@ export default function DewanPage() {
     if (!match || isLastRound) return;
     await advanceRound(match.id, currentRound + 1);
     setConfirmNextRound(false);
+  }
+
+  async function handleEndMatchEarly() {
+    if (!match) return;
+    if (isRunning) await timerStop(match.id, (match.roundDurationSeconds ?? 120) - remaining);
+    await endMatch(match.id);
+    setConfirmEndEarly(false);
   }
 
   async function handleTimerStart() {
@@ -391,6 +400,33 @@ export default function DewanPage() {
               {winner === "red" && <p className="text-xs font-semibold text-danger mt-1">Leading</p>}
             </div>
           </div>
+        </div>
+
+        {/* ── End match early ── */}
+        <div className="flex justify-center mb-3">
+          {!confirmEndEarly ? (
+            <button
+              type="button"
+              onClick={() => setConfirmEndEarly(true)}
+              className="text-xs text-muted hover:text-danger transition-colors"
+            >
+              End match early
+            </button>
+          ) : (
+            <div className="flex items-center gap-3 px-4 py-2 rounded-lg border border-danger/30 bg-danger/5">
+              <p className="text-xs text-danger font-semibold">End this match now?</p>
+              <button
+                type="button"
+                onClick={() => setConfirmEndEarly(false)}
+                className="text-xs text-muted hover:text-warn transition-colors"
+              >Cancel</button>
+              <button
+                type="button"
+                onClick={handleEndMatchEarly}
+                className="text-xs font-bold text-danger hover:underline"
+              >Yes, end now</button>
+            </div>
+          )}
         </div>
 
         {/* ── Admin action buttons ── */}

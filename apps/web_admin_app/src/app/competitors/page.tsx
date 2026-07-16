@@ -611,6 +611,37 @@ function CsvModal({ organiserId, slotsRemaining, onClose }: CsvModalProps) {
   );
 }
 
+// ─── Helpers for sortable table ───────────────────────────────────────────────
+
+type SortCol = "name" | "age" | "kg" | "gender" | "country" | "school" | "experience";
+
+const EXPERIENCE_ORDER: Record<string, number> = {
+  beginner: 0, intermediate: 1, advanced: 2, pro: 3,
+};
+
+const COLS: { label: string; key: SortCol | null }[] = [
+  { label: "Name",       key: "name" },
+  { label: "Age",        key: "age" },
+  { label: "kg",         key: "kg" },
+  { label: "lbs",        key: "kg" },
+  { label: "Gender",     key: "gender" },
+  { label: "Country",    key: "country" },
+  { label: "School",     key: "school" },
+  { label: "Experience", key: "experience" },
+  { label: "",           key: null },
+];
+
+function formatAge(dob: string): string {
+  if (!dob) return "—";
+  const d = new Date(dob + "T00:00:00");
+  const now = new Date();
+  let years = now.getFullYear() - d.getFullYear();
+  let months = now.getMonth() - d.getMonth();
+  if (months < 0) { years--; months += 12; }
+  if (years < 0) return "—";
+  return `${years}y ${months}m`;
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function CompetitorsPage() {
@@ -621,6 +652,13 @@ export default function CompetitorsPage() {
   const [modal,           setModal]           = useState<"manual" | "csv" | null>(null);
   const [editingCompetitor, setEditingCompetitor] = useState<Competitor | null>(null);
   const [search,          setSearch]          = useState("");
+  const [sortCol,         setSortCol]         = useState<SortCol | null>(null);
+  const [sortDir,         setSortDir]         = useState<"asc" | "desc">("asc");
+
+  function handleSort(col: SortCol) {
+    if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortCol(col); setSortDir("asc"); }
+  }
 
   useEffect(() => {
     if (!user) return;
@@ -655,6 +693,22 @@ export default function CompetitorsPage() {
       c.schoolName.toLowerCase().includes(q)
     );
   });
+
+  const sorted = sortCol
+    ? [...filtered].sort((a, b) => {
+        let v = 0;
+        switch (sortCol) {
+          case "name":       v = (a.lastName + a.firstName).localeCompare(b.lastName + b.firstName); break;
+          case "age":        v = a.dateOfBirth.localeCompare(b.dateOfBirth); break;
+          case "kg":         v = a.weightKg - b.weightKg; break;
+          case "gender":     v = a.gender.localeCompare(b.gender); break;
+          case "country":    v = (a.country || "").localeCompare(b.country || ""); break;
+          case "school":     v = (a.schoolName || "").localeCompare(b.schoolName || ""); break;
+          case "experience": v = (EXPERIENCE_ORDER[a.experience] ?? 0) - (EXPERIENCE_ORDER[b.experience] ?? 0); break;
+        }
+        return sortDir === "asc" ? v : -v;
+      })
+    : filtered;
 
   return (
     <Shell title="Competitors">
@@ -725,16 +779,28 @@ export default function CompetitorsPage() {
       <div className="bg-surface border border-border rounded-xl overflow-hidden">
         {/* Column headers */}
         <div className="grid grid-cols-[1fr_1fr_80px_80px_80px_1fr_1fr_1fr_40px] gap-4 px-5 py-3 border-b border-border">
-          {["Name", "Date of Birth", "kg", "lbs", "Gender", "Country", "School", "Experience", ""].map((h, i) => (
-            <span key={i} className="text-xs font-semibold uppercase tracking-widest text-muted">
-              {h}
-            </span>
-          ))}
+          {COLS.map(({ label, key }) =>
+            key ? (
+              <button
+                key={label}
+                type="button"
+                onClick={() => handleSort(key)}
+                className="flex items-center gap-1 text-xs font-semibold uppercase tracking-widest text-muted hover:text-warn transition-colors text-left"
+              >
+                {label}
+                <span className="text-[10px]">
+                  {sortCol === key ? (sortDir === "asc" ? "↑" : "↓") : "↕"}
+                </span>
+              </button>
+            ) : (
+              <span key={label} />
+            )
+          )}
         </div>
 
         {loading ? (
           <div className="px-5 py-10 text-center text-sm text-secondary">Loading…</div>
-        ) : filtered.length === 0 ? (
+        ) : sorted.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-secondary">
             <p className="text-4xl mb-3">👤</p>
             {search ? (
@@ -758,22 +824,18 @@ export default function CompetitorsPage() {
           </div>
         ) : (
           <ul>
-            {filtered.map((c, i) => (
+            {sorted.map((c, i) => (
               <li
                 key={c.id}
                 className={`grid grid-cols-[1fr_1fr_80px_80px_80px_1fr_1fr_1fr_40px] gap-4 px-5 py-3.5 items-center group ${
-                  i < filtered.length - 1 ? "border-b border-border" : ""
+                  i < sorted.length - 1 ? "border-b border-border" : ""
                 }`}
               >
                 <span className="text-sm font-medium text-primary truncate">
                   {c.firstName} {c.lastName}
                 </span>
                 <span className="text-sm text-secondary">
-                  {c.dateOfBirth
-                    ? new Date(c.dateOfBirth + "T00:00:00").toLocaleDateString(undefined, {
-                        year: "numeric", month: "short", day: "numeric",
-                      })
-                    : "—"}
+                  {formatAge(c.dateOfBirth)}
                 </span>
                 <span className="text-sm text-secondary">{c.weightKg}</span>
                 <span className="text-sm text-secondary">{(c.weightKg * 2.20462).toFixed(1)}</span>
