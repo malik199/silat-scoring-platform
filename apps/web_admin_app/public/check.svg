@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 67.74 67.37">
-  <style>.st0{fill:#47ba7f}</style>
-  <!-- Same circle outline as play.svg -->
+  <style>.st0{fill:#ff4d4f}</style>
   <path class="st0" d="M37.06,67.22C10.58,69.76-9.08,40.79,4.33,17.39c13.04-23.91,48.72-23.05,60.14,1.85,10.11,20.86-4.41,45.91-27.41,47.98ZM35.96,62.48c36.27-3.46,35.35-55.09-.74-57.73C21.07,3.92,7.78,14.74,5.4,28.64c-3.82,18.03,12.35,35.52,30.56,33.84Z"/>
-  <!-- Checkmark -->
-  <polyline points="16,36 28,48 53,20" fill="none" stroke="#47ba7f" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="16,36 28,48 53,20" fill="none" stroke="#ff4d4f" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
