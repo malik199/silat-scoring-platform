@@ -30,6 +30,25 @@ function ExperienceBadge({ level }: { level: ExperienceLevel }) {
   );
 }
 
+// ─── Age helpers ─────────────────────────────────────────────────────────────
+
+function getAgeYears(dob: string): number {
+  if (!dob) return 0;
+  const d = new Date(dob + "T00:00:00");
+  const now = new Date();
+  let years = now.getFullYear() - d.getFullYear();
+  if (now.getMonth() < d.getMonth() || (now.getMonth() === d.getMonth() && now.getDate() < d.getDate())) years--;
+  return Math.max(0, years);
+}
+
+const AGE_CATS = [
+  { key: "all",       label: "All Ages",     min: 0,  max: 999 },
+  { key: "kids",      label: "Kids (U10)",   min: 0,  max: 9   },
+  { key: "prejunior", label: "Pre-Junior",   min: 10, max: 12  },
+  { key: "junior",    label: "Junior",       min: 13, max: 17  },
+  { key: "senior",    label: "Senior (18+)", min: 18, max: 999 },
+];
+
 // ─── Sorting ──────────────────────────────────────────────────────────────────
 
 type SortKey = "name" | "age" | "kg" | "lbs" | "gender" | "country" | "school" | "experience";
@@ -98,6 +117,7 @@ export default function BracketsPage() {
   const [sortDir,     setSortDir]     = useState<SortDir>("asc");
   const [search,      setSearch]      = useState("");
   const [genderFilter, setGenderFilter] = useState<"all" | "male" | "female">("all");
+  const [ageCat,       setAgeCat]       = useState("all");
   const [creating,    setCreating]    = useState(false);
   const [createError, setCreateError] = useState("");
   const [nameDialog,  setNameDialog]  = useState(false);
@@ -132,16 +152,18 @@ export default function BracketsPage() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return competitors.filter(
-      (c) =>
-        (genderFilter === "all" || c.gender === genderFilter) &&
-        (!q ||
-          c.firstName.toLowerCase().includes(q) ||
-          c.lastName.toLowerCase().includes(q) ||
-          c.country.toLowerCase().includes(q) ||
-          c.schoolName.toLowerCase().includes(q))
-    );
-  }, [competitors, search, genderFilter]);
+    const cat = AGE_CATS.find((a) => a.key === ageCat);
+    return competitors.filter((c) => {
+      if (genderFilter !== "all" && c.gender !== genderFilter) return false;
+      if (cat && ageCat !== "all") {
+        const age = getAgeYears(c.dateOfBirth);
+        if (age < cat.min || age > cat.max) return false;
+      }
+      if (q && !c.firstName.toLowerCase().includes(q) && !c.lastName.toLowerCase().includes(q) &&
+          !c.country.toLowerCase().includes(q) && !c.schoolName.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [competitors, search, genderFilter, ageCat]);
 
   const sorted = useMemo(
     () => sortCompetitors(filtered, sortKey, sortDir),
@@ -193,36 +215,54 @@ export default function BracketsPage() {
   return (
     <Shell title="Brackets">
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">
-        <div className="relative flex-1 w-full sm:max-w-xs">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted text-sm">⌕</span>
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name, country, school…"
-            className="w-full bg-surface border border-border rounded-lg pl-8 pr-3 py-2 text-sm text-primary placeholder-muted focus:outline-none focus:border-accent transition-colors"
-          />
+      <div className="flex flex-col gap-3 mb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <div className="relative flex-1 w-full sm:max-w-xs">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted text-sm">⌕</span>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name, country, school…"
+              className="w-full bg-surface border border-border rounded-lg pl-8 pr-3 py-2 text-sm text-primary placeholder-muted focus:outline-none focus:border-accent transition-colors"
+            />
+          </div>
+          <div className="flex rounded-lg overflow-hidden border border-border text-sm font-semibold flex-shrink-0">
+            {(["all", "male", "female"] as const).map((g) => (
+              <button
+                key={g}
+                type="button"
+                onClick={() => setGenderFilter(g)}
+                className={`px-3 py-2 transition-colors capitalize ${
+                  genderFilter === g
+                    ? "bg-accent text-black"
+                    : "bg-elevated text-secondary hover:text-primary"
+                }`}
+              >
+                {g === "all" ? "All" : g === "male" ? "Male" : "Female"}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-muted hidden sm:block">
+            {loading ? "" : `${filtered.length} of ${competitors.length} competitor${competitors.length !== 1 ? "s" : ""}`}
+          </p>
         </div>
-        <div className="flex rounded-lg overflow-hidden border border-border text-sm font-semibold flex-shrink-0">
-          {(["all", "male", "female"] as const).map((g) => (
+        <div className="flex rounded-lg overflow-hidden border border-border text-sm font-semibold w-fit">
+          {AGE_CATS.map((cat) => (
             <button
-              key={g}
+              key={cat.key}
               type="button"
-              onClick={() => setGenderFilter(g)}
-              className={`px-3 py-2 transition-colors capitalize ${
-                genderFilter === g
+              onClick={() => setAgeCat(cat.key)}
+              className={`px-3 py-2 transition-colors ${
+                ageCat === cat.key
                   ? "bg-accent text-black"
                   : "bg-elevated text-secondary hover:text-primary"
               }`}
             >
-              {g === "all" ? "All" : g === "male" ? "Male" : "Female"}
+              {cat.label}
             </button>
           ))}
         </div>
-        <p className="text-xs text-muted hidden sm:block">
-          {loading ? "" : `${filtered.length} of ${competitors.length} competitor${competitors.length !== 1 ? "s" : ""}`}
-        </p>
       </div>
 
       {/* Table */}
