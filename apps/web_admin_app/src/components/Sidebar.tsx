@@ -11,8 +11,8 @@ import { subscribeBrackets, type Bracket } from "@/lib/brackets";
 const NAV = [
   { label: "Tournament",  href: "/tournaments", icon: "🏆" },
   { label: "Competitors", href: "/competitors", icon: "👤" },
-  { label: "Matches",     href: "/matches",     icon: "🤼" },
   { label: "Brackets",    href: "/brackets",    icon: "🌿" },
+  { label: "Matches",     href: "/matches",     icon: "🤼" },
 ];
 
 export function Sidebar() {
