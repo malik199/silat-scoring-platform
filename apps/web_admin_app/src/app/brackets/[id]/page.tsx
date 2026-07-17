@@ -34,6 +34,25 @@ function getRoundLabel(r: number, numRounds: number): string {
   return `Round ${r + 1}`;
 }
 
+// ─── Age helpers (shared with filter UI) ─────────────────────────────────────
+
+function getAgeYears(dob: string): number {
+  if (!dob) return 0;
+  const d = new Date(dob + "T00:00:00");
+  const now = new Date();
+  let years = now.getFullYear() - d.getFullYear();
+  if (now.getMonth() < d.getMonth() || (now.getMonth() === d.getMonth() && now.getDate() < d.getDate())) years--;
+  return Math.max(0, years);
+}
+
+const AGE_CATS = [
+  { key: "all",       label: "All Ages",     min: 0,  max: 999 },
+  { key: "kids",      label: "Kids (U10)",   min: 0,  max: 9   },
+  { key: "prejunior", label: "Pre-Junior",   min: 10, max: 12  },
+  { key: "junior",    label: "Junior",       min: 13, max: 17  },
+  { key: "senior",    label: "Senior (18+)", min: 18, max: 999 },
+];
+
 // ─── Add-competitor dialog ────────────────────────────────────────────────────
 
 function AddCompetitorDialog({
@@ -45,10 +64,40 @@ function AddCompetitorDialog({
   onAdd: (competitorId: string) => Promise<void>;
   onClose: () => void;
 }) {
-  const [selectedId, setSelectedId] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [selectedId,   setSelectedId]   = useState("");
+  const [genderFilter, setGenderFilter] = useState<"male" | "female" | null>(null);
+  const [ageCat,       setAgeCat]       = useState("all");
+  const [saving,       setSaving]       = useState(false);
 
   const sel = "w-full bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-primary focus:outline-none focus:border-accent transition-colors appearance-none [color-scheme:dark]";
+  const filterBtn = (active: boolean) =>
+    `px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+      active
+        ? "bg-accent/10 border-accent text-accent"
+        : "bg-elevated border-border text-secondary hover:text-warn"
+    }`;
+
+  function setGender(g: "male" | "female") {
+    setGenderFilter((prev) => (prev === g ? null : g));
+    setSelectedId("");
+  }
+
+  function setAge(key: string) {
+    setAgeCat(key);
+    setSelectedId("");
+  }
+
+  const filtered = available.filter((c) => {
+    if (genderFilter && c.gender !== genderFilter) return false;
+    if (ageCat !== "all") {
+      const cat = AGE_CATS.find((a) => a.key === ageCat);
+      if (cat) {
+        const age = getAgeYears(c.dateOfBirth);
+        if (age < cat.min || age > cat.max) return false;
+      }
+    }
+    return true;
+  });
 
   async function handleAdd() {
     if (!selectedId || saving) return;
@@ -65,21 +114,58 @@ function AddCompetitorDialog({
           <h2 className="text-base font-semibold text-primary">Add Competitor</h2>
           <p className="text-xs text-secondary mt-1">Select a competitor to add to this bracket.</p>
         </div>
-        <div className="px-6 py-5">
+        <div className="px-6 py-5 space-y-4">
           {available.length === 0 ? (
             <p className="text-sm text-secondary">All competitors are already in this bracket.</p>
           ) : (
-            <div>
-              <label className="block text-xs font-semibold text-secondary uppercase tracking-widest mb-1.5">Competitor</label>
-              <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)} className={sel}>
-                <option value="">Select a competitor…</option>
-                {available.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.firstName} {c.lastName} · {c.schoolName} · {c.weightKg}kg
-                  </option>
-                ))}
-              </select>
-            </div>
+            <>
+              {/* Filters */}
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold text-secondary uppercase tracking-widest">Filter</label>
+                <div className="flex gap-1.5">
+                  {(["male", "female"] as const).map((g) => (
+                    <button key={g} type="button" onClick={() => setGender(g)}
+                      className={filterBtn(genderFilter === g) + " capitalize"}>
+                      {g}
+                    </button>
+                  ))}
+                  {genderFilter && (
+                    <button type="button" onClick={() => { setGenderFilter(null); setSelectedId(""); }}
+                      className="px-2 py-1.5 rounded-lg text-xs text-muted hover:text-danger border border-border bg-elevated transition-colors">
+                      ✕
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {AGE_CATS.map((cat) => (
+                    <button key={cat.key} type="button" onClick={() => setAge(cat.key)}
+                      className={filterBtn(ageCat === cat.key)}>
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+                {filtered.length > 0 && (
+                  <p className="text-xs text-muted">{filtered.length} competitor{filtered.length !== 1 ? "s" : ""} match</p>
+                )}
+              </div>
+
+              {/* Competitor dropdown */}
+              {filtered.length === 0 ? (
+                <p className="text-sm text-secondary text-center py-2">No competitors match these filters.</p>
+              ) : (
+                <div>
+                  <label className="block text-xs font-semibold text-secondary uppercase tracking-widest mb-1.5">Competitor</label>
+                  <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)} className={sel}>
+                    <option value="">Select a competitor…</option>
+                    {filtered.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.firstName} {c.lastName} · {c.schoolName} · {c.weightKg}kg
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </>
           )}
         </div>
         <div className="px-6 py-4 border-t border-border flex gap-3">
