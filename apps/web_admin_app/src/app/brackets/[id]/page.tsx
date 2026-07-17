@@ -53,14 +53,6 @@ const AGE_CATS = [
   { key: "senior",    label: "Senior (18+)", min: 18, max: 999 },
 ];
 
-function filterBtn(active: boolean): string {
-  return `px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
-    active
-      ? "bg-accent/10 border-accent text-accent"
-      : "bg-elevated border-border text-secondary hover:text-warn"
-  }`;
-}
-
 // ─── Add-competitor dialog ────────────────────────────────────────────────────
 
 function AddCompetitorDialog({
@@ -78,6 +70,12 @@ function AddCompetitorDialog({
   const [saving,       setSaving]       = useState(false);
 
   const sel = "w-full bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-primary focus:outline-none focus:border-accent transition-colors appearance-none [color-scheme:dark]";
+  const filterBtn = (active: boolean) =>
+    `px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+      active
+        ? "bg-accent/10 border-accent text-accent"
+        : "bg-elevated border-border text-secondary hover:text-warn"
+    }`;
 
   function setGender(g: "male" | "female") {
     setGenderFilter((prev) => (prev === g ? null : g));
@@ -528,12 +526,10 @@ function CompCard({
   competitor,
   onSwap,
   onWhoWon,
-  dimmed,
 }: {
   competitor: Competitor | null | undefined;
   onSwap?: () => void;
   onWhoWon?: () => void;
-  dimmed?: boolean;
 }) {
   if (!competitor) {
     return (
@@ -558,7 +554,7 @@ function CompCard({
   return (
     <div
       style={{ width: CARD_W, height: CARD_H }}
-      className={`flex items-center justify-between px-3 rounded-lg border border-border bg-elevated transition-opacity ${dimmed ? "opacity-20" : "opacity-100"}`}
+      className="flex items-center justify-between px-3 rounded-lg border border-border bg-elevated"
     >
       <div className="flex flex-col min-w-0 flex-1">
         <span className="text-xs font-semibold text-primary truncate leading-tight">
@@ -600,7 +596,6 @@ function MatchupBox({
   onCreateMatch,
   onSwap,
   onWhoWon,
-  highlightIds,
 }: {
   matchup: BracketMatchup;
   roundIdx: number;
@@ -614,7 +609,6 @@ function MatchupBox({
   onCreateMatch: (p1Id: string, p2Id: string) => void;
   onSwap: (targetId: string, opponentId: string | null) => void;
   onWhoWon: (winnerKey: string, opt1: Competitor, opt2: Competitor) => void;
-  highlightIds: Set<string> | null;
 }) {
   // Resolve a single slot: returns the effective competitor ID, the competitor
   // object, and an optional "Who won?" opener if eligible.
@@ -669,7 +663,6 @@ function MatchupBox({
         onSwap={p1Slot.competitor && !matchedCompetitorIds.has(p1Slot.competitor.id)
           ? () => onSwap(p1Slot.competitor!.id, effectiveP2Id)
           : undefined}
-        dimmed={highlightIds !== null && !!p1Slot.effectiveId && !highlightIds.has(p1Slot.effectiveId)}
       />
       <div style={{ height: GAP }} />
       <CompCard
@@ -678,7 +671,6 @@ function MatchupBox({
         onSwap={p2Slot.competitor && !matchedCompetitorIds.has(p2Slot.competitor.id)
           ? () => onSwap(p2Slot.competitor!.id, effectiveP1Id)
           : undefined}
-        dimmed={highlightIds !== null && !!p2Slot.effectiveId && !highlightIds.has(p2Slot.effectiveId)}
       />
       {canCreate && (
         <button
@@ -720,8 +712,6 @@ export default function BracketViewPage() {
   const [swapDialog,    setSwapDialog]    = useState<{ targetId: string; opponentId: string | null } | null>(null);
   const [winnerDialog,  setWinnerDialog]  = useState<{ winnerKey: string; opt1: Competitor; opt2: Competitor } | null>(null);
   const [linkCopied,    setLinkCopied]    = useState(false);
-  const [filterGender,  setFilterGender]  = useState<"male" | "female" | null>(null);
-  const [filterAge,     setFilterAge]     = useState("all");
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -785,23 +775,6 @@ export default function BracketViewPage() {
     competitors.filter((c) => !bracketIds.has(c.id)),
     [competitors, bracketIds]
   );
-
-  const highlightIds = useMemo<Set<string> | null>(() => {
-    if (!filterGender && filterAge === "all") return null;
-    const ids = new Set<string>();
-    bracketCompetitors.forEach((c) => {
-      if (filterGender && c.gender !== filterGender) return;
-      if (filterAge !== "all") {
-        const cat = AGE_CATS.find((a) => a.key === filterAge);
-        if (cat) {
-          const age = getAgeYears(c.dateOfBirth);
-          if (age < cat.min || age > cat.max) return;
-        }
-      }
-      ids.add(c.id);
-    });
-    return ids;
-  }, [bracketCompetitors, filterGender, filterAge]);
 
   const matchPairSet = useMemo(() => {
     const s = new Set<string>();
@@ -1040,32 +1013,6 @@ export default function BracketViewPage() {
         )}
       </div>
 
-      {/* Filter row */}
-      <div className="flex items-center gap-2 mb-4 flex-wrap">
-        <span className="text-xs font-semibold text-secondary uppercase tracking-widest mr-1">Filter</span>
-        {(["male", "female"] as const).map((g) => (
-          <button key={g} type="button"
-            onClick={() => setFilterGender((prev) => (prev === g ? null : g))}
-            className={filterBtn(filterGender === g) + " capitalize"}>
-            {g}
-          </button>
-        ))}
-        {AGE_CATS.map((cat) => (
-          <button key={cat.key} type="button"
-            onClick={() => setFilterAge(cat.key)}
-            className={filterBtn(filterAge === cat.key)}>
-            {cat.label}
-          </button>
-        ))}
-        {(filterGender || filterAge !== "all") && (
-          <button type="button"
-            onClick={() => { setFilterGender(null); setFilterAge("all"); }}
-            className="px-2 py-1.5 rounded-lg text-xs text-muted hover:text-danger border border-border bg-elevated transition-colors">
-            ✕ Clear
-          </button>
-        )}
-      </div>
-
       <div className="overflow-x-auto pb-6">
         <div className="relative inline-block" style={{ width: TOTAL_W + 26, height: TOTAL_H + 48 }}>
           {/* Round column labels */}
@@ -1111,7 +1058,6 @@ export default function BracketViewPage() {
                     onCreateMatch={(p1Id, p2Id) => setMatchDialog({ p1Id, p2Id })}
                     onSwap={(targetId, opponentId) => setSwapDialog({ targetId, opponentId })}
                     onWhoWon={(winnerKey, opt1, opt2) => setWinnerDialog({ winnerKey, opt1, opt2 })}
-                    highlightIds={highlightIds}
                   />
                 ))}
               </div>
