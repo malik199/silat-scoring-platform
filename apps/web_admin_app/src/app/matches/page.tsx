@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { Shell } from "@/components/Shell";
 import { ActiveTournamentBanner } from "@/components/ActiveTournamentBanner";
 import { useAuth } from "@/context/AuthContext";
@@ -509,11 +511,12 @@ function MatchRow({
   const canReorder   = isPending;
   const startBlocked = arenaBlocked && !isRunning;
 
-  // For completed matches that pre-date the winnerCorner field, compute it live.
+  // For completed matches that pre-date the winnerCorner field, compute it via one-shot read.
   const [computedWinner, setComputedWinner] = useState<"red" | "blue" | "draw" | null>(null);
   useEffect(() => {
     if (match.status !== "completed" || match.winnerCorner != null) return;
-    return subscribeScoreEvents(match.id, (events) => {
+    getDocs(collection(db, "matches", match.id, "scoreEvents")).then((snap) => {
+      const events = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<import("@/lib/matches").ScoreEvent, "id">) }));
       const { red, blue } = computeConfirmedScores(events);
       setComputedWinner(red > blue ? "red" : blue > red ? "blue" : "draw");
     });
