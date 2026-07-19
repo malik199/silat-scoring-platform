@@ -370,7 +370,7 @@ export default function DewanPage() {
                   type="button"
                   onClick={() => setConfirmNextRound(true)}
                   disabled={isRunning}
-                  className="px-4 py-2 rounded-lg text-sm font-semibold text-muted border border-border transition-all duration-75 active:scale-95 active:brightness-75 select-none disabled:opacity-30 disabled:cursor-not-allowed disabled:active:scale-100"
+                  className="px-4 py-2 rounded-lg text-sm font-semibold text-warn border border-warn/50 bg-warn/10 transition-all duration-75 active:scale-95 active:brightness-75 select-none disabled:opacity-30 disabled:cursor-not-allowed disabled:active:scale-100"
                 >Next Round →</button>
               )}
               {!isLastRound && confirmNextRound && (
