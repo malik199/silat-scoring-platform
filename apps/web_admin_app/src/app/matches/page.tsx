@@ -514,6 +514,18 @@ function MatchRow({
   const canReorder   = isPending;
   const startBlocked = arenaBlocked && !isRunning;
 
+  // For completed matches that pre-date the winnerCorner field, compute it live.
+  const [computedWinner, setComputedWinner] = useState<"red" | "blue" | "draw" | null>(null);
+  useEffect(() => {
+    if (match.status !== "completed" || match.winnerCorner != null) return;
+    return subscribeScoreEvents(match.id, (events) => {
+      const { red, blue } = computeConfirmedScores(events);
+      setComputedWinner(red > blue ? "red" : blue > red ? "blue" : "draw");
+    });
+  }, [match.id, match.status, match.winnerCorner]);
+
+  const winner = match.winnerCorner ?? computedWinner;
+
   return (
     <li
       className={`grid grid-cols-[40px_1fr_1fr_80px_130px_180px] gap-3 px-5 py-3.5 items-center border-b border-border last:border-b-0 ${isFinished ? "cursor-pointer hover:bg-elevated/50 transition-colors" : ""}`}
@@ -526,14 +538,14 @@ function MatchRow({
       <div className="flex items-center gap-2 min-w-0">
         <div className="w-2 h-2 rounded-full bg-danger flex-shrink-0" />
         <span className="text-sm font-medium text-primary truncate">{redName}</span>
-        {match.winnerCorner === "red" && <WinnerCheck />}
+        {winner === "red" && <WinnerCheck />}
       </div>
 
       {/* Blue */}
       <div className="flex items-center gap-2 min-w-0">
         <div className="w-2 h-2 rounded-full bg-blue-400 flex-shrink-0" />
         <span className="text-sm font-medium text-primary truncate">{blueName}</span>
-        {match.winnerCorner === "blue" && <WinnerCheck />}
+        {winner === "blue" && <WinnerCheck />}
       </div>
 
       {/* Arena */}
