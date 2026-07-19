@@ -43,12 +43,7 @@ const AGE_CATS = [
 ];
 
 function WinnerCheck() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" className="flex-shrink-0">
-      <rect x="2" y="2" width="20" height="20" rx="5" stroke="#00d084" strokeWidth="2.2"/>
-      <polyline points="7,12 11,16 17,8" stroke="#00d084" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
+  return <img src="/greencheckmark.svg" alt="Winner" className="w-4 h-4 flex-shrink-0" />;
 }
 
 // ─── New Match Modal ──────────────────────────────────────────────────────────
