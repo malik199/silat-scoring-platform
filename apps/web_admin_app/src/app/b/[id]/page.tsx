@@ -28,11 +28,12 @@ function getRoundLabel(r: number, numRounds: number): string {
 
 // ─── Read-only competitor card ────────────────────────────────────────────────
 
-function CompCard({ competitor }: { competitor: Competitor | null | undefined }) {
+function CompCard({ competitor, corner }: { competitor: Competitor | null | undefined; corner: "red" | "blue" }) {
+  const borderColor = corner === "red" ? "#ff4d4f" : "#60a5fa";
   if (!competitor) {
     return (
       <div
-        style={{ width: CARD_W, height: CARD_H }}
+        style={{ width: CARD_W, height: CARD_H, borderLeftWidth: 2, borderLeftColor: borderColor }}
         className="flex items-center px-3 rounded-lg border border-dashed border-border/50 bg-elevated/40"
       >
         <span className="text-xs text-muted">TBD</span>
@@ -41,7 +42,7 @@ function CompCard({ competitor }: { competitor: Competitor | null | undefined })
   }
   return (
     <div
-      style={{ width: CARD_W, height: CARD_H }}
+      style={{ width: CARD_W, height: CARD_H, borderLeftWidth: 2, borderLeftColor: borderColor }}
       className="flex items-center justify-between px-3 rounded-lg border border-border bg-elevated"
     >
       <div className="flex flex-col min-w-0 flex-1">
@@ -78,9 +79,9 @@ function MatchupBox({
 
   return (
     <div style={{ height: MATCHUP_H }} className="flex flex-col">
-      <CompCard competitor={p1} />
+      <CompCard competitor={p1} corner="red" />
       <div style={{ height: GAP }} />
-      <CompCard competitor={p2} />
+      <CompCard competitor={p2} corner="blue" />
     </div>
   );
 }

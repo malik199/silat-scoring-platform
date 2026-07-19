@@ -526,15 +526,18 @@ function CompCard({
   competitor,
   onSwap,
   onWhoWon,
+  corner,
 }: {
   competitor: Competitor | null | undefined;
   onSwap?: () => void;
   onWhoWon?: () => void;
+  corner: "red" | "blue";
 }) {
+  const borderColor = corner === "red" ? "#ff4d4f" : "#60a5fa";
   if (!competitor) {
     return (
       <div
-        style={{ width: CARD_W, height: CARD_H }}
+        style={{ width: CARD_W, height: CARD_H, borderLeftWidth: 2, borderLeftColor: borderColor }}
         className="flex items-center px-3 rounded-lg border border-dashed border-border/50 bg-elevated/40"
       >
         {onWhoWon ? (
@@ -553,7 +556,7 @@ function CompCard({
   }
   return (
     <div
-      style={{ width: CARD_W, height: CARD_H }}
+      style={{ width: CARD_W, height: CARD_H, borderLeftWidth: 2, borderLeftColor: borderColor }}
       className="flex items-center justify-between px-3 rounded-lg border border-border bg-elevated"
     >
       <div className="flex flex-col min-w-0 flex-1">
@@ -663,6 +666,7 @@ function MatchupBox({
         onSwap={p1Slot.competitor && !matchedCompetitorIds.has(p1Slot.competitor.id)
           ? () => onSwap(p1Slot.competitor!.id, effectiveP2Id)
           : undefined}
+        corner="red"
       />
       <div style={{ height: GAP }} />
       <CompCard
@@ -671,6 +675,7 @@ function MatchupBox({
         onSwap={p2Slot.competitor && !matchedCompetitorIds.has(p2Slot.competitor.id)
           ? () => onSwap(p2Slot.competitor!.id, effectiveP1Id)
           : undefined}
+        corner="blue"
       />
       {canCreate && (
         <button
