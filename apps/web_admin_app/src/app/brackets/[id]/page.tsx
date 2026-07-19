@@ -686,7 +686,14 @@ function MatchupBox({
           className={`w-[26px] h-[26px] flex items-center justify-center transition-opacity flex-shrink-0 ${hasMatch ? "cursor-default" : "hover:opacity-70"}`}
           title={hasMatch ? "Match already created" : "Create match"}
         >
-          <img src={hasMatch ? "/check.svg" : "/play.svg"} alt={hasMatch ? "Match created" : "Create match"} className="w-[26px] h-[26px]" />
+          {hasMatch ? (
+            <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26">
+              <circle cx="13" cy="13" r="11.5" fill="none" stroke="#faad14" strokeWidth="1.5"/>
+              <text x="13" y="17" textAnchor="middle" fontSize="7.5" fontWeight="bold" fill="#faad14" fontFamily="sans-serif">VS</text>
+            </svg>
+          ) : (
+            <img src="/play.svg" alt="Create match" className="w-[26px] h-[26px]" />
+          )}
         </button>
       )}
     </div>
