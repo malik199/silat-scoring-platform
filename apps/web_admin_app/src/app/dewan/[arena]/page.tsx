@@ -410,7 +410,7 @@ export default function DewanPage() {
               onClick={() => setConfirmEndEarly(true)}
               className="text-xs text-muted hover:text-danger transition-colors"
             >
-              End match early
+              End Current Match
             </button>
           ) : (
             <div className="flex items-center gap-3 px-4 py-2 rounded-lg border border-danger/30 bg-danger/5">
