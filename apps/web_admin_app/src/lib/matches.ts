@@ -163,6 +163,14 @@ export async function swapMatchOrder(
   await batch.commit();
 }
 
+export async function reorderMatches(updates: { id: string; order: number }[]): Promise<void> {
+  const batch = writeBatch(db);
+  for (const { id, order } of updates) {
+    batch.update(doc(db, COL, id), { order });
+  }
+  await batch.commit();
+}
+
 export async function startMatch(id: string): Promise<void> {
   await updateDoc(doc(db, COL, id), { status: "in_progress" });
 }

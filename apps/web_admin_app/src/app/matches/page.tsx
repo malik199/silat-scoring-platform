@@ -3,6 +3,23 @@
 import { useEffect, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Shell } from "@/components/Shell";
 import { ActiveTournamentBanner } from "@/components/ActiveTournamentBanner";
 import { useAuth } from "@/context/AuthContext";
@@ -14,7 +31,7 @@ import {
   subscribeAdminEvents,
   createMatch,
   deleteMatch,
-  swapMatchOrder,
+  reorderMatches,
   startMatch,
   endMatch,
   computeConfirmedScores,
@@ -486,30 +503,34 @@ function MatchDetailModal({ match, redName, blueName, onClose }: MatchDetailModa
 interface MatchRowProps {
   match: Match;
   matchNumber: number;
-  isFirst: boolean;
-  isLast: boolean;
   redName: string;
   blueName: string;
-  arenaBlocked: boolean; // another match in this arena is in_progress
-  allMatches: Match[];
-  onMoveUp:   () => void;
-  onMoveDown: () => void;
-  onDelete:   () => void;
-  onStart:    () => void;
-  onEnd:      () => void;
+  arenaBlocked: boolean;
+  onDelete:     () => void;
+  onStart:      () => void;
+  onEnd:        () => void;
   onViewDetail: () => void;
 }
 
 function MatchRow({
-  match, matchNumber, isFirst, isLast,
-  redName, blueName, arenaBlocked, allMatches,
-  onMoveUp, onMoveDown, onDelete, onStart, onEnd, onViewDetail,
+  match, matchNumber, redName, blueName, arenaBlocked,
+  onDelete, onStart, onEnd, onViewDetail,
 }: MatchRowProps) {
-  const isPending    = match.status === "pending";
-  const isRunning    = match.status === "in_progress";
-  const isFinished   = match.status === "completed" || match.status === "cancelled";
-  const canReorder   = isPending;
+  const isPending  = match.status === "pending";
+  const isRunning  = match.status === "in_progress";
+  const isFinished = match.status === "completed" || match.status === "cancelled";
   const startBlocked = arenaBlocked && !isRunning;
+
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: match.id, disabled: !isPending });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    position: "relative",
+    zIndex: isDragging ? 1 : undefined,
+  };
 
   // For completed matches that pre-date the winnerCorner field, compute it via one-shot read.
   const [computedWinner, setComputedWinner] = useState<"red" | "blue" | "draw" | null>(null);
@@ -526,9 +547,31 @@ function MatchRow({
 
   return (
     <li
-      className={`grid grid-cols-[40px_1fr_1fr_80px_130px_180px] gap-3 px-5 py-3.5 items-center border-b border-border last:border-b-0 ${isFinished ? "cursor-pointer hover:bg-elevated/50 transition-colors" : ""}`}
+      ref={setNodeRef}
+      style={style}
+      className={`grid grid-cols-[20px_40px_1fr_1fr_80px_130px_160px] gap-3 px-5 py-3.5 items-center border-b border-border last:border-b-0 ${isFinished ? "cursor-pointer hover:bg-elevated/50 transition-colors" : ""}`}
       onClick={isFinished ? onViewDetail : undefined}
     >
+      {/* Drag handle */}
+      <div className="flex items-center justify-center">
+        {isPending ? (
+          <span
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing text-muted hover:text-secondary transition-colors touch-none"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <svg width="12" height="18" viewBox="0 0 12 18" fill="currentColor">
+              <circle cx="3" cy="3"  r="1.5" /><circle cx="9" cy="3"  r="1.5" />
+              <circle cx="3" cy="9"  r="1.5" /><circle cx="9" cy="9"  r="1.5" />
+              <circle cx="3" cy="15" r="1.5" /><circle cx="9" cy="15" r="1.5" />
+            </svg>
+          </span>
+        ) : (
+          <span />
+        )}
+      </div>
+
       {/* # */}
       <span className="text-sm font-bold text-muted text-center">{matchNumber}</span>
 
@@ -556,8 +599,7 @@ function MatchRow({
       </span>
 
       {/* Actions */}
-      <div className="flex items-center gap-1 justify-end">
-        {/* Start */}
+      <div className="flex items-center gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
         {isPending && (
           <button
             onClick={onStart}
@@ -581,30 +623,6 @@ function MatchRow({
             {MATCH_STATUS_LABELS[match.status]}
           </span>
         )}
-
-        {/* Reorder — only for pending matches */}
-        {canReorder && (
-          <>
-            <button
-              onClick={onMoveUp}
-              disabled={isFirst}
-              title="Move up"
-              className="w-7 h-7 flex items-center justify-center rounded-md text-muted hover:text-warn hover:bg-elevated transition-colors disabled:opacity-20"
-            >
-              ↑
-            </button>
-            <button
-              onClick={onMoveDown}
-              disabled={isLast}
-              title="Move down"
-              className="w-7 h-7 flex items-center justify-center rounded-md text-muted hover:text-warn hover:bg-elevated transition-colors disabled:opacity-20"
-            >
-              ↓
-            </button>
-          </>
-        )}
-
-        {/* Delete — available for all statuses except in_progress */}
         {!isRunning && (
           <button
             onClick={onDelete}
@@ -629,7 +647,12 @@ export default function MatchesPage() {
   const [matches,     setMatches]     = useState<Match[]>([]);
   const [showModal,   setShowModal]   = useState(false);
   const [detailMatch, setDetailMatch] = useState<Match | null>(null);
-  const [busy,        setBusy]        = useState(false); // debounce reorder/delete
+  const [busy,        setBusy]        = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   useEffect(() => {
     if (!user) return;
@@ -645,29 +668,23 @@ export default function MatchesPage() {
 
   const compMap = new Map(competitors.map((c) => [c.id, c]));
 
-  // Set of arenas that currently have an in_progress match
   const runningArenas = new Set(
     matches.filter((m) => m.status === "in_progress").map((m) => m.arenaNumber)
   );
 
-  // Only pending matches can be reordered — non-pending are locked at their position
-  const pendingMatches = matches.filter((m) => m.status === "pending");
-
-  async function handleMoveUp(match: Match) {
-    const idx = pendingMatches.findIndex((m) => m.id === match.id);
-    if (idx <= 0 || busy) return;
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id || busy) return;
+    const oldIdx = matches.findIndex((m) => m.id === active.id);
+    const newIdx = matches.findIndex((m) => m.id === over.id);
+    if (oldIdx === -1 || newIdx === -1) return;
     setBusy(true);
-    const prev = pendingMatches[idx - 1];
-    await swapMatchOrder(match.id, match.order, prev.id, prev.order);
-    setBusy(false);
-  }
-
-  async function handleMoveDown(match: Match) {
-    const idx = pendingMatches.findIndex((m) => m.id === match.id);
-    if (idx >= pendingMatches.length - 1 || busy) return;
-    setBusy(true);
-    const next = pendingMatches[idx + 1];
-    await swapMatchOrder(match.id, match.order, next.id, next.order);
+    const reordered = arrayMove(matches, oldIdx, newIdx);
+    const updates = reordered
+      .map((m, i) => ({ id: m.id, order: i + 1, oldOrder: m.order }))
+      .filter(({ order, oldOrder }) => order !== oldOrder)
+      .map(({ id, order }) => ({ id, order }));
+    if (updates.length > 0) await reorderMatches(updates);
     setBusy(false);
   }
 
@@ -717,8 +734,8 @@ export default function MatchesPage() {
         </div>
 
         {/* Column headers */}
-        <div className="grid grid-cols-[40px_1fr_1fr_80px_130px_180px] gap-3 px-5 py-3 border-b border-border">
-          {["#", "Red Corner", "Blue Corner", "Arena", "Status", ""].map((h, i) => (
+        <div className="grid grid-cols-[20px_40px_1fr_1fr_80px_130px_160px] gap-3 px-5 py-3 border-b border-border">
+          {["", "#", "Red Corner", "Blue Corner", "Arena", "Status", ""].map((h, i) => (
             <span key={i} className="text-xs font-semibold uppercase tracking-widest text-muted">
               {h}
             </span>
@@ -736,34 +753,30 @@ export default function MatchesPage() {
             </p>
           </div>
         ) : (
-          <ul>
-            {matches.map((m) => {
-              const red  = compMap.get(m.redCornerCompetitorId);
-              const blue = compMap.get(m.blueCornerCompetitorId);
-              const isPending = m.status === "pending";
-              const pendingIdx = isPending ? pendingMatches.findIndex((p) => p.id === m.id) : -1;
-
-              return (
-                <MatchRow
-                  key={m.id}
-                  match={m}
-                  matchNumber={m.order}
-                  isFirst={pendingIdx === 0}
-                  isLast={pendingIdx === pendingMatches.length - 1}
-                  redName={red  ? `${red.firstName} ${red.lastName}`   : "Unknown"}
-                  blueName={blue ? `${blue.firstName} ${blue.lastName}` : "Unknown"}
-                  arenaBlocked={runningArenas.has(m.arenaNumber)}
-                  allMatches={matches}
-                  onMoveUp={() => handleMoveUp(m)}
-                  onMoveDown={() => handleMoveDown(m)}
-                  onDelete={() => handleDelete(m)}
-                  onStart={() => handleStart(m)}
-                  onEnd={() => handleEnd(m)}
-                  onViewDetail={() => setDetailMatch(m)}
-                />
-              );
-            })}
-          </ul>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={matches.map((m) => m.id)} strategy={verticalListSortingStrategy}>
+              <ul>
+                {matches.map((m) => {
+                  const red  = compMap.get(m.redCornerCompetitorId);
+                  const blue = compMap.get(m.blueCornerCompetitorId);
+                  return (
+                    <MatchRow
+                      key={m.id}
+                      match={m}
+                      matchNumber={m.order}
+                      redName={red  ? `${red.firstName} ${red.lastName}`   : "Unknown"}
+                      blueName={blue ? `${blue.firstName} ${blue.lastName}` : "Unknown"}
+                      arenaBlocked={runningArenas.has(m.arenaNumber)}
+                      onDelete={() => handleDelete(m)}
+                      onStart={() => handleStart(m)}
+                      onEnd={() => handleEnd(m)}
+                      onViewDetail={() => setDetailMatch(m)}
+                    />
+                  );
+                })}
+              </ul>
+            </SortableContext>
+          </DndContext>
         )}
       </div>
 
