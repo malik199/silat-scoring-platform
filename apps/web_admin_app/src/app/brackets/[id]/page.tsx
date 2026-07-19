@@ -527,11 +527,13 @@ function CompCard({
   onSwap,
   onWhoWon,
   corner,
+  isWinner,
 }: {
   competitor: Competitor | null | undefined;
   onSwap?: () => void;
   onWhoWon?: () => void;
   corner: "red" | "blue";
+  isWinner?: boolean;
 }) {
   const borderColor = corner === "red" ? "#ff4d4f" : "#60a5fa";
   if (!competitor) {
@@ -560,9 +562,12 @@ function CompCard({
       className="flex items-center justify-between px-3 rounded-lg border border-border bg-elevated"
     >
       <div className="flex flex-col min-w-0 flex-1">
-        <span className="text-xs font-semibold text-primary truncate leading-tight">
-          {competitor.firstName} {competitor.lastName}
-        </span>
+        <div className="flex items-center gap-1 min-w-0">
+          <span className="text-xs font-semibold text-primary truncate leading-tight">
+            {competitor.firstName} {competitor.lastName}
+          </span>
+          {isWinner && <img src="/greencheckmark.svg" alt="Winner" className="w-3 h-3 flex-shrink-0" />}
+        </div>
         <span className="text-[10px] text-secondary truncate leading-tight mt-0.5">
           {competitor.schoolName}
         </span>
@@ -657,6 +662,7 @@ function MatchupBox({
   const effectiveP2Id = p2Slot.effectiveId;
   const canCreate     = effectiveP1Id !== null && effectiveP2Id !== null;
   const hasMatch      = canCreate && matchPairSet.has(`${effectiveP1Id}|${effectiveP2Id}`);
+  const matchupWinnerId = winners[`r${roundIdx}_m${matchupIdx}`] ?? null;
 
   return (
     <div style={{ height: MATCHUP_H, position: "relative" }} className="flex flex-col">
@@ -667,6 +673,7 @@ function MatchupBox({
           ? () => onSwap(p1Slot.competitor!.id, effectiveP2Id)
           : undefined}
         corner="red"
+        isWinner={matchupWinnerId !== null && effectiveP1Id === matchupWinnerId}
       />
       <div style={{ height: GAP }} />
       <CompCard
@@ -676,6 +683,7 @@ function MatchupBox({
           ? () => onSwap(p2Slot.competitor!.id, effectiveP1Id)
           : undefined}
         corner="blue"
+        isWinner={matchupWinnerId !== null && effectiveP2Id === matchupWinnerId}
       />
       {canCreate && (
         <button

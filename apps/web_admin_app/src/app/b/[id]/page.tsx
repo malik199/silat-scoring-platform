@@ -28,7 +28,7 @@ function getRoundLabel(r: number, numRounds: number): string {
 
 // ─── Read-only competitor card ────────────────────────────────────────────────
 
-function CompCard({ competitor, corner }: { competitor: Competitor | null | undefined; corner: "red" | "blue" }) {
+function CompCard({ competitor, corner, isWinner }: { competitor: Competitor | null | undefined; corner: "red" | "blue"; isWinner?: boolean }) {
   const borderColor = corner === "red" ? "#ff4d4f" : "#60a5fa";
   if (!competitor) {
     return (
@@ -46,9 +46,12 @@ function CompCard({ competitor, corner }: { competitor: Competitor | null | unde
       className="flex items-center justify-between px-3 rounded-lg border border-border bg-elevated"
     >
       <div className="flex flex-col min-w-0 flex-1">
-        <span className="text-xs font-semibold text-primary truncate leading-tight">
-          {competitor.firstName} {competitor.lastName}
-        </span>
+        <div className="flex items-center gap-1 min-w-0">
+          <span className="text-xs font-semibold text-primary truncate leading-tight">
+            {competitor.firstName} {competitor.lastName}
+          </span>
+          {isWinner && <img src="/greencheckmark.svg" alt="Winner" className="w-3 h-3 flex-shrink-0" />}
+        </div>
         <span className="text-[10px] text-secondary truncate leading-tight mt-0.5">
           {competitor.schoolName}
         </span>
@@ -66,22 +69,25 @@ function MatchupBox({
   matchupIdx,
   cMap,
   effectiveGrid,
+  winners,
 }: {
   matchup: BracketMatchup;
   roundIdx: number;
   matchupIdx: number;
   cMap: Map<string, Competitor>;
   effectiveGrid: Array<Array<{ p1Id: string | null; p2Id: string | null }>>;
+  winners: Record<string, string>;
 }) {
   const eff = effectiveGrid[roundIdx]?.[matchupIdx];
   const p1  = eff?.p1Id ? cMap.get(eff.p1Id) ?? null : null;
   const p2  = eff?.p2Id ? cMap.get(eff.p2Id) ?? null : null;
+  const matchupWinnerId = winners[`r${roundIdx}_m${matchupIdx}`] ?? null;
 
   return (
     <div style={{ height: MATCHUP_H }} className="flex flex-col">
-      <CompCard competitor={p1} corner="red" />
+      <CompCard competitor={p1} corner="red" isWinner={matchupWinnerId !== null && eff?.p1Id === matchupWinnerId} />
       <div style={{ height: GAP }} />
-      <CompCard competitor={p2} corner="blue" />
+      <CompCard competitor={p2} corner="blue" isWinner={matchupWinnerId !== null && eff?.p2Id === matchupWinnerId} />
     </div>
   );
 }
@@ -277,6 +283,7 @@ export default function PublicBracketPage() {
                       matchupIdx={i}
                       cMap={cMap}
                       effectiveGrid={effectiveGrid}
+                      winners={winners}
                     />
                   ))}
                 </div>
