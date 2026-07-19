@@ -42,6 +42,15 @@ const AGE_CATS = [
   { key: "senior",    label: "Senior (18+)", min: 18, max: 999 },
 ];
 
+function WinnerCheck() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" className="flex-shrink-0">
+      <rect x="2" y="2" width="20" height="20" rx="5" stroke="#00d084" strokeWidth="2.2"/>
+      <polyline points="7,12 11,16 17,8" stroke="#00d084" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
 // ─── New Match Modal ──────────────────────────────────────────────────────────
 
 interface NewMatchModalProps {
@@ -517,12 +526,14 @@ function MatchRow({
       <div className="flex items-center gap-2 min-w-0">
         <div className="w-2 h-2 rounded-full bg-danger flex-shrink-0" />
         <span className="text-sm font-medium text-primary truncate">{redName}</span>
+        {match.winnerCorner === "red" && <WinnerCheck />}
       </div>
 
       {/* Blue */}
       <div className="flex items-center gap-2 min-w-0">
         <div className="w-2 h-2 rounded-full bg-blue-400 flex-shrink-0" />
         <span className="text-sm font-medium text-primary truncate">{blueName}</span>
+        {match.winnerCorner === "blue" && <WinnerCheck />}
       </div>
 
       {/* Arena */}

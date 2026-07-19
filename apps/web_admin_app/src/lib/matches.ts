@@ -6,6 +6,7 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
+  getDocs,
   writeBatch,
   onSnapshot,
   orderBy,
@@ -65,6 +66,8 @@ export interface Match {
   /** When true, dewan can add scores while the timer is running */
   dirtyTime: boolean;
   createdAt: string;
+  /** Stored when match completes — null/undefined for old matches or draws */
+  winnerCorner?: "red" | "blue" | "draw" | null;
 }
 
 // ─── Timer helpers ────────────────────────────────────────────────────────────
@@ -165,7 +168,11 @@ export async function startMatch(id: string): Promise<void> {
 }
 
 export async function endMatch(id: string): Promise<void> {
-  await updateDoc(doc(db, COL, id), { status: "completed" });
+  const eventsSnap = await getDocs(collection(db, COL, id, "scoreEvents"));
+  const events: ScoreEvent[] = eventsSnap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<ScoreEvent, "id">) }));
+  const { red, blue } = computeConfirmedScores(events);
+  const winnerCorner: "red" | "blue" | "draw" = red > blue ? "red" : blue > red ? "blue" : "draw";
+  await updateDoc(doc(db, COL, id), { status: "completed", winnerCorner });
 }
 
 // ─── Timer controls ───────────────────────────────────────────────────────────
