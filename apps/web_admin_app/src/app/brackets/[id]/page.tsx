@@ -573,7 +573,6 @@ function CompCard({
         </span>
       </div>
       <div className="flex items-center gap-1 flex-shrink-0 ml-1.5">
-        <span className="text-xs text-muted">{competitor.weightKg}kg</span>
         {onSwap && (
           <button
             type="button"

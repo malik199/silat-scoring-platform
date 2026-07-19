@@ -56,7 +56,6 @@ function CompCard({ competitor, corner, isWinner }: { competitor: Competitor | n
           {competitor.schoolName}
         </span>
       </div>
-      <span className="text-xs text-muted flex-shrink-0 ml-1.5">{competitor.weightKg}kg</span>
     </div>
   );
 }
