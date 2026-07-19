@@ -157,7 +157,7 @@ export function Sidebar() {
         {arenaCount > 0 && (
           <div className="pt-3">
             <p className="px-3 mb-2 text-xs font-semibold uppercase tracking-widest text-muted">
-              Dewannnn
+              Dewan
             </p>
             <div className="ml-2 border-l border-border pl-2 space-y-0.5">
               {Array.from({ length: arenaCount }, (_, i) => i + 1).map((n) => {
