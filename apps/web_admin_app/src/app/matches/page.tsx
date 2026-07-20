@@ -615,7 +615,7 @@ function MatchRow({
             onClick={onEnd}
             className="px-2.5 py-1 rounded-md bg-danger text-white text-xs font-semibold hover:bg-danger/80 transition-colors"
           >
-            End Match
+            End Current Match
           </button>
         )}
         {isFinished && (
