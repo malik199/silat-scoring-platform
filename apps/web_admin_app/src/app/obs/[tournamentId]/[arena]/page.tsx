@@ -8,6 +8,7 @@ import {
   subscribeScoreEvents,
   subscribeAdminEvents,
   computeConfirmedScores,
+  computePenaltyFlagPoints,
   computeRemainingSeconds,
   formatTime,
   type Match,
@@ -117,10 +118,11 @@ function CornerPanel({ corner, competitor, score, leading, judgeOrder, recentTap
 
   const w1      = warnings?.[`r${currentRound}_${corner}_w1`]  === true;
   const w2      = warnings?.[`r${currentRound}_${corner}_w2`]  === true;
-  const m1      = adminEvents.some((e) => e.side === corner && e.points === -1  && e.round === currentRound);
-  const m2      = adminEvents.some((e) => e.side === corner && e.points === -2  && e.round === currentRound);
-  const m5      = adminEvents.some((e) => e.side === corner && e.points === -5);
-  const m10     = adminEvents.some((e) => e.side === corner && e.points === -10);
+  const m1      = warnings?.[`r${currentRound}_${corner}_m1`]  === true;
+  const m2      = warnings?.[`r${currentRound}_${corner}_m2`]  === true;
+  const m5      = warnings?.[`r${currentRound}_${corner}_m5`]  === true;
+  const m10     = warnings?.[`r${currentRound}_${corner}_m10`] === true;
+  const dq      = warnings?.[`${corner}_dq`] === true;
   const jatohan = recentAdmin !== null && recentAdmin.points > 0;
 
   const indicators = [
@@ -131,6 +133,7 @@ function CornerPanel({ corner, competitor, score, leading, judgeOrder, recentTap
     { src: "/violation_2.svg",  active: m2,      bg: "rgba(250,173,20,0.45)", border: "rgba(250,173,20,0.75)", large: false },
     { src: "/violation_5.svg",  active: m5,      bg: "rgba(255,77,79,0.45)",  border: "rgba(255,77,79,0.75)",  large: false },
     { src: "/violation_10.svg", active: m10,     bg: "rgba(255,77,79,0.45)",  border: "rgba(255,77,79,0.75)",  large: false },
+    { src: "/violation_dq.svg", active: dq,      bg: "rgba(255,77,79,0.45)",  border: "rgba(255,77,79,0.75)",  large: false },
   ];
   const active = indicators.filter((i) => i.active);
 
@@ -351,12 +354,6 @@ export default function OBSPage() {
     return order;
   }, [scoreEvents]);
 
-  const { red: confirmedRed, blue: confirmedBlue } = computeConfirmedScores(scoreEvents);
-  const adminRed  = adminEvents.filter((e) => e.side === "red") .reduce((s, e) => s + e.points, 0);
-  const adminBlue = adminEvents.filter((e) => e.side === "blue").reduce((s, e) => s + e.points, 0);
-  const totalRed  = confirmedRed  + adminRed;
-  const totalBlue = confirmedBlue + adminBlue;
-
   if (!match) {
     return (
       <div style={{ background: "transparent" }} className="w-screen h-screen flex items-end justify-center pb-8">
@@ -368,8 +365,13 @@ export default function OBSPage() {
   }
 
   const currentRound = match.currentRound ?? 1;
-  const isExpired    = remaining <= 0;
-  const timerColor   = isExpired ? "#ef4444" : match.timerRunning ? "#facc15" : "#ffffff";
+  const { red: confirmedRed, blue: confirmedBlue } = computeConfirmedScores(scoreEvents);
+  const adminRed  = adminEvents.filter((e) => e.side === "red"  && e.points > 0).reduce((s, e) => s + e.points, 0);
+  const adminBlue = adminEvents.filter((e) => e.side === "blue" && e.points > 0).reduce((s, e) => s + e.points, 0);
+  const totalRed  = confirmedRed  + adminRed  + computePenaltyFlagPoints(match.warnings, "red",  currentRound);
+  const totalBlue = confirmedBlue + adminBlue + computePenaltyFlagPoints(match.warnings, "blue", currentRound);
+  const isExpired  = remaining <= 0;
+  const timerColor = isExpired ? "#ef4444" : match.timerRunning ? "#facc15" : "#ffffff";
 
   return (
     <div

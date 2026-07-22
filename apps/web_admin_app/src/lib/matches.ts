@@ -335,6 +335,28 @@ export async function setWarning(
   await updateDoc(doc(db, COL, matchId), { [`warnings.${key}`]: active });
 }
 
+/** Toggle any flag in match.warnings by its full key. */
+export async function setMatchFlag(matchId: string, key: string, active: boolean): Promise<void> {
+  await updateDoc(doc(db, COL, matchId), { [`warnings.${key}`]: active });
+}
+
+/** Points from active per-round penalty flags, summed across rounds 1..upToRound. */
+export function computePenaltyFlagPoints(
+  warnings: Record<string, boolean> | undefined,
+  side: "red" | "blue",
+  upToRound: number
+): number {
+  if (!warnings) return 0;
+  let total = 0;
+  for (let r = 1; r <= upToRound; r++) {
+    if (warnings[`r${r}_${side}_m1`])  total -= 1;
+    if (warnings[`r${r}_${side}_m2`])  total -= 2;
+    if (warnings[`r${r}_${side}_m5`])  total -= 5;
+    if (warnings[`r${r}_${side}_m10`]) total -= 10;
+  }
+  return total;
+}
+
 export async function deleteAdminEvent(matchId: string, eventId: string): Promise<void> {
   await deleteDoc(doc(db, COL, matchId, "adminEvents", eventId));
 }

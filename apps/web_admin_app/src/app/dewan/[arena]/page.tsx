@@ -15,7 +15,9 @@ import {
   addAdminEvent,
   deleteAdminEvent,
   setWarning,
+  setMatchFlag,
   computeConfirmedScores,
+  computePenaltyFlagPoints,
   computeRemainingSeconds,
   formatTime,
   timerStart,
@@ -68,27 +70,28 @@ function adminTotals(events: AdminEvent[]): { red: number; blue: number } {
 // ─── Persistent penalty/warning indicators ────────────────────────────────────
 
 function IndicatorRow({
-  side, adminEvents, currentRound, warnings,
+  side, currentRound, warnings,
 }: {
   side: "red" | "blue";
-  adminEvents: AdminEvent[];
   currentRound: number;
   warnings?: Record<string, boolean>;
 }) {
   const w1  = warnings?.[`r${currentRound}_${side}_w1`]  === true;
   const w2  = warnings?.[`r${currentRound}_${side}_w2`]  === true;
-  const m1  = adminEvents.some((e) => e.side === side && e.points === -1  && e.round === currentRound);
-  const m2  = adminEvents.some((e) => e.side === side && e.points === -2  && e.round === currentRound);
-  const m5  = adminEvents.some((e) => e.side === side && e.points === -5);
-  const m10 = adminEvents.some((e) => e.side === side && e.points === -10);
+  const m1  = warnings?.[`r${currentRound}_${side}_m1`]  === true;
+  const m2  = warnings?.[`r${currentRound}_${side}_m2`]  === true;
+  const m5  = warnings?.[`r${currentRound}_${side}_m5`]  === true;
+  const m10 = warnings?.[`r${currentRound}_${side}_m10`] === true;
+  const dq  = warnings?.[`${side}_dq`] === true;
 
   const items = [
-    { src: "/warning_1.svg",   active: w1,  label: "W1",  color: "warn"   },
-    { src: "/warning_2.svg",   active: w2,  label: "W2",  color: "warn"   },
-    { src: "/violation_1.svg", active: m1,  label: "-1",  color: "warn"   },
-    { src: "/violation_2.svg", active: m2,  label: "-2",  color: "warn"   },
-    { src: "/violation_5.svg", active: m5,  label: "-5",  color: "danger" },
-    { src: "/violation_10.svg",active: m10, label: "-10", color: "danger" },
+    { src: "/warning_1.svg",    active: w1,  label: "W1",  color: "warn"   },
+    { src: "/warning_2.svg",    active: w2,  label: "W2",  color: "warn"   },
+    { src: "/violation_1.svg",  active: m1,  label: "-1",  color: "warn"   },
+    { src: "/violation_2.svg",  active: m2,  label: "-2",  color: "warn"   },
+    { src: "/violation_5.svg",  active: m5,  label: "-5",  color: "danger" },
+    { src: "/violation_10.svg", active: m10, label: "-10", color: "danger" },
+    { src: "/violation_dq.svg", active: dq,  label: "DQ",  color: "danger" },
   ];
 
   if (!items.some((i) => i.active)) return null;
@@ -128,7 +131,7 @@ function AdminBtn({
   label: string;
   sublabel?: string;
   onClick: () => void;
-  variant: "red-positive" | "red-penalty" | "red-penalty-active" | "blue-positive" | "blue-penalty" | "blue-penalty-active" | "warn" | "warn-active";
+  variant: "red-positive" | "red-penalty" | "red-penalty-active" | "blue-positive" | "blue-penalty" | "blue-penalty-active" | "warn" | "warn-active" | "dq" | "dq-active";
   className?: string;
   disabled?: boolean;
 }) {
@@ -141,6 +144,8 @@ function AdminBtn({
     "blue-penalty-active": "bg-blue-500/35 text-blue-300 border border-blue-500/70 hover:bg-blue-500/45",
     "warn":                "bg-warn/10 text-warn border border-warn/30 hover:bg-warn/20",
     "warn-active":         "bg-warn text-black border border-warn hover:bg-warn/80",
+    "dq":                  "bg-danger/10 text-danger border border-danger/40 hover:bg-danger/20",
+    "dq-active":           "bg-danger text-white border border-danger hover:bg-danger/80",
   }[variant];
 
   return (
@@ -236,69 +241,83 @@ export default function DewanPage() {
   const redComp  = match ? compMap.get(match.redCornerCompetitorId)  : undefined;
   const blueComp = match ? compMap.get(match.blueCornerCompetitorId) : undefined;
 
+  // currentRound needed for penalty scoring — declared early to avoid TDZ
+  const currentRound = match?.currentRound ?? 1;
+
   const { red: confirmedRed, blue: confirmedBlue, confirmedEventIds } =
     computeConfirmedScores(scoreEvents);
-  const { red: adminRed, blue: adminBlue } = adminTotals(adminEvents);
+  // adminEvents now only carries +3 takedowns; penalties live in match.warnings
+  const { red: adminRed, blue: adminBlue } = adminTotals(adminEvents.filter((e) => e.points > 0));
+  const penaltyRed  = computePenaltyFlagPoints(match?.warnings, "red",  currentRound);
+  const penaltyBlue = computePenaltyFlagPoints(match?.warnings, "blue", currentRound);
 
-  const totalRed  = confirmedRed  + adminRed;
-  const totalBlue = confirmedBlue + adminBlue;
+  const totalRed  = confirmedRed  + adminRed  + penaltyRed;
+  const totalBlue = confirmedBlue + adminBlue + penaltyBlue;
   const winner    = totalRed !== totalBlue ? (totalRed > totalBlue ? "red" : "blue") : null;
 
   const confirmedTaps = confirmedEventIds.size;
 
   async function apply(side: "red" | "blue", pts: number) {
-    if (!match) return;
-    // -1 and -2 are per-round; -5 and -10 persist all match; +3 is unaffected
-    const round = (pts === -1 || pts === -2) ? currentRound : undefined;
-    await addAdminEvent(match.id, side, pts, round);
-    if (pts === 3) {
-      if (jatohanTimerRef.current[side]) clearTimeout(jatohanTimerRef.current[side]!);
-      setJatohanVisible((v) => ({ ...v, [side]: true }));
-      jatohanTimerRef.current[side] = setTimeout(
-        () => setJatohanVisible((v) => ({ ...v, [side]: false })),
-        3000
-      );
-    }
+    if (!match || pts !== 3) return;
+    await addAdminEvent(match.id, side, pts);
+    if (jatohanTimerRef.current[side]) clearTimeout(jatohanTimerRef.current[side]!);
+    setJatohanVisible((v) => ({ ...v, [side]: true }));
+    jatohanTimerRef.current[side] = setTimeout(
+      () => setJatohanVisible((v) => ({ ...v, [side]: false })),
+      3000
+    );
   }
 
   async function handleWarning(side: "red" | "blue", type: "w1" | "w2") {
     if (!match) return;
     const key = `r${currentRound}_${side}_${type}`;
-    const current = match.warnings?.[key] === true;
-    await setWarning(match.id, side, type, currentRound, !current);
+    await setMatchFlag(match.id, key, !(match.warnings?.[key] === true));
+  }
+
+  async function handlePenalty(side: "red" | "blue", type: "m1" | "m2" | "m5" | "m10") {
+    if (!match) return;
+    const key = `r${currentRound}_${side}_${type}`;
+    await setMatchFlag(match.id, key, !(match.warnings?.[key] === true));
+  }
+
+  async function handleDQ(side: "red" | "blue") {
+    if (!match) return;
+    const key = `${side}_dq`;
+    await setMatchFlag(match.id, key, !(match.warnings?.[key] === true));
   }
 
   async function undoLast(side: "red" | "blue") {
     if (!match) return;
-    // Don't undo adminEvents that were created by a serious violation (those have their own undo)
+    // Only undoes +3 takedown events; penalties are now toggles on match.warnings
     const claimedIds = new Set(seriousViolations.map((v) => v.adminEventId));
-    const last = [...adminEvents].reverse().find((e) => e.side === side && !claimedIds.has(e.id));
+    const last = [...adminEvents].reverse().find((e) => e.side === side && e.points > 0 && !claimedIds.has(e.id));
     if (last) await deleteAdminEvent(match.id, last.id);
   }
 
   const arenaPin = tournament?.arenaPins?.[String(arenaNumber)] ?? null;
 
-  const isRunning    = match?.timerRunning ?? false;
-  const dirtyTime    = match?.dirtyTime ?? false;
-  const currentRound = match?.currentRound ?? 1;
-  const isLastRound  = currentRound >= 3;
+  const isRunning   = match?.timerRunning ?? false;
+  const dirtyTime   = match?.dirtyTime ?? false;
+  const isLastRound = currentRound >= 3;
 
-  // Which penalty buttons are "lit" — must be after currentRound
+  // Penalty button active states — read from match.warnings flags
   const penaltyActive = {
     blue: {
-      "-1":  adminEvents.some((e) => e.side === "blue" && e.points === -1  && e.round === currentRound),
-      "-2":  adminEvents.some((e) => e.side === "blue" && e.points === -2  && e.round === currentRound),
-      "-5":  adminEvents.some((e) => e.side === "blue" && e.points === -5),
-      "-10": adminEvents.some((e) => e.side === "blue" && e.points === -10),
+      "-1":  match?.warnings?.[`r${currentRound}_blue_m1`]  === true,
+      "-2":  match?.warnings?.[`r${currentRound}_blue_m2`]  === true,
+      "-5":  match?.warnings?.[`r${currentRound}_blue_m5`]  === true,
+      "-10": match?.warnings?.[`r${currentRound}_blue_m10`] === true,
+      "dq":  match?.warnings?.[`blue_dq`] === true,
     },
     red: {
-      "-1":  adminEvents.some((e) => e.side === "red"  && e.points === -1  && e.round === currentRound),
-      "-2":  adminEvents.some((e) => e.side === "red"  && e.points === -2  && e.round === currentRound),
-      "-5":  adminEvents.some((e) => e.side === "red"  && e.points === -5),
-      "-10": adminEvents.some((e) => e.side === "red"  && e.points === -10),
+      "-1":  match?.warnings?.[`r${currentRound}_red_m1`]  === true,
+      "-2":  match?.warnings?.[`r${currentRound}_red_m2`]  === true,
+      "-5":  match?.warnings?.[`r${currentRound}_red_m5`]  === true,
+      "-10": match?.warnings?.[`r${currentRound}_red_m10`] === true,
+      "dq":  match?.warnings?.[`red_dq`] === true,
     },
   };
-  const isExpired    = remaining <= 0;
+  const isExpired = remaining <= 0;
 
   const router = useRouter();
 
@@ -538,61 +557,27 @@ export default function DewanPage() {
                 <span className="text-sm font-bold text-accent">+3 Takedown/Sweep</span>
               </div>
             )}
-            <IndicatorRow side="blue" adminEvents={adminEvents} currentRound={currentRound} warnings={match.warnings} />
-            <div className="grid grid-cols-4 gap-2">
-              <AdminBtn
-                label="3" sublabel="Takedown / Sweep"
-                onClick={() => apply("blue", 3)}
-                variant="blue-positive"
-                className="col-span-4"
-                disabled={isRunning && !dirtyTime}
-              />
-              <AdminBtn
-                label="W1" sublabel="Warning 1"
-                onClick={() => handleWarning("blue", "w1")}
-                variant={match.warnings?.[`r${currentRound}_blue_w1`] ? "warn-active" : "warn"}
-                disabled={isRunning && !dirtyTime}
-              />
-              <AdminBtn
-                label="W2" sublabel="Warning 2"
-                onClick={() => handleWarning("blue", "w2")}
-                variant={match.warnings?.[`r${currentRound}_blue_w2`] ? "warn-active" : "warn"}
-                disabled={isRunning && !dirtyTime}
-              />
-              <AdminBtn
-                label="-1" sublabel="Penalty"
-                onClick={() => apply("blue", -1)}
-                variant={penaltyActive.blue["-1"] ? "blue-penalty-active" : "blue-penalty"}
-                disabled={isRunning && !dirtyTime}
-              />
-              <AdminBtn
-                label="-2" sublabel="Penalty"
-                onClick={() => apply("blue", -2)}
-                variant={penaltyActive.blue["-2"] ? "blue-penalty-active" : "blue-penalty"}
-                disabled={isRunning && !dirtyTime}
-              />
-              <AdminBtn
-                label="-5" sublabel="Penalty"
-                onClick={() => apply("blue", -5)}
-                variant={penaltyActive.blue["-5"] ? "blue-penalty-active" : "blue-penalty"}
-                className="col-span-2"
-                disabled={isRunning && !dirtyTime}
-              />
-              <AdminBtn
-                label="-10" sublabel="Penalty"
-                onClick={() => apply("blue", -10)}
-                variant={penaltyActive.blue["-10"] ? "blue-penalty-active" : "blue-penalty"}
-                className="col-span-2"
-                disabled={isRunning && !dirtyTime}
-              />
+            <IndicatorRow side="blue" currentRound={currentRound} warnings={match.warnings} />
+            <div className="grid grid-cols-5 gap-2">
+              {/* Row 1: +3 takedown */}
+              <AdminBtn label="3" sublabel="Takedown / Sweep" onClick={() => apply("blue", 3)} variant="blue-positive" className="col-span-5" disabled={isRunning && !dirtyTime} />
+              {/* Row 2: W1 W2 -1 -2 -5 */}
+              <AdminBtn label="W1" sublabel="Warning 1" onClick={() => handleWarning("blue", "w1")} variant={match.warnings?.[`r${currentRound}_blue_w1`] ? "warn-active" : "warn"} disabled={isRunning && !dirtyTime} />
+              <AdminBtn label="W2" sublabel="Warning 2" onClick={() => handleWarning("blue", "w2")} variant={match.warnings?.[`r${currentRound}_blue_w2`] ? "warn-active" : "warn"} disabled={isRunning && !dirtyTime} />
+              <AdminBtn label="-1" sublabel="Penalty" onClick={() => handlePenalty("blue", "m1")} variant={penaltyActive.blue["-1"] ? "blue-penalty-active" : "blue-penalty"} disabled={isRunning && !dirtyTime} />
+              <AdminBtn label="-2" sublabel="Penalty" onClick={() => handlePenalty("blue", "m2")} variant={penaltyActive.blue["-2"] ? "blue-penalty-active" : "blue-penalty"} disabled={isRunning && !dirtyTime} />
+              <AdminBtn label="-5" sublabel="Penalty" onClick={() => handlePenalty("blue", "m5")} variant={penaltyActive.blue["-5"] ? "blue-penalty-active" : "blue-penalty"} disabled={isRunning && !dirtyTime} />
+              {/* Row 3: -10 | DQ */}
+              <AdminBtn label="-10" sublabel="Penalty" onClick={() => handlePenalty("blue", "m10")} variant={penaltyActive.blue["-10"] ? "blue-penalty-active" : "blue-penalty"} className="col-span-2" disabled={isRunning && !dirtyTime} />
+              <AdminBtn label="DQ" onClick={() => handleDQ("blue")} variant={penaltyActive.blue["dq"] ? "dq-active" : "dq"} className="col-span-3" disabled={isRunning && !dirtyTime} />
             </div>
             <button
               type="button"
               onClick={() => undoLast("blue")}
-              disabled={(isRunning && !dirtyTime) || !adminEvents.some((e) => e.side === "blue")}
+              disabled={(isRunning && !dirtyTime) || !adminEvents.some((e) => e.side === "blue" && e.points > 0)}
               className="w-full py-2.5 rounded-lg text-sm font-bold text-blue-400 border border-blue-400/40 bg-blue-500/5 hover:bg-blue-500/15 hover:border-blue-400/60 transition-all duration-75 active:scale-95 active:brightness-75 select-none disabled:opacity-30 disabled:cursor-not-allowed disabled:active:scale-100"
             >
-              ↩ Undo Last Blue Action
+              ↩ Undo Last Takedown
             </button>
           </div>
 
@@ -613,61 +598,27 @@ export default function DewanPage() {
                 <span className="text-sm font-bold text-accent">+3 Takedown/Sweep</span>
               </div>
             )}
-            <IndicatorRow side="red" adminEvents={adminEvents} currentRound={currentRound} warnings={match.warnings} />
-            <div className="grid grid-cols-4 gap-2">
-              <AdminBtn
-                label="3" sublabel="Takedown / Sweep"
-                onClick={() => apply("red", 3)}
-                variant="red-positive"
-                className="col-span-4"
-                disabled={isRunning && !dirtyTime}
-              />
-              <AdminBtn
-                label="W1" sublabel="Warning 1"
-                onClick={() => handleWarning("red", "w1")}
-                variant={match.warnings?.[`r${currentRound}_red_w1`] ? "warn-active" : "warn"}
-                disabled={isRunning && !dirtyTime}
-              />
-              <AdminBtn
-                label="W2" sublabel="Warning 2"
-                onClick={() => handleWarning("red", "w2")}
-                variant={match.warnings?.[`r${currentRound}_red_w2`] ? "warn-active" : "warn"}
-                disabled={isRunning && !dirtyTime}
-              />
-              <AdminBtn
-                label="-1" sublabel="Penalty"
-                onClick={() => apply("red", -1)}
-                variant={penaltyActive.red["-1"] ? "red-penalty-active" : "red-penalty"}
-                disabled={isRunning && !dirtyTime}
-              />
-              <AdminBtn
-                label="-2" sublabel="Penalty"
-                onClick={() => apply("red", -2)}
-                variant={penaltyActive.red["-2"] ? "red-penalty-active" : "red-penalty"}
-                disabled={isRunning && !dirtyTime}
-              />
-              <AdminBtn
-                label="-5" sublabel="Penalty"
-                onClick={() => apply("red", -5)}
-                variant={penaltyActive.red["-5"] ? "red-penalty-active" : "red-penalty"}
-                className="col-span-2"
-                disabled={isRunning && !dirtyTime}
-              />
-              <AdminBtn
-                label="-10" sublabel="Penalty"
-                onClick={() => apply("red", -10)}
-                variant={penaltyActive.red["-10"] ? "red-penalty-active" : "red-penalty"}
-                className="col-span-2"
-                disabled={isRunning && !dirtyTime}
-              />
+            <IndicatorRow side="red" currentRound={currentRound} warnings={match.warnings} />
+            <div className="grid grid-cols-5 gap-2">
+              {/* Row 1: +3 takedown */}
+              <AdminBtn label="3" sublabel="Takedown / Sweep" onClick={() => apply("red", 3)} variant="red-positive" className="col-span-5" disabled={isRunning && !dirtyTime} />
+              {/* Row 2: W1 W2 -1 -2 -5 */}
+              <AdminBtn label="W1" sublabel="Warning 1" onClick={() => handleWarning("red", "w1")} variant={match.warnings?.[`r${currentRound}_red_w1`] ? "warn-active" : "warn"} disabled={isRunning && !dirtyTime} />
+              <AdminBtn label="W2" sublabel="Warning 2" onClick={() => handleWarning("red", "w2")} variant={match.warnings?.[`r${currentRound}_red_w2`] ? "warn-active" : "warn"} disabled={isRunning && !dirtyTime} />
+              <AdminBtn label="-1" sublabel="Penalty" onClick={() => handlePenalty("red", "m1")} variant={penaltyActive.red["-1"] ? "red-penalty-active" : "red-penalty"} disabled={isRunning && !dirtyTime} />
+              <AdminBtn label="-2" sublabel="Penalty" onClick={() => handlePenalty("red", "m2")} variant={penaltyActive.red["-2"] ? "red-penalty-active" : "red-penalty"} disabled={isRunning && !dirtyTime} />
+              <AdminBtn label="-5" sublabel="Penalty" onClick={() => handlePenalty("red", "m5")} variant={penaltyActive.red["-5"] ? "red-penalty-active" : "red-penalty"} disabled={isRunning && !dirtyTime} />
+              {/* Row 3: -10 | DQ */}
+              <AdminBtn label="-10" sublabel="Penalty" onClick={() => handlePenalty("red", "m10")} variant={penaltyActive.red["-10"] ? "red-penalty-active" : "red-penalty"} className="col-span-2" disabled={isRunning && !dirtyTime} />
+              <AdminBtn label="DQ" onClick={() => handleDQ("red")} variant={penaltyActive.red["dq"] ? "dq-active" : "dq"} className="col-span-3" disabled={isRunning && !dirtyTime} />
             </div>
             <button
               type="button"
               onClick={() => undoLast("red")}
-              disabled={(isRunning && !dirtyTime) || !adminEvents.some((e) => e.side === "red")}
+              disabled={(isRunning && !dirtyTime) || !adminEvents.some((e) => e.side === "red" && e.points > 0)}
               className="w-full py-2.5 rounded-lg text-sm font-bold text-danger border border-danger/40 bg-danger/5 hover:bg-danger/15 hover:border-danger/60 transition-all duration-75 active:scale-95 active:brightness-75 select-none disabled:opacity-30 disabled:cursor-not-allowed disabled:active:scale-100"
             >
-              ↩ Undo Last Red Action
+              ↩ Undo Last Takedown
             </button>
           </div>
         </div>
