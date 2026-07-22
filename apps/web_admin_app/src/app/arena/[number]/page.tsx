@@ -144,9 +144,13 @@ interface CornerPanelProps {
   leading: boolean;
   judgeOrder: string[];
   recentTaps: Map<string, RecentTap>;
+  adminEvents: AdminEvent[];
+  warnings?: Record<string, boolean>;
+  currentRound: number;
+  recentAdmin: RecentAdminAction | null;
 }
 
-function CornerPanel({ corner, competitor, score, leading, judgeOrder, recentTaps }: CornerPanelProps) {
+function CornerPanel({ corner, competitor, score, leading, judgeOrder, recentTaps, adminEvents, warnings, currentRound, recentAdmin }: CornerPanelProps) {
   const isRed  = corner === "red";
   const bgMain = isRed ? "#f53a32" : "#008dee";
   const bgDark = isRed ? "#c42e28" : "#0072c4";
@@ -159,6 +163,26 @@ function CornerPanel({ corner, competitor, score, leading, judgeOrder, recentTap
       tap: judgeId ? (recentTaps.get(judgeId) ?? null) : null,
     };
   });
+
+  // Compute active indicators
+  const w1  = warnings?.[`r${currentRound}_${corner}_w1`]  === true;
+  const w2  = warnings?.[`r${currentRound}_${corner}_w2`]  === true;
+  const m1  = adminEvents.some((e) => e.side === corner && e.points === -1  && e.round === currentRound);
+  const m2  = adminEvents.some((e) => e.side === corner && e.points === -2  && e.round === currentRound);
+  const m5  = adminEvents.some((e) => e.side === corner && e.points === -5);
+  const m10 = adminEvents.some((e) => e.side === corner && e.points === -10);
+  const jatohan = recentAdmin !== null && recentAdmin.points > 0;
+
+  const indicators = [
+    { src: "/jatohan_sah.svg",  active: jatohan, bg: "rgba(0,208,132,0.5)",   border: "rgba(0,208,132,0.8)"   },
+    { src: "/warning_1.svg",    active: w1,      bg: "rgba(250,173,20,0.45)", border: "rgba(250,173,20,0.75)" },
+    { src: "/warning_2.svg",    active: w2,      bg: "rgba(250,173,20,0.45)", border: "rgba(250,173,20,0.75)" },
+    { src: "/violation_1.svg",  active: m1,      bg: "rgba(250,173,20,0.45)", border: "rgba(250,173,20,0.75)" },
+    { src: "/violation_2.svg",  active: m2,      bg: "rgba(250,173,20,0.45)", border: "rgba(250,173,20,0.75)" },
+    { src: "/violation_5.svg",  active: m5,      bg: "rgba(255,77,79,0.45)",  border: "rgba(255,77,79,0.75)"  },
+    { src: "/violation_10.svg", active: m10,     bg: "rgba(255,77,79,0.45)",  border: "rgba(255,77,79,0.75)"  },
+  ];
+  const activeIndicators = indicators.filter((i) => i.active);
 
   return (
     <div className="flex-1 flex flex-col" style={{ backgroundColor: bgMain }}>
@@ -204,21 +228,52 @@ function CornerPanel({ corner, competitor, score, leading, judgeOrder, recentTap
         </div>
       </div>
 
-      {/* ── Score ── */}
-      <div className="flex-1 flex items-center justify-center">
-        <p
-          className="font-black text-white tabular-nums leading-none transition-all duration-300"
-          style={{
-            fontSize: "min(28vw, 55vh)",
-            ...(leading ? {
-              outline: "6px solid rgba(255,255,255,0.9)",
-              outlineOffset: "16px",
-              borderRadius: "12px",
-            } : {}),
-          }}
+      {/* ── Score + indicator strip ── */}
+      <div className="flex-1 flex flex-col">
+        {/* Indicator strip — always reserves space; icons appear when active */}
+        <div
+          className="flex items-center justify-center gap-3 px-6"
+          style={{ height: "min(9vw, 120px)", backgroundColor: "rgba(0,0,0,0.15)" }}
         >
-          {score}
-        </p>
+          {activeIndicators.map(({ src, bg, border }, idx) => (
+            <div
+              key={idx}
+              className="rounded-xl flex-shrink-0"
+              style={{
+                width:  "min(6.5vw, 88px)",
+                height: "min(6.5vw, 88px)",
+                background: bg,
+                border: `2px solid ${border}`,
+                padding: "min(0.7vw, 10px)",
+                boxShadow: `0 0 16px ${border}`,
+              }}
+            >
+              <img
+                src={src}
+                alt=""
+                className="w-full h-full object-contain"
+                style={{ filter: "brightness(0) invert(1)" }}
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* Score */}
+        <div className="flex-1 flex items-center justify-center">
+          <p
+            className="font-black text-white tabular-nums leading-none transition-all duration-300"
+            style={{
+              fontSize: "min(28vw, 48vh)",
+              ...(leading ? {
+                outline: "6px solid rgba(255,255,255,0.9)",
+                outlineOffset: "16px",
+                borderRadius: "12px",
+              } : {}),
+            }}
+          >
+            {score}
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -474,6 +529,10 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
           leading={totalBlue > totalRed}
           judgeOrder={judgeOrder}
           recentTaps={recentTaps}
+          adminEvents={adminEvents}
+          warnings={runningMatch.warnings}
+          currentRound={runningMatch.currentRound ?? 1}
+          recentAdmin={recentAdminBlue}
         />
         <div className="w-1 flex-shrink-0 bg-black/30" />
         <CornerPanel
@@ -483,6 +542,10 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
           leading={totalRed > totalBlue}
           judgeOrder={judgeOrder}
           recentTaps={recentTaps}
+          adminEvents={adminEvents}
+          warnings={runningMatch.warnings}
+          currentRound={runningMatch.currentRound ?? 1}
+          recentAdmin={recentAdminRed}
         />
       </div>
 
