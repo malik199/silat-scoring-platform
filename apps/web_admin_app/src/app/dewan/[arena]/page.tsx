@@ -246,22 +246,6 @@ export default function DewanPage() {
 
   const confirmedTaps = confirmedEventIds.size;
 
-  // Pre-compute which penalty buttons are "lit" (at least one applied)
-  const penaltyActive = {
-    blue: {
-      "-1":  adminEvents.some((e) => e.side === "blue" && e.points === -1  && e.round === currentRound),
-      "-2":  adminEvents.some((e) => e.side === "blue" && e.points === -2  && e.round === currentRound),
-      "-5":  adminEvents.some((e) => e.side === "blue" && e.points === -5),
-      "-10": adminEvents.some((e) => e.side === "blue" && e.points === -10),
-    },
-    red: {
-      "-1":  adminEvents.some((e) => e.side === "red"  && e.points === -1  && e.round === currentRound),
-      "-2":  adminEvents.some((e) => e.side === "red"  && e.points === -2  && e.round === currentRound),
-      "-5":  adminEvents.some((e) => e.side === "red"  && e.points === -5),
-      "-10": adminEvents.some((e) => e.side === "red"  && e.points === -10),
-    },
-  } as const;
-
   async function apply(side: "red" | "blue", pts: number) {
     if (!match) return;
     // -1 and -2 are per-round; -5 and -10 persist all match; +3 is unaffected
@@ -298,6 +282,22 @@ export default function DewanPage() {
   const dirtyTime    = match?.dirtyTime ?? false;
   const currentRound = match?.currentRound ?? 1;
   const isLastRound  = currentRound >= 3;
+
+  // Which penalty buttons are "lit" — must be after currentRound
+  const penaltyActive = {
+    blue: {
+      "-1":  adminEvents.some((e) => e.side === "blue" && e.points === -1  && e.round === currentRound),
+      "-2":  adminEvents.some((e) => e.side === "blue" && e.points === -2  && e.round === currentRound),
+      "-5":  adminEvents.some((e) => e.side === "blue" && e.points === -5),
+      "-10": adminEvents.some((e) => e.side === "blue" && e.points === -10),
+    },
+    red: {
+      "-1":  adminEvents.some((e) => e.side === "red"  && e.points === -1  && e.round === currentRound),
+      "-2":  adminEvents.some((e) => e.side === "red"  && e.points === -2  && e.round === currentRound),
+      "-5":  adminEvents.some((e) => e.side === "red"  && e.points === -5),
+      "-10": adminEvents.some((e) => e.side === "red"  && e.points === -10),
+    },
+  };
   const isExpired    = remaining <= 0;
 
   const router = useRouter();
