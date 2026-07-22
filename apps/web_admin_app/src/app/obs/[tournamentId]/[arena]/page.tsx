@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -46,9 +46,177 @@ function flag(country?: string) {
   return FLAGS[country] ?? "";
 }
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface RecentTap {
+  side: "red" | "blue";
+  points: number;
+  at: number;
+}
+
+interface RecentAdmin {
+  points: number;
+  at: number;
+}
+
+// ─── Judge indicator ──────────────────────────────────────────────────────────
+
+function JudgeIndicator({ number, tap, corner, type }: {
+  number: number;
+  tap: RecentTap | null;
+  corner: "red" | "blue";
+  type: "punch" | "kick";
+}) {
+  const isRed  = corner === "red";
+  const active = tap !== null && tap.side === corner &&
+    (type === "punch" ? tap.points === 1 : tap.points !== 1);
+
+  return (
+    <div style={{
+      width: 44, height: 34, borderRadius: 8, flexShrink: 0,
+      background:  active ? "rgba(255,255,255,0.95)" : "rgba(0,0,0,0.3)",
+      boxShadow:   active ? "0 0 14px rgba(255,255,255,0.5)" : "none",
+      transform:   active ? "scale(1.08)" : "scale(1)",
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+      transition: "all 0.2s",
+    }}>
+      {active ? (
+        <>
+          <span style={{ fontSize: 16, lineHeight: 1 }}>{type === "punch" ? "👊" : "🦶"}</span>
+          <span style={{ fontSize: 10, fontWeight: 900, lineHeight: 1, marginTop: 1, color: isRed ? "#c42e28" : "#0072c4" }}>J{number}</span>
+        </>
+      ) : (
+        <span style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.22)" }}>J{number}</span>
+      )}
+    </div>
+  );
+}
+
+// ─── Corner panel ─────────────────────────────────────────────────────────────
+
+function CornerPanel({ corner, competitor, score, leading, judgeOrder, recentTaps, adminEvents, warnings, currentRound, recentAdmin }: {
+  corner: "red" | "blue";
+  competitor: Competitor | null | undefined;
+  score: number;
+  leading: boolean;
+  judgeOrder: string[];
+  recentTaps: Map<string, RecentTap>;
+  adminEvents: AdminEvent[];
+  warnings?: Record<string, boolean>;
+  currentRound: number;
+  recentAdmin: RecentAdmin | null;
+}) {
+  const isRed    = corner === "red";
+  const bgHeader = isRed ? "rgba(140,18,18,0.93)" : "rgba(8,55,145,0.93)";
+  const bgScore  = isRed ? "rgba(185,32,32,0.80)" : "rgba(14,80,185,0.80)";
+
+  const slots = Array.from({ length: 3 }, (_, i) => {
+    const judgeId = judgeOrder[i] ?? null;
+    return { number: i + 1, tap: judgeId ? (recentTaps.get(judgeId) ?? null) : null };
+  });
+
+  const w1      = warnings?.[`r${currentRound}_${corner}_w1`]  === true;
+  const w2      = warnings?.[`r${currentRound}_${corner}_w2`]  === true;
+  const m1      = adminEvents.some((e) => e.side === corner && e.points === -1  && e.round === currentRound);
+  const m2      = adminEvents.some((e) => e.side === corner && e.points === -2  && e.round === currentRound);
+  const m5      = adminEvents.some((e) => e.side === corner && e.points === -5);
+  const m10     = adminEvents.some((e) => e.side === corner && e.points === -10);
+  const jatohan = recentAdmin !== null && recentAdmin.points > 0;
+
+  const indicators = [
+    { src: "/jatohan_sah.svg",  active: jatohan, bg: "rgba(0,208,132,0.5)",   border: "rgba(0,208,132,0.85)",  large: true  },
+    { src: "/warning_1.svg",    active: w1,      bg: "rgba(250,173,20,0.45)", border: "rgba(250,173,20,0.75)", large: false },
+    { src: "/warning_2.svg",    active: w2,      bg: "rgba(250,173,20,0.45)", border: "rgba(250,173,20,0.75)", large: false },
+    { src: "/violation_1.svg",  active: m1,      bg: "rgba(250,173,20,0.45)", border: "rgba(250,173,20,0.75)", large: false },
+    { src: "/violation_2.svg",  active: m2,      bg: "rgba(250,173,20,0.45)", border: "rgba(250,173,20,0.75)", large: false },
+    { src: "/violation_5.svg",  active: m5,      bg: "rgba(255,77,79,0.45)",  border: "rgba(255,77,79,0.75)",  large: false },
+    { src: "/violation_10.svg", active: m10,     bg: "rgba(255,77,79,0.45)",  border: "rgba(255,77,79,0.75)",  large: false },
+  ];
+  const active = indicators.filter((i) => i.active);
+
+  const name   = competitor ? `${competitor.firstName} ${competitor.lastName}` : "—";
+  const school = competitor
+    ? [competitor.schoolName, flag(competitor.country), competitor.country].filter(Boolean).join("  ")
+    : "";
+
+  return (
+    <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+
+      {/* ── 3-column header ── */}
+      <div style={{ display: "flex", alignItems: "stretch", background: bgHeader, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+
+        {/* Col 1: Name + school */}
+        <div style={{
+          flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center",
+          padding: "12px 18px",
+          borderRight: "1px solid rgba(255,255,255,0.1)",
+        }}>
+          <div style={{ color: "#fff", fontWeight: 900, fontSize: 26, lineHeight: 1.15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {name}
+          </div>
+          {school && (
+            <div style={{ color: "rgba(255,255,255,0.6)", fontWeight: 600, fontSize: 13, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {school}
+            </div>
+          )}
+        </div>
+
+        {/* Col 2: Jatohan + penalty indicators */}
+        <div style={{
+          minWidth: 130, display: "flex", flexWrap: "wrap",
+          alignItems: "center", justifyContent: "center", alignContent: "center",
+          gap: 5, padding: "10px 12px",
+          borderRight: "1px solid rgba(255,255,255,0.1)",
+        }}>
+          {active.length === 0 ? (
+            <span style={{ color: "rgba(255,255,255,0.12)", fontSize: 12, fontWeight: 600 }}>—</span>
+          ) : active.map(({ src, bg, border, large }, idx) => (
+            <div key={idx} style={{
+              borderRadius: 8, flexShrink: 0,
+              width:  large ? 66 : 36,
+              height: large ? 66 : 36,
+              background: bg,
+              border: `2px solid ${border}`,
+              padding: large ? 7 : 4,
+              boxShadow: `0 0 ${large ? 18 : 8}px ${border}`,
+            }}>
+              <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "contain", filter: "brightness(0) invert(1)" }} />
+            </div>
+          ))}
+        </div>
+
+        {/* Col 3: Judge indicators */}
+        <div style={{
+          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+          gap: 5, padding: "10px 14px", flexShrink: 0,
+        }}>
+          <div style={{ display: "flex", gap: 5 }}>
+            {slots.map((s) => <JudgeIndicator key={`p${s.number}`} number={s.number} tap={s.tap} corner={corner} type="punch" />)}
+          </div>
+          <div style={{ display: "flex", gap: 5 }}>
+            {slots.map((s) => <JudgeIndicator key={`k${s.number}`} number={s.number} tap={s.tap} corner={corner} type="kick" />)}
+          </div>
+        </div>
+
+      </div>
+
+      {/* ── Score ── */}
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", background: bgScore }}>
+        <div style={{
+          color: "#fff", fontWeight: 900, fontSize: "min(13vw, 25vh)", lineHeight: 1,
+          ...(leading ? { outline: "4px solid rgba(255,255,255,0.9)", outlineOffset: 10, borderRadius: 8 } : {}),
+        }}>
+          {score}
+        </div>
+      </div>
+
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function OBSLowerThirdPage() {
+export default function OBSPage() {
   const { tournamentId, arena } = useParams<{ tournamentId: string; arena: string }>();
   const arenaNumber = Number(arena);
 
@@ -58,6 +226,15 @@ export default function OBSLowerThirdPage() {
   const [scoreEvents, setScoreEvents] = useState<ScoreEvent[]>([]);
   const [adminEvents, setAdminEvents] = useState<AdminEvent[]>([]);
   const [remaining,   setRemaining]   = useState(120);
+
+  // Judge tap flash tracking
+  const prevScoreLen = useRef(0);
+  const [recentTaps, setRecentTaps] = useState<Map<string, RecentTap>>(new Map());
+
+  // Admin action flash tracking (jatohan)
+  const prevAdminLen = useRef(0);
+  const [recentAdminRed,  setRecentAdminRed]  = useState<RecentAdmin | null>(null);
+  const [recentAdminBlue, setRecentAdminBlue] = useState<RecentAdmin | null>(null);
 
   // Make body transparent for OBS browser source
   useEffect(() => {
@@ -69,7 +246,7 @@ export default function OBSLowerThirdPage() {
     };
   }, []);
 
-  // Subscribe to matches for this specific tournament + arena only
+  // Subscribe to active match for this tournament + arena
   useEffect(() => {
     const q = query(collection(db, "matches"), where("tournamentId", "==", tournamentId));
     return onSnapshot(q, (snap) => {
@@ -80,7 +257,7 @@ export default function OBSLowerThirdPage() {
     }, () => setMatch(null));
   }, [tournamentId, arenaNumber]);
 
-  // Subscribe to competitors when match changes
+  // Competitors
   useEffect(() => {
     if (!match) { setRedComp(null); setBlueComp(null); return; }
     const unsubRed  = subscribeCompetitor(match.redCornerCompetitorId,  setRedComp);
@@ -88,13 +265,69 @@ export default function OBSLowerThirdPage() {
     return () => { unsubRed(); unsubBlue(); };
   }, [match?.id]);
 
-  // Subscribe to score + admin events
+  // Score + admin events
   useEffect(() => {
-    if (!match) { setScoreEvents([]); setAdminEvents([]); return; }
+    if (!match) {
+      setScoreEvents([]); setAdminEvents([]);
+      prevScoreLen.current = 0; prevAdminLen.current = 0;
+      setRecentTaps(new Map()); setRecentAdminRed(null); setRecentAdminBlue(null);
+      return;
+    }
     const unsubScore = subscribeScoreEvents(match.id, setScoreEvents);
     const unsubAdmin = subscribeAdminEvents(match.id, setAdminEvents);
     return () => { unsubScore(); unsubAdmin(); };
   }, [match?.id]);
+
+  // Detect new score events → record judge tap
+  useEffect(() => {
+    const newEvents = scoreEvents.slice(prevScoreLen.current);
+    prevScoreLen.current = scoreEvents.length;
+    if (newEvents.length === 0) return;
+    const now = Date.now();
+    setRecentTaps((prev) => {
+      const next = new Map(prev);
+      for (const e of newEvents) next.set(e.judgeId, { side: e.side as "red" | "blue", points: e.points, at: now });
+      return next;
+    });
+  }, [scoreEvents]);
+
+  // Expire taps after 3s
+  useEffect(() => {
+    const id = setInterval(() => {
+      const now = Date.now();
+      setRecentTaps((prev) => {
+        const stale = [...prev.entries()].filter(([, v]) => now - v.at > 3000);
+        if (stale.length === 0) return prev;
+        const next = new Map(prev);
+        for (const [k] of stale) next.delete(k);
+        return next;
+      });
+    }, 300);
+    return () => clearInterval(id);
+  }, []);
+
+  // Detect new admin events → jatohan flash
+  useEffect(() => {
+    const newEvents = adminEvents.slice(prevAdminLen.current);
+    prevAdminLen.current = adminEvents.length;
+    if (newEvents.length === 0) return;
+    const now = Date.now();
+    for (const e of newEvents) {
+      const action: RecentAdmin = { points: e.points, at: now };
+      if (e.side === "red") setRecentAdminRed(action);
+      else setRecentAdminBlue(action);
+    }
+  }, [adminEvents]);
+
+  // Expire admin flashes after 4s
+  useEffect(() => {
+    const id = setInterval(() => {
+      const now = Date.now();
+      setRecentAdminRed((p)  => (p && now - p.at > 4000 ? null : p));
+      setRecentAdminBlue((p) => (p && now - p.at > 4000 ? null : p));
+    }, 300);
+    return () => clearInterval(id);
+  }, []);
 
   // Timer tick
   const matchRef = useRef(match);
@@ -108,8 +341,18 @@ export default function OBSLowerThirdPage() {
     return () => clearInterval(id);
   }, [match?.id, match?.timerRunning, match?.timerElapsedSeconds]);
 
+  // Stable judge order
+  const judgeOrder = useMemo(() => {
+    const seen = new Set<string>();
+    const order: string[] = [];
+    for (const e of scoreEvents) {
+      if (!seen.has(e.judgeId)) { seen.add(e.judgeId); order.push(e.judgeId); }
+    }
+    return order;
+  }, [scoreEvents]);
+
   const { red: confirmedRed, blue: confirmedBlue } = computeConfirmedScores(scoreEvents);
-  const adminRed  = adminEvents.filter((e) => e.side === "red").reduce((s, e) => s + e.points, 0);
+  const adminRed  = adminEvents.filter((e) => e.side === "red") .reduce((s, e) => s + e.points, 0);
   const adminBlue = adminEvents.filter((e) => e.side === "blue").reduce((s, e) => s + e.points, 0);
   const totalRed  = confirmedRed  + adminRed;
   const totalBlue = confirmedBlue + adminBlue;
@@ -124,227 +367,77 @@ export default function OBSLowerThirdPage() {
     );
   }
 
-  const redFullName  = redComp  ? `${redComp.firstName} ${redComp.lastName}`   : "";
-  const blueFullName = blueComp ? `${blueComp.firstName} ${blueComp.lastName}` : "";
-  const redFlag   = flag(redComp?.country);
-  const blueFlag  = flag(blueComp?.country);
-  const isExpired = remaining <= 0;
+  const currentRound = match.currentRound ?? 1;
+  const isExpired    = remaining <= 0;
+  const timerColor   = isExpired ? "#ef4444" : match.timerRunning ? "#facc15" : "#ffffff";
 
   return (
     <div
-      style={{ background: "transparent" }}
-      className="w-screen h-screen flex flex-col items-stretch justify-end"
+      style={{ background: "transparent", fontFamily: "'Arial Black', Arial, sans-serif", userSelect: "none" }}
+      className="w-screen h-screen flex flex-col"
     >
-      <LowerThird
-        tournamentName={match.tournamentName}
-        arenaNumber={arenaNumber}
-        round={match.currentRound}
-        remaining={remaining}
-        timerRunning={match.timerRunning}
-        isExpired={isExpired}
-        redName={redFullName}
-        redFlag={redFlag}
-        redScore={totalRed}
-        blueName={blueFullName}
-        blueFlag={blueFlag}
-        blueScore={totalBlue}
-      />
-    </div>
-  );
-}
-
-// ─── Lower Third Component ────────────────────────────────────────────────────
-
-interface LowerThirdProps {
-  tournamentName: string;
-  arenaNumber: number;
-  round: number;
-  remaining: number;
-  timerRunning: boolean;
-  isExpired: boolean;
-  redName: string; redFlag: string; redScore: number;
-  blueName: string; blueFlag: string; blueScore: number;
-}
-
-function nameFontSize(name: string): number {
-  const len = name.length;
-  if (len <= 12) return 34;
-  if (len <= 16) return 28;
-  if (len <= 20) return 23;
-  return 19;
-}
-
-function nameLetterSpacing(name: string): number {
-  return name.length > 16 ? -0.5 : 1;
-}
-
-function LowerThird({
-  tournamentName, arenaNumber, round,
-  remaining, timerRunning, isExpired,
-  redName, redFlag, redScore,
-  blueName, blueFlag, blueScore,
-}: LowerThirdProps) {
-  const timerColor = isExpired ? "#ef4444" : timerRunning ? "#facc15" : "#ffffff";
-
-  return (
-    <div style={{ fontFamily: "'Arial Black', Arial, sans-serif", userSelect: "none" }}>
-
-      {/* ── Tournament / round strip ── */}
+      {/* ── Top bar ── */}
       <div style={{
-        background: "rgba(0,0,0,0.75)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 24,
-        padding: "6px 24px",
-        backdropFilter: "blur(4px)",
+        display: "flex", alignItems: "center",
+        background: "rgba(0,0,0,0.78)",
+        padding: "8px 28px",
+        gap: 20,
+        backdropFilter: "blur(6px)",
+        borderBottom: "1px solid rgba(255,255,255,0.06)",
       }}>
-        <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase" }}>
-          {tournamentName}
-        </span>
-        <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>·</span>
-        <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase" }}>
-          Arena {arenaNumber}
-        </span>
-        <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>·</span>
-        <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase" }}>
-          Round {round}
-        </span>
+        {/* Left: Arena + Round */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+          <span style={{ color: "rgba(255,255,255,0.55)", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>
+            Arena {arenaNumber}
+          </span>
+          <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 11 }}>·</span>
+          <span style={{ color: "rgba(255,255,255,0.55)", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>
+            Round {currentRound}
+          </span>
+        </div>
+
+        {/* Center: Timer */}
+        <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
+          <span style={{ color: timerColor, fontSize: 28, fontWeight: 900, fontFamily: "monospace", letterSpacing: 3 }}>
+            {formatTime(remaining)}
+          </span>
+        </div>
+
+        {/* Right: Tournament name — bigger, right-aligned */}
+        <div style={{ flexShrink: 0, textAlign: "right" }}>
+          <span style={{ color: "rgba(255,255,255,0.9)", fontSize: 22, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase" }}>
+            {match.tournamentName}
+          </span>
+        </div>
       </div>
 
-      {/* ── Main lower third ── */}
-      <div style={{ display: "flex", height: 110, position: "relative" }}>
-
-        {/* Blue panel */}
-        <div style={{
-          flex: 1,
-          background: "linear-gradient(135deg, #1a3a7a 0%, #1e4fd8 60%, #2563eb 100%)",
-          clipPath: "polygon(0 0, 100% 0, calc(100% - 70px) 100%, 0 100%)",
-          display: "flex",
-          alignItems: "center",
-          paddingLeft: 28,
-          paddingRight: 90,
-          gap: 16,
-        }}>
-          {blueFlag && (
-            <span style={{ fontSize: 36, lineHeight: 1, flexShrink: 0 }}>{blueFlag}</span>
-          )}
-          <div style={{ minWidth: 0 }}>
-            <div style={{
-              color: "#ffffff",
-              fontSize: nameFontSize(blueName),
-              fontWeight: 900,
-              lineHeight: 1.1,
-              textTransform: "uppercase",
-              letterSpacing: nameLetterSpacing(blueName),
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}>
-              {blueName}
-            </div>
-          </div>
-        </div>
-
-        {/* Center score area */}
-        <div style={{
-          position: "absolute",
-          left: "50%",
-          top: 0,
-          bottom: 0,
-          transform: "translateX(-50%)",
-          display: "flex",
-          alignItems: "center",
-          gap: 0,
-          zIndex: 10,
-        }}>
-          {/* Blue score */}
-          <div style={{
-            background: "#1e40af",
-            color: "#ffffff",
-            fontSize: 64,
-            fontWeight: 900,
-            lineHeight: 1,
-            width: 150,
-            height: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            borderRight: "2px solid rgba(255,255,255,0.15)",
-          }}>
-            {blueScore}
-          </div>
-
-          {/* Timer pill */}
-          <div style={{
-            position: "absolute",
-            top: -28,
-            left: "50%",
-            transform: "translateX(-50%)",
-            background: "#111827",
-            border: "2px solid rgba(255,255,255,0.15)",
-            borderRadius: 999,
-            padding: "4px 18px",
-            color: timerColor,
-            fontSize: 18,
-            fontWeight: 900,
-            letterSpacing: 2,
-            whiteSpace: "nowrap",
-            fontFamily: "monospace",
-            boxShadow: "0 2px 12px rgba(0,0,0,0.5)",
-          }}>
-            {formatTime(remaining)}
-          </div>
-
-          {/* Red score */}
-          <div style={{
-            background: "#991b1b",
-            color: "#ffffff",
-            fontSize: 64,
-            fontWeight: 900,
-            lineHeight: 1,
-            width: 150,
-            height: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            borderLeft: "2px solid rgba(255,255,255,0.15)",
-          }}>
-            {redScore}
-          </div>
-        </div>
-
-        {/* Red panel */}
-        <div style={{
-          flex: 1,
-          background: "linear-gradient(225deg, #7a1a1a 0%, #d81e1e 60%, #ef4444 100%)",
-          clipPath: "polygon(70px 0, 100% 0, 100% 100%, 0 100%)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "flex-end",
-          paddingRight: 28,
-          paddingLeft: 90,
-          gap: 16,
-        }}>
-          <div style={{ minWidth: 0, textAlign: "right" }}>
-            <div style={{
-              color: "#ffffff",
-              fontSize: nameFontSize(redName),
-              fontWeight: 900,
-              lineHeight: 1.1,
-              textTransform: "uppercase",
-              letterSpacing: nameLetterSpacing(redName),
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}>
-              {redName}
-            </div>
-          </div>
-          {redFlag && (
-            <span style={{ fontSize: 36, lineHeight: 1, flexShrink: 0 }}>{redFlag}</span>
-          )}
-        </div>
+      {/* ── Main: two corner panels ── */}
+      <div style={{ flex: 1, display: "flex" }}>
+        <CornerPanel
+          corner="blue"
+          competitor={blueComp}
+          score={totalBlue}
+          leading={totalBlue > totalRed}
+          judgeOrder={judgeOrder}
+          recentTaps={recentTaps}
+          adminEvents={adminEvents}
+          warnings={match.warnings}
+          currentRound={currentRound}
+          recentAdmin={recentAdminBlue}
+        />
+        <div style={{ width: 2, background: "rgba(0,0,0,0.4)", flexShrink: 0 }} />
+        <CornerPanel
+          corner="red"
+          competitor={redComp}
+          score={totalRed}
+          leading={totalRed > totalBlue}
+          judgeOrder={judgeOrder}
+          recentTaps={recentTaps}
+          adminEvents={adminEvents}
+          warnings={match.warnings}
+          currentRound={currentRound}
+          recentAdmin={recentAdminRed}
+        />
       </div>
     </div>
   );
