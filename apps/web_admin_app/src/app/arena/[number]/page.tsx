@@ -89,41 +89,36 @@ interface RecentTap {
 }
 
 interface JudgeIndicatorProps {
-  number: number;       // 1-based judge number
-  tap: RecentTap | null; // null = no recent tap
+  number: number;
+  tap: RecentTap | null;
   corner: "red" | "blue";
+  type: "punch" | "kick";
 }
 
-function JudgeIndicator({ number, tap, corner }: JudgeIndicatorProps) {
-  const isRed = corner === "red";
-  const active = tap !== null && tap.side === corner;
+function JudgeIndicator({ number, tap, corner, type }: JudgeIndicatorProps) {
+  const isRed  = corner === "red";
+  const active = tap !== null && tap.side === corner &&
+    (type === "punch" ? tap.points === 1 : tap.points !== 1);
 
   return (
     <div
       className="flex flex-col items-center justify-center rounded-xl transition-all duration-200 flex-shrink-0"
       style={{
-        width:  "min(5vw, 72px)",
-        height: "min(5vw, 72px)",
-        background: active
-          ? "rgba(255,255,255,0.95)"
-          : "rgba(0,0,0,0.25)",
-        boxShadow: active
-          ? "0 0 20px rgba(255,255,255,0.5)"
-          : "none",
+        width:  "min(4.5vw, 62px)",
+        height: "min(3.8vw, 52px)",
+        background: active ? "rgba(255,255,255,0.95)" : "rgba(0,0,0,0.25)",
+        boxShadow: active ? "0 0 20px rgba(255,255,255,0.5)" : "none",
         transform: active ? "scale(1.08)" : "scale(1)",
       }}
     >
       {active ? (
         <>
-          <span style={{ fontSize: "min(2.2vw, 28px)", lineHeight: 1 }}>
-            {tap!.points === 1 ? "👊" : "🦶"}
+          <span style={{ fontSize: "min(1.8vw, 22px)", lineHeight: 1 }}>
+            {type === "punch" ? "👊" : "🦶"}
           </span>
           <span
             className="font-black leading-none mt-0.5"
-            style={{
-              fontSize: "min(1.4vw, 16px)",
-              color: isRed ? "#c42e28" : "#0072c4",
-            }}
+            style={{ fontSize: "min(1.1vw, 13px)", color: isRed ? "#c42e28" : "#0072c4" }}
           >
             J{number}
           </span>
@@ -131,10 +126,7 @@ function JudgeIndicator({ number, tap, corner }: JudgeIndicatorProps) {
       ) : (
         <span
           className="font-bold"
-          style={{
-            fontSize: "min(1.6vw, 18px)",
-            color: "rgba(255,255,255,0.2)",
-          }}
+          style={{ fontSize: "min(1.4vw, 16px)", color: "rgba(255,255,255,0.2)" }}
         >
           J{number}
         </span>
@@ -152,10 +144,9 @@ interface CornerPanelProps {
   leading: boolean;
   judgeOrder: string[];
   recentTaps: Map<string, RecentTap>;
-  recentAdmin: RecentAdminAction | null;
 }
 
-function CornerPanel({ corner, competitor, score, leading, judgeOrder, recentTaps, recentAdmin }: CornerPanelProps) {
+function CornerPanel({ corner, competitor, score, leading, judgeOrder, recentTaps }: CornerPanelProps) {
   const isRed  = corner === "red";
   const bgMain = isRed ? "#f53a32" : "#008dee";
   const bgDark = isRed ? "#c42e28" : "#0072c4";
@@ -198,25 +189,18 @@ function CornerPanel({ corner, competitor, score, leading, judgeOrder, recentTap
           )}
         </div>
 
-        {/* Judge indicators + Dewan indicator */}
-        <div className="flex gap-2 flex-shrink-0 items-center">
-          {slots.map((slot) => (
-            <JudgeIndicator
-              key={slot.number}
-              number={slot.number}
-              tap={slot.tap}
-              corner={corner}
-            />
-          ))}
-          <div
-            style={{
-              width: "1px",
-              height: "min(4vw, 56px)",
-              background: "rgba(255,255,255,0.15)",
-              margin: "0 4px",
-            }}
-          />
-          <AdminIndicator action={recentAdmin} corner={corner} />
+        {/* Judge indicators — punch row + kick row */}
+        <div className="flex flex-col gap-1.5 flex-shrink-0">
+          <div className="flex gap-1.5">
+            {slots.map((slot) => (
+              <JudgeIndicator key={`punch-${slot.number}`} number={slot.number} tap={slot.tap} corner={corner} type="punch" />
+            ))}
+          </div>
+          <div className="flex gap-1.5">
+            {slots.map((slot) => (
+              <JudgeIndicator key={`kick-${slot.number}`} number={slot.number} tap={slot.tap} corner={corner} type="kick" />
+            ))}
+          </div>
         </div>
       </div>
 
@@ -490,7 +474,6 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
           leading={totalBlue > totalRed}
           judgeOrder={judgeOrder}
           recentTaps={recentTaps}
-          recentAdmin={recentAdminBlue}
         />
         <div className="w-1 flex-shrink-0 bg-black/30" />
         <CornerPanel
@@ -500,7 +483,6 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
           leading={totalRed > totalBlue}
           judgeOrder={judgeOrder}
           recentTaps={recentTaps}
-          recentAdmin={recentAdminRed}
         />
       </div>
 
