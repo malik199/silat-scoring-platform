@@ -68,6 +68,8 @@ export interface Match {
   createdAt: string;
   /** Stored when match completes — null/undefined for old matches or draws */
   winnerCorner?: "red" | "blue" | "draw" | null;
+  /** Keyed as `r{round}_{side}_w1` / `r{round}_{side}_w2` */
+  warnings?: Record<string, boolean>;
 }
 
 // ─── Timer helpers ────────────────────────────────────────────────────────────
@@ -304,19 +306,33 @@ export interface AdminEvent {
   id: string;
   side: "red" | "blue";
   points: number; // positive = takedown/sweep, negative = penalty
+  round?: number;
   createdAt: { seconds: number } | null;
 }
 
 export async function addAdminEvent(
   matchId: string,
   side: "red" | "blue",
-  points: number
+  points: number,
+  round?: number
 ): Promise<void> {
   await addDoc(collection(db, COL, matchId, "adminEvents"), {
     side,
     points,
+    ...(round !== undefined ? { round } : {}),
     createdAt: serverTimestamp(),
   });
+}
+
+export async function setWarning(
+  matchId: string,
+  side: "red" | "blue",
+  warningType: "w1" | "w2",
+  round: number,
+  active: boolean
+): Promise<void> {
+  const key = `r${round}_${side}_${warningType}`;
+  await updateDoc(doc(db, COL, matchId), { [`warnings.${key}`]: active });
 }
 
 export async function deleteAdminEvent(matchId: string, eventId: string): Promise<void> {

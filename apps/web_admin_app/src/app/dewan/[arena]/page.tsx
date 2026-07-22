@@ -14,6 +14,7 @@ import {
   subscribeSeriousViolations,
   addAdminEvent,
   deleteAdminEvent,
+  setWarning,
   computeConfirmedScores,
   computeRemainingSeconds,
   formatTime,
@@ -64,6 +65,61 @@ function adminTotals(events: AdminEvent[]): { red: number; blue: number } {
   return { red, blue };
 }
 
+// ─── Persistent penalty/warning indicators ────────────────────────────────────
+
+function IndicatorRow({
+  side, adminEvents, currentRound, warnings,
+}: {
+  side: "red" | "blue";
+  adminEvents: AdminEvent[];
+  currentRound: number;
+  warnings?: Record<string, boolean>;
+}) {
+  const w1  = warnings?.[`r${currentRound}_${side}_w1`]  === true;
+  const w2  = warnings?.[`r${currentRound}_${side}_w2`]  === true;
+  const m1  = adminEvents.some((e) => e.side === side && e.points === -1  && e.round === currentRound);
+  const m2  = adminEvents.some((e) => e.side === side && e.points === -2  && e.round === currentRound);
+  const m5  = adminEvents.some((e) => e.side === side && e.points === -5);
+  const m10 = adminEvents.some((e) => e.side === side && e.points === -10);
+
+  const items = [
+    { src: "/warning_1.svg",   active: w1,  label: "W1",  color: "warn"   },
+    { src: "/warning_2.svg",   active: w2,  label: "W2",  color: "warn"   },
+    { src: "/violation_1.svg", active: m1,  label: "-1",  color: "warn"   },
+    { src: "/violation_2.svg", active: m2,  label: "-2",  color: "warn"   },
+    { src: "/violation_5.svg", active: m5,  label: "-5",  color: "danger" },
+    { src: "/violation_10.svg",active: m10, label: "-10", color: "danger" },
+  ];
+
+  if (!items.some((i) => i.active)) return null;
+
+  return (
+    <div className="flex items-center gap-1.5 flex-wrap">
+      {items.map(({ src, active, label, color }) =>
+        active ? (
+          <div
+            key={label}
+            className={`flex items-center justify-center rounded-lg p-1 border ${
+              color === "warn"
+                ? "bg-warn/20 border-warn/50"
+                : "bg-danger/20 border-danger/50"
+            }`}
+            style={{ width: 34, height: 34 }}
+            title={label}
+          >
+            <img
+              src={src}
+              alt={label}
+              className="w-full h-full object-contain"
+              style={{ filter: "brightness(0) invert(1)" }}
+            />
+          </div>
+        ) : null
+      )}
+    </div>
+  );
+}
+
 // ─── Admin action button ──────────────────────────────────────────────────────
 
 function AdminBtn({
@@ -72,7 +128,7 @@ function AdminBtn({
   label: string;
   sublabel?: string;
   onClick: () => void;
-  variant: "red-positive" | "red-penalty" | "blue-positive" | "blue-penalty";
+  variant: "red-positive" | "red-penalty" | "blue-positive" | "blue-penalty" | "warn" | "warn-active";
   className?: string;
   disabled?: boolean;
 }) {
@@ -81,6 +137,8 @@ function AdminBtn({
     "red-penalty":   "bg-danger/10 text-danger border border-danger/30 hover:bg-danger/20",
     "blue-positive": "bg-blue-500 text-white hover:bg-blue-500/80",
     "blue-penalty":  "bg-blue-500/10 text-blue-400 border border-blue-500/30 hover:bg-blue-500/20",
+    "warn":          "bg-warn/10 text-warn border border-warn/30 hover:bg-warn/20",
+    "warn-active":   "bg-warn text-black border border-warn hover:bg-warn/80",
   }[variant];
 
   return (
@@ -150,6 +208,9 @@ export default function DewanPage() {
     return subscribeCompetitors(user.uid, setCompetitors);
   }, [user]);
 
+  const [jatohanVisible, setJatohanVisible] = useState<{ red: boolean; blue: boolean }>({ red: false, blue: false });
+  const jatohanTimerRef = useRef<{ red: ReturnType<typeof setTimeout> | null; blue: ReturnType<typeof setTimeout> | null }>({ red: null, blue: null });
+
   // Auto-stop guard — reset when match or round changes
   const autoStopFiredRef = useRef(false);
   useEffect(() => { autoStopFiredRef.current = false; }, [match?.id, match?.currentRound]);
@@ -185,7 +246,24 @@ export default function DewanPage() {
 
   async function apply(side: "red" | "blue", pts: number) {
     if (!match) return;
-    await addAdminEvent(match.id, side, pts);
+    // -1 and -2 are per-round; -5 and -10 persist all match; +3 is unaffected
+    const round = (pts === -1 || pts === -2) ? currentRound : undefined;
+    await addAdminEvent(match.id, side, pts, round);
+    if (pts === 3) {
+      if (jatohanTimerRef.current[side]) clearTimeout(jatohanTimerRef.current[side]!);
+      setJatohanVisible((v) => ({ ...v, [side]: true }));
+      jatohanTimerRef.current[side] = setTimeout(
+        () => setJatohanVisible((v) => ({ ...v, [side]: false })),
+        3000
+      );
+    }
+  }
+
+  async function handleWarning(side: "red" | "blue", type: "w1" | "w2") {
+    if (!match) return;
+    const key = `r${currentRound}_${side}_${type}`;
+    const current = match.warnings?.[key] === true;
+    await setWarning(match.id, side, type, currentRound, !current);
   }
 
   async function undoLast(side: "red" | "blue") {
@@ -436,6 +514,13 @@ export default function DewanPage() {
                 </>
               )}
             </div>
+            {jatohanVisible.blue && (
+              <div className="flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg bg-accent/10 border border-accent/30">
+                <img src="/jatohan_sah.svg" alt="+3" className="w-7 h-7 object-contain" style={{ filter: "brightness(0) invert(1)" }} />
+                <span className="text-sm font-bold text-accent">+3 Takedown/Sweep</span>
+              </div>
+            )}
+            <IndicatorRow side="blue" adminEvents={adminEvents} currentRound={currentRound} warnings={match.warnings} />
             <div className="grid grid-cols-4 gap-2">
               <AdminBtn
                 label="3" sublabel="Takedown / Sweep"
@@ -444,14 +529,44 @@ export default function DewanPage() {
                 className="col-span-4"
                 disabled={isRunning && !dirtyTime}
               />
-              {([-1, -2, -5, -10] as const).map((pts) => (
-                <AdminBtn
-                  key={pts} label={String(pts)} sublabel="Penalty"
-                  onClick={() => apply("blue", pts)}
-                  variant="blue-penalty"
-                  disabled={isRunning && !dirtyTime}
-                />
-              ))}
+              <AdminBtn
+                label="W1" sublabel="Warning 1"
+                onClick={() => handleWarning("blue", "w1")}
+                variant={match.warnings?.[`r${currentRound}_blue_w1`] ? "warn-active" : "warn"}
+                disabled={isRunning && !dirtyTime}
+              />
+              <AdminBtn
+                label="W2" sublabel="Warning 2"
+                onClick={() => handleWarning("blue", "w2")}
+                variant={match.warnings?.[`r${currentRound}_blue_w2`] ? "warn-active" : "warn"}
+                disabled={isRunning && !dirtyTime}
+              />
+              <AdminBtn
+                label="-1" sublabel="Penalty"
+                onClick={() => apply("blue", -1)}
+                variant="blue-penalty"
+                disabled={isRunning && !dirtyTime}
+              />
+              <AdminBtn
+                label="-2" sublabel="Penalty"
+                onClick={() => apply("blue", -2)}
+                variant="blue-penalty"
+                disabled={isRunning && !dirtyTime}
+              />
+              <AdminBtn
+                label="-5" sublabel="Penalty"
+                onClick={() => apply("blue", -5)}
+                variant="blue-penalty"
+                className="col-span-2"
+                disabled={isRunning && !dirtyTime}
+              />
+              <AdminBtn
+                label="-10" sublabel="Penalty"
+                onClick={() => apply("blue", -10)}
+                variant="blue-penalty"
+                className="col-span-2"
+                disabled={isRunning && !dirtyTime}
+              />
             </div>
             <button
               type="button"
@@ -474,6 +589,13 @@ export default function DewanPage() {
                 </>
               )}
             </div>
+            {jatohanVisible.red && (
+              <div className="flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg bg-accent/10 border border-accent/30">
+                <img src="/jatohan_sah.svg" alt="+3" className="w-7 h-7 object-contain" style={{ filter: "brightness(0) invert(1)" }} />
+                <span className="text-sm font-bold text-accent">+3 Takedown/Sweep</span>
+              </div>
+            )}
+            <IndicatorRow side="red" adminEvents={adminEvents} currentRound={currentRound} warnings={match.warnings} />
             <div className="grid grid-cols-4 gap-2">
               <AdminBtn
                 label="3" sublabel="Takedown / Sweep"
@@ -482,14 +604,44 @@ export default function DewanPage() {
                 className="col-span-4"
                 disabled={isRunning && !dirtyTime}
               />
-              {([-1, -2, -5, -10] as const).map((pts) => (
-                <AdminBtn
-                  key={pts} label={String(pts)} sublabel="Penalty"
-                  onClick={() => apply("red", pts)}
-                  variant="red-penalty"
-                  disabled={isRunning && !dirtyTime}
-                />
-              ))}
+              <AdminBtn
+                label="W1" sublabel="Warning 1"
+                onClick={() => handleWarning("red", "w1")}
+                variant={match.warnings?.[`r${currentRound}_red_w1`] ? "warn-active" : "warn"}
+                disabled={isRunning && !dirtyTime}
+              />
+              <AdminBtn
+                label="W2" sublabel="Warning 2"
+                onClick={() => handleWarning("red", "w2")}
+                variant={match.warnings?.[`r${currentRound}_red_w2`] ? "warn-active" : "warn"}
+                disabled={isRunning && !dirtyTime}
+              />
+              <AdminBtn
+                label="-1" sublabel="Penalty"
+                onClick={() => apply("red", -1)}
+                variant="red-penalty"
+                disabled={isRunning && !dirtyTime}
+              />
+              <AdminBtn
+                label="-2" sublabel="Penalty"
+                onClick={() => apply("red", -2)}
+                variant="red-penalty"
+                disabled={isRunning && !dirtyTime}
+              />
+              <AdminBtn
+                label="-5" sublabel="Penalty"
+                onClick={() => apply("red", -5)}
+                variant="red-penalty"
+                className="col-span-2"
+                disabled={isRunning && !dirtyTime}
+              />
+              <AdminBtn
+                label="-10" sublabel="Penalty"
+                onClick={() => apply("red", -10)}
+                variant="red-penalty"
+                className="col-span-2"
+                disabled={isRunning && !dirtyTime}
+              />
             </div>
             <button
               type="button"
