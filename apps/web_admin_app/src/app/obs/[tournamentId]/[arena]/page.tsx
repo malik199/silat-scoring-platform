@@ -60,7 +60,7 @@ interface RecentAdmin {
   at: number;
 }
 
-// ─── Judge indicator ──────────────────────────────────────────────────────────
+// ─── Judge indicator (compact for lower-third) ────────────────────────────────
 
 function JudgeIndicator({ number, tap, corner, type }: {
   number: number;
@@ -68,64 +68,49 @@ function JudgeIndicator({ number, tap, corner, type }: {
   corner: "red" | "blue";
   type: "punch" | "kick";
 }) {
-  const isRed  = corner === "red";
   const active = tap !== null && tap.side === corner &&
     (type === "punch" ? tap.points === 1 : tap.points !== 1);
 
   return (
     <div style={{
-      width: 44, height: 34, borderRadius: 8, flexShrink: 0,
+      width: 34, height: 22, borderRadius: 5, flexShrink: 0,
       background:  active ? "rgba(255,255,255,0.95)" : "rgba(0,0,0,0.3)",
-      boxShadow:   active ? "0 0 14px rgba(255,255,255,0.5)" : "none",
-      transform:   active ? "scale(1.08)" : "scale(1)",
+      boxShadow:   active ? "0 0 10px rgba(255,255,255,0.5)" : "none",
+      transform:   active ? "scale(1.1)" : "scale(1)",
       display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
       transition: "all 0.2s",
     }}>
       {active ? (
         <>
-          <span style={{ fontSize: 16, lineHeight: 1 }}>{type === "punch" ? "👊" : "🦶"}</span>
-          <span style={{ fontSize: 10, fontWeight: 900, lineHeight: 1, marginTop: 1, color: isRed ? "#c42e28" : "#0072c4" }}>J{number}</span>
+          <span style={{ fontSize: 11, lineHeight: 1 }}>{type === "punch" ? "👊" : "🦶"}</span>
+          <span style={{ fontSize: 8, fontWeight: 900, lineHeight: 1,
+            color: corner === "red" ? "#c42e28" : "#0072c4" }}>J{number}</span>
         </>
       ) : (
-        <span style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.22)" }}>J{number}</span>
+        <span style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.25)" }}>J{number}</span>
       )}
     </div>
   );
 }
 
-// ─── Corner panel ─────────────────────────────────────────────────────────────
+// ─── Build active indicator list for one corner ───────────────────────────────
 
-function CornerPanel({ corner, competitor, score, leading, judgeOrder, recentTaps, adminEvents, warnings, currentRound, recentAdmin }: {
-  corner: "red" | "blue";
-  competitor: Competitor | null | undefined;
-  score: number;
-  leading: boolean;
-  judgeOrder: string[];
-  recentTaps: Map<string, RecentTap>;
-  adminEvents: AdminEvent[];
-  warnings?: Record<string, boolean>;
-  currentRound: number;
-  recentAdmin: RecentAdmin | null;
-}) {
-  const isRed    = corner === "red";
-  const bgHeader = isRed ? "rgba(140,18,18,0.93)" : "rgba(8,55,145,0.93)";
-  const bgScore  = isRed ? "rgba(185,32,32,0.80)" : "rgba(14,80,185,0.80)";
-
-  const slots = Array.from({ length: 3 }, (_, i) => {
-    const judgeId = judgeOrder[i] ?? null;
-    return { number: i + 1, tap: judgeId ? (recentTaps.get(judgeId) ?? null) : null };
-  });
-
-  const w1      = warnings?.[`r${currentRound}_${corner}_w1`]  === true;
-  const w2      = warnings?.[`r${currentRound}_${corner}_w2`]  === true;
-  const m1      = warnings?.[`r${currentRound}_${corner}_m1`]  === true;
-  const m2      = warnings?.[`r${currentRound}_${corner}_m2`]  === true;
-  const m5      = warnings?.[`r${currentRound}_${corner}_m5`]  === true;
-  const m10     = warnings?.[`r${currentRound}_${corner}_m10`] === true;
-  const dq      = warnings?.[`${corner}_dq`] === true;
+function activeIndicators(
+  corner: "red" | "blue",
+  currentRound: number,
+  warnings: Record<string, boolean> | undefined,
+  recentAdmin: RecentAdmin | null,
+) {
+  const w1  = warnings?.[`r${currentRound}_${corner}_w1`]  === true;
+  const w2  = warnings?.[`r${currentRound}_${corner}_w2`]  === true;
+  const m1  = warnings?.[`r${currentRound}_${corner}_m1`]  === true;
+  const m2  = warnings?.[`r${currentRound}_${corner}_m2`]  === true;
+  const m5  = warnings?.[`r${currentRound}_${corner}_m5`]  === true;
+  const m10 = warnings?.[`r${currentRound}_${corner}_m10`] === true;
+  const dq  = warnings?.[`${corner}_dq`] === true;
   const jatohan = recentAdmin !== null && recentAdmin.points > 0;
 
-  const indicators = [
+  return [
     { src: "/jatohan_sah.svg",  active: jatohan, bg: "rgba(0,208,132,0.5)",   border: "rgba(0,208,132,0.85)",  large: true  },
     { src: "/warning_1.svg",    active: w1,      bg: "rgba(250,173,20,0.45)", border: "rgba(250,173,20,0.75)", large: false },
     { src: "/warning_2.svg",    active: w2,      bg: "rgba(250,173,20,0.45)", border: "rgba(250,173,20,0.75)", large: false },
@@ -134,86 +119,16 @@ function CornerPanel({ corner, competitor, score, leading, judgeOrder, recentTap
     { src: "/violation_5.svg",  active: m5,      bg: "rgba(255,77,79,0.45)",  border: "rgba(255,77,79,0.75)",  large: false },
     { src: "/violation_10.svg", active: m10,     bg: "rgba(255,77,79,0.45)",  border: "rgba(255,77,79,0.75)",  large: false },
     { src: "/violation_dq.svg", active: dq,      bg: "rgba(255,77,79,0.45)",  border: "rgba(255,77,79,0.75)",  large: false },
-  ];
-  const active = indicators.filter((i) => i.active);
+  ].filter((i) => i.active);
+}
 
-  const name   = competitor ? `${competitor.firstName} ${competitor.lastName}` : "—";
-  const school = competitor
-    ? [competitor.schoolName, flag(competitor.country), competitor.country].filter(Boolean).join("  ")
-    : "";
-
+function Divider() {
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-
-      {/* ── 3-column header ── */}
-      <div style={{ display: "flex", alignItems: "stretch", background: bgHeader, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-
-        {/* Col 1: Name + school */}
-        <div style={{
-          flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center",
-          padding: "12px 18px",
-          borderRight: "1px solid rgba(255,255,255,0.1)",
-        }}>
-          <div style={{ color: "#fff", fontWeight: 900, fontSize: 26, lineHeight: 1.15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {name}
-          </div>
-          {school && (
-            <div style={{ color: "rgba(255,255,255,0.6)", fontWeight: 600, fontSize: 13, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {school}
-            </div>
-          )}
-        </div>
-
-        {/* Col 2: Jatohan + penalty indicators */}
-        <div style={{
-          minWidth: 130, display: "flex", flexWrap: "wrap",
-          alignItems: "center", justifyContent: "center", alignContent: "center",
-          gap: 5, padding: "10px 12px",
-          borderRight: "1px solid rgba(255,255,255,0.1)",
-        }}>
-          {active.length === 0 ? (
-            <span style={{ color: "rgba(255,255,255,0.12)", fontSize: 12, fontWeight: 600 }}>—</span>
-          ) : active.map(({ src, bg, border, large }, idx) => (
-            <div key={idx} style={{
-              borderRadius: 8, flexShrink: 0,
-              width:  large ? 66 : 36,
-              height: large ? 66 : 36,
-              background: bg,
-              border: `2px solid ${border}`,
-              padding: large ? 7 : 4,
-              boxShadow: `0 0 ${large ? 18 : 8}px ${border}`,
-            }}>
-              <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "contain", filter: "brightness(0) invert(1)" }} />
-            </div>
-          ))}
-        </div>
-
-        {/* Col 3: Judge indicators */}
-        <div style={{
-          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-          gap: 5, padding: "10px 14px", flexShrink: 0,
-        }}>
-          <div style={{ display: "flex", gap: 5 }}>
-            {slots.map((s) => <JudgeIndicator key={`p${s.number}`} number={s.number} tap={s.tap} corner={corner} type="punch" />)}
-          </div>
-          <div style={{ display: "flex", gap: 5 }}>
-            {slots.map((s) => <JudgeIndicator key={`k${s.number}`} number={s.number} tap={s.tap} corner={corner} type="kick" />)}
-          </div>
-        </div>
-
-      </div>
-
-      {/* ── Score ── */}
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", background: bgScore }}>
-        <div style={{
-          color: "#fff", fontWeight: 900, fontSize: "min(13vw, 25vh)", lineHeight: 1,
-          ...(leading ? { outline: "4px solid rgba(255,255,255,0.9)", outlineOffset: 10, borderRadius: 8 } : {}),
-        }}>
-          {score}
-        </div>
-      </div>
-
-    </div>
+    <div style={{
+      width: 1, alignSelf: "stretch", flexShrink: 0,
+      background: "rgba(255,255,255,0.12)",
+      margin: "10px 0",
+    }} />
   );
 }
 
@@ -230,16 +145,13 @@ export default function OBSPage() {
   const [adminEvents, setAdminEvents] = useState<AdminEvent[]>([]);
   const [remaining,   setRemaining]   = useState(120);
 
-  // Judge tap flash tracking
   const prevScoreLen = useRef(0);
   const [recentTaps, setRecentTaps] = useState<Map<string, RecentTap>>(new Map());
 
-  // Admin action flash tracking (jatohan)
   const prevAdminLen = useRef(0);
   const [recentAdminRed,  setRecentAdminRed]  = useState<RecentAdmin | null>(null);
   const [recentAdminBlue, setRecentAdminBlue] = useState<RecentAdmin | null>(null);
 
-  // Make body transparent for OBS browser source
   useEffect(() => {
     document.body.style.background = "transparent";
     document.documentElement.style.background = "transparent";
@@ -249,7 +161,6 @@ export default function OBSPage() {
     };
   }, []);
 
-  // Subscribe to active match for this tournament + arena
   useEffect(() => {
     const q = query(collection(db, "matches"), where("tournamentId", "==", tournamentId));
     return onSnapshot(q, (snap) => {
@@ -260,7 +171,6 @@ export default function OBSPage() {
     }, () => setMatch(null));
   }, [tournamentId, arenaNumber]);
 
-  // Competitors
   useEffect(() => {
     if (!match) { setRedComp(null); setBlueComp(null); return; }
     const unsubRed  = subscribeCompetitor(match.redCornerCompetitorId,  setRedComp);
@@ -268,7 +178,6 @@ export default function OBSPage() {
     return () => { unsubRed(); unsubBlue(); };
   }, [match?.id]);
 
-  // Score + admin events
   useEffect(() => {
     if (!match) {
       setScoreEvents([]); setAdminEvents([]);
@@ -281,7 +190,6 @@ export default function OBSPage() {
     return () => { unsubScore(); unsubAdmin(); };
   }, [match?.id]);
 
-  // Detect new score events → record judge tap
   useEffect(() => {
     const newEvents = scoreEvents.slice(prevScoreLen.current);
     prevScoreLen.current = scoreEvents.length;
@@ -294,7 +202,6 @@ export default function OBSPage() {
     });
   }, [scoreEvents]);
 
-  // Expire taps after 3s
   useEffect(() => {
     const id = setInterval(() => {
       const now = Date.now();
@@ -309,7 +216,6 @@ export default function OBSPage() {
     return () => clearInterval(id);
   }, []);
 
-  // Detect new admin events → jatohan flash
   useEffect(() => {
     const newEvents = adminEvents.slice(prevAdminLen.current);
     prevAdminLen.current = adminEvents.length;
@@ -322,7 +228,6 @@ export default function OBSPage() {
     }
   }, [adminEvents]);
 
-  // Expire admin flashes after 4s
   useEffect(() => {
     const id = setInterval(() => {
       const now = Date.now();
@@ -332,7 +237,6 @@ export default function OBSPage() {
     return () => clearInterval(id);
   }, []);
 
-  // Timer tick
   const matchRef = useRef(match);
   matchRef.current = match;
   useEffect(() => {
@@ -344,7 +248,6 @@ export default function OBSPage() {
     return () => clearInterval(id);
   }, [match?.id, match?.timerRunning, match?.timerElapsedSeconds]);
 
-  // Stable judge order
   const judgeOrder = useMemo(() => {
     const seen = new Set<string>();
     const order: string[] = [];
@@ -354,14 +257,9 @@ export default function OBSPage() {
     return order;
   }, [scoreEvents]);
 
+  // Render nothing visible when no match is running (transparent OBS source)
   if (!match) {
-    return (
-      <div style={{ background: "transparent" }} className="w-screen h-screen flex items-end justify-center pb-8">
-        <p style={{ color: "rgba(255,255,255,0.15)", fontSize: 14, fontFamily: "sans-serif" }}>
-          No match in progress · Arena {arenaNumber}
-        </p>
-      </div>
-    );
+    return <div style={{ background: "transparent" }} className="w-screen h-screen" />;
   }
 
   const currentRound = match.currentRound ?? 1;
@@ -373,73 +271,166 @@ export default function OBSPage() {
   const isExpired  = remaining <= 0;
   const timerColor = isExpired ? "#ef4444" : match.timerRunning ? "#facc15" : "#ffffff";
 
+  const blueName   = blueComp ? `${blueComp.firstName} ${blueComp.lastName}` : "—";
+  const blueSchool = blueComp
+    ? [blueComp.schoolName, flag(blueComp.country), blueComp.country].filter(Boolean).join("  ")
+    : "";
+  const redName   = redComp ? `${redComp.firstName} ${redComp.lastName}` : "—";
+  const redSchool = redComp
+    ? [redComp.schoolName, flag(redComp.country), redComp.country].filter(Boolean).join("  ")
+    : "";
+
+  const slots = Array.from({ length: 3 }, (_, i) => {
+    const judgeId = judgeOrder[i] ?? null;
+    return { number: i + 1, tap: judgeId ? (recentTaps.get(judgeId) ?? null) : null };
+  });
+
+  const blueIcons = activeIndicators("blue", currentRound, match.warnings, recentAdminBlue);
+  const redIcons  = activeIndicators("red",  currentRound, match.warnings, recentAdminRed);
+
+  const iconCell = (icons: ReturnType<typeof activeIndicators>) => (
+    <div style={{ display: "flex", gap: 5, alignItems: "center", flexShrink: 0, minWidth: 28 }}>
+      {icons.length === 0 ? (
+        <span style={{ color: "rgba(255,255,255,0.1)", fontSize: 11 }}>—</span>
+      ) : icons.map(({ src, bg, border, large }, i) => (
+        <div key={i} style={{
+          width: large ? 36 : 24, height: large ? 36 : 24,
+          borderRadius: 5, background: bg, border: `1.5px solid ${border}`,
+          padding: large ? 4 : 3,
+          boxShadow: `0 0 ${large ? 12 : 5}px ${border}`,
+          flexShrink: 0,
+        }}>
+          <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "contain", filter: "brightness(0) invert(1)" }} />
+        </div>
+      ))}
+    </div>
+  );
+
+  const judgeCell = (corner: "red" | "blue") => (
+    <div style={{ display: "flex", flexDirection: "column", gap: 4, flexShrink: 0 }}>
+      <div style={{ display: "flex", gap: 3 }}>
+        {slots.map((s) => <JudgeIndicator key={`${corner}p${s.number}`} number={s.number} tap={s.tap} corner={corner} type="punch" />)}
+      </div>
+      <div style={{ display: "flex", gap: 3 }}>
+        {slots.map((s) => <JudgeIndicator key={`${corner}k${s.number}`} number={s.number} tap={s.tap} corner={corner} type="kick" />)}
+      </div>
+    </div>
+  );
+
   return (
     <div
       style={{ background: "transparent", fontFamily: "'Arial Black', Arial, sans-serif", userSelect: "none" }}
-      className="w-screen h-screen flex flex-col"
+      className="w-screen h-screen"
     >
-      {/* ── Top bar ── */}
+      {/* ── Lower-third strip ── */}
       <div style={{
-        display: "flex", alignItems: "center",
-        background: "rgba(0,0,0,0.78)",
-        padding: "8px 28px",
-        gap: 20,
-        backdropFilter: "blur(6px)",
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
+        position: "fixed", bottom: 0, left: 0, right: 0,
+        display: "flex", height: 88,
+        backdropFilter: "blur(4px)",
+        borderTop: "2px solid rgba(255,255,255,0.07)",
       }}>
-        {/* Left: Arena + Round */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
-          <span style={{ color: "rgba(255,255,255,0.55)", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>
-            Arena {arenaNumber}
-          </span>
-          <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 11 }}>·</span>
-          <span style={{ color: "rgba(255,255,255,0.55)", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>
-            Round {currentRound}
-          </span>
+
+        {/* ── Blue corner (left): Name | Icons | Judges | Score ── */}
+        <div style={{
+          flex: 1, display: "flex", alignItems: "center", gap: 10,
+          background: "rgba(8,55,145,0.92)", padding: "0 14px",
+          overflow: "hidden",
+        }}>
+          {/* 1. Name + School */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ color: "#fff", fontWeight: 900, fontSize: 18, lineHeight: 1.2,
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {blueName}
+            </div>
+            {blueSchool && (
+              <div style={{ color: "rgba(255,255,255,0.55)", fontWeight: 600, fontSize: 11, marginTop: 2,
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {blueSchool}
+              </div>
+            )}
+          </div>
+
+          <Divider />
+
+          {/* 2. Jatohan + penalty icons */}
+          {iconCell(blueIcons)}
+
+          <Divider />
+
+          {/* 3. Judge indicators */}
+          {judgeCell("blue")}
+
+          <Divider />
+
+          {/* 4. Score */}
+          <div style={{
+            fontSize: 50, fontWeight: 900, lineHeight: 1, flexShrink: 0,
+            minWidth: 54, textAlign: "center",
+            color: totalBlue > totalRed ? "#facc15" : "#fff",
+          }}>
+            {totalBlue}
+          </div>
         </div>
 
-        {/* Center: Timer */}
-        <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
-          <span style={{ color: timerColor, fontSize: 28, fontWeight: 900, fontFamily: "monospace", letterSpacing: 3 }}>
+        {/* ── Center: timer + round ── */}
+        <div style={{
+          background: "rgba(0,0,0,0.88)", flexShrink: 0,
+          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+          padding: "0 20px", minWidth: 118,
+          borderLeft:  "1px solid rgba(255,255,255,0.06)",
+          borderRight: "1px solid rgba(255,255,255,0.06)",
+        }}>
+          <span style={{ color: timerColor, fontSize: 24, fontWeight: 900, fontFamily: "monospace", letterSpacing: 2 }}>
             {formatTime(remaining)}
           </span>
-        </div>
-
-        {/* Right: Tournament name — bigger, right-aligned */}
-        <div style={{ flexShrink: 0, textAlign: "right" }}>
-          <span style={{ color: "rgba(255,255,255,0.9)", fontSize: 22, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase" }}>
-            {match.tournamentName}
+          <span style={{ color: "rgba(255,255,255,0.38)", fontSize: 10, fontWeight: 700,
+            letterSpacing: 2, textTransform: "uppercase", marginTop: 3 }}>
+            R{currentRound} · A{arenaNumber}
           </span>
         </div>
-      </div>
 
-      {/* ── Main: two corner panels ── */}
-      <div style={{ flex: 1, display: "flex" }}>
-        <CornerPanel
-          corner="blue"
-          competitor={blueComp}
-          score={totalBlue}
-          leading={totalBlue > totalRed}
-          judgeOrder={judgeOrder}
-          recentTaps={recentTaps}
-          adminEvents={adminEvents}
-          warnings={match.warnings}
-          currentRound={currentRound}
-          recentAdmin={recentAdminBlue}
-        />
-        <div style={{ width: 2, background: "rgba(0,0,0,0.4)", flexShrink: 0 }} />
-        <CornerPanel
-          corner="red"
-          competitor={redComp}
-          score={totalRed}
-          leading={totalRed > totalBlue}
-          judgeOrder={judgeOrder}
-          recentTaps={recentTaps}
-          adminEvents={adminEvents}
-          warnings={match.warnings}
-          currentRound={currentRound}
-          recentAdmin={recentAdminRed}
-        />
+        {/* ── Red corner (right, mirrored): Score | Judges | Icons | Name ── */}
+        <div style={{
+          flex: 1, display: "flex", alignItems: "center", gap: 10, flexDirection: "row-reverse",
+          background: "rgba(140,18,18,0.92)", padding: "0 14px",
+          overflow: "hidden",
+        }}>
+          {/* 1. Name + School (far right) */}
+          <div style={{ flex: 1, minWidth: 0, textAlign: "right" }}>
+            <div style={{ color: "#fff", fontWeight: 900, fontSize: 18, lineHeight: 1.2,
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {redName}
+            </div>
+            {redSchool && (
+              <div style={{ color: "rgba(255,255,255,0.55)", fontWeight: 600, fontSize: 11, marginTop: 2,
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {redSchool}
+              </div>
+            )}
+          </div>
+
+          <Divider />
+
+          {/* 2. Icons */}
+          {iconCell(redIcons)}
+
+          <Divider />
+
+          {/* 3. Judges */}
+          {judgeCell("red")}
+
+          <Divider />
+
+          {/* 4. Score (leftmost due to row-reverse = nearest center) */}
+          <div style={{
+            fontSize: 50, fontWeight: 900, lineHeight: 1, flexShrink: 0,
+            minWidth: 54, textAlign: "center",
+            color: totalRed > totalBlue ? "#facc15" : "#fff",
+          }}>
+            {totalRed}
+          </div>
+        </div>
+
       </div>
     </div>
   );
