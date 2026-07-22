@@ -104,21 +104,21 @@ function JudgeIndicator({ number, tap, corner, type }: JudgeIndicatorProps) {
     <div
       className="flex flex-col items-center justify-center rounded-xl transition-all duration-200 flex-shrink-0"
       style={{
-        width:  "min(4.5vw, 62px)",
-        height: "min(3.8vw, 52px)",
+        width:  "min(3.8vw, 50px)",
+        height: "min(3vw, 40px)",
         background: active ? "rgba(255,255,255,0.95)" : "rgba(0,0,0,0.25)",
-        boxShadow: active ? "0 0 20px rgba(255,255,255,0.5)" : "none",
+        boxShadow: active ? "0 0 16px rgba(255,255,255,0.5)" : "none",
         transform: active ? "scale(1.08)" : "scale(1)",
       }}
     >
       {active ? (
         <>
-          <span style={{ fontSize: "min(1.8vw, 22px)", lineHeight: 1 }}>
+          <span style={{ fontSize: "min(1.5vw, 18px)", lineHeight: 1 }}>
             {type === "punch" ? "👊" : "🦶"}
           </span>
           <span
             className="font-black leading-none mt-0.5"
-            style={{ fontSize: "min(1.1vw, 13px)", color: isRed ? "#c42e28" : "#0072c4" }}
+            style={{ fontSize: "min(0.9vw, 11px)", color: isRed ? "#c42e28" : "#0072c4" }}
           >
             J{number}
           </span>
@@ -126,7 +126,7 @@ function JudgeIndicator({ number, tap, corner, type }: JudgeIndicatorProps) {
       ) : (
         <span
           className="font-bold"
-          style={{ fontSize: "min(1.4vw, 16px)", color: "rgba(255,255,255,0.2)" }}
+          style={{ fontSize: "min(1.2vw, 14px)", color: "rgba(255,255,255,0.2)" }}
         >
           J{number}
         </span>
@@ -186,95 +186,89 @@ function CornerPanel({ corner, competitor, score, leading, judgeOrder, recentTap
 
   return (
     <div className="flex-1 flex flex-col" style={{ backgroundColor: bgMain }}>
-      {/* ── Header band: competitor info + judge indicators ── */}
-      <div
-        className="flex items-center gap-4 px-6 py-5"
-        style={{ backgroundColor: bgDark }}
-      >
-        {/* Competitor info */}
-        <div className="flex-1 min-w-0">
-          {competitor ? (
-            <>
-              <p
-                className="font-black text-white leading-tight"
-                style={{ fontSize: "min(3.5vw, 48px)" }}
-              >
-                {competitor.firstName} {competitor.lastName}
-              </p>
-              <p
-                className="font-semibold text-white/70 mt-1"
-                style={{ fontSize: "min(2vw, 28px)" }}
-              >
-                {[competitor.schoolName, competitor.country].filter(Boolean).join("  ·  ")}
-              </p>
-            </>
-          ) : (
-            <p className="text-white/30 font-bold" style={{ fontSize: "min(3vw, 40px)" }}>—</p>
-          )}
-        </div>
 
-        {/* Judge indicators — punch row + kick row */}
-        <div className="flex flex-col gap-1.5 flex-shrink-0">
-          <div className="flex gap-1.5">
-            {slots.map((slot) => (
-              <JudgeIndicator key={`punch-${slot.number}`} number={slot.number} tap={slot.tap} corner={corner} type="punch" />
-            ))}
-          </div>
-          <div className="flex gap-1.5">
-            {slots.map((slot) => (
-              <JudgeIndicator key={`kick-${slot.number}`} number={slot.number} tap={slot.tap} corner={corner} type="kick" />
-            ))}
-          </div>
-        </div>
+      {/* ── Section 1: Name and school ── */}
+      <div className="px-6 py-4" style={{ backgroundColor: bgDark }}>
+        {competitor ? (
+          <>
+            <p className="font-black text-white leading-tight" style={{ fontSize: "min(3.5vw, 48px)" }}>
+              {competitor.firstName} {competitor.lastName}
+            </p>
+            <p className="font-semibold text-white/70 mt-1" style={{ fontSize: "min(2vw, 26px)" }}>
+              {[competitor.schoolName, competitor.country].filter(Boolean).join("  ·  ")}
+            </p>
+          </>
+        ) : (
+          <p className="text-white/30 font-bold" style={{ fontSize: "min(3vw, 40px)" }}>—</p>
+        )}
       </div>
 
-      {/* ── Score + indicator strip ── */}
-      <div className="flex-1 flex flex-col">
-        {/* Indicator strip — always reserves space; icons appear when active */}
-        <div
-          className="flex items-center justify-center gap-3 px-6"
-          style={{ height: "min(9vw, 120px)", backgroundColor: "rgba(0,0,0,0.15)" }}
-        >
-          {activeIndicators.map(({ src, bg, border }, idx) => (
-            <div
-              key={idx}
-              className="rounded-xl flex-shrink-0"
-              style={{
-                width:  "min(6.5vw, 88px)",
-                height: "min(6.5vw, 88px)",
-                background: bg,
-                border: `2px solid ${border}`,
-                padding: "min(0.7vw, 10px)",
-                boxShadow: `0 0 16px ${border}`,
-              }}
-            >
-              <img
-                src={src}
-                alt=""
-                className="w-full h-full object-contain"
-                style={{ filter: "brightness(0) invert(1)" }}
-              />
-            </div>
-          ))}
-        </div>
-
-        {/* Score */}
-        <div className="flex-1 flex items-center justify-center">
-          <p
-            className="font-black text-white tabular-nums leading-none transition-all duration-300"
+      {/* ── Section 2: Takedown and violation indicators ── */}
+      <div
+        className="flex items-center justify-center gap-2 px-6"
+        style={{
+          height: "min(8vw, 100px)",
+          backgroundColor: "rgba(0,0,0,0.25)",
+          borderTop: "1px solid rgba(255,255,255,0.08)",
+          borderBottom: "1px solid rgba(255,255,255,0.08)",
+        }}
+      >
+        {activeIndicators.length === 0 ? (
+          <p className="font-semibold" style={{ fontSize: "min(1.4vw, 16px)", color: "rgba(255,255,255,0.12)" }}>
+            No penalties
+          </p>
+        ) : activeIndicators.map(({ src, bg, border }, idx) => (
+          <div
+            key={idx}
+            className="rounded-xl flex-shrink-0"
             style={{
-              fontSize: "min(28vw, 48vh)",
-              ...(leading ? {
-                outline: "6px solid rgba(255,255,255,0.9)",
-                outlineOffset: "16px",
-                borderRadius: "12px",
-              } : {}),
+              width:   "min(5.5vw, 72px)",
+              height:  "min(5.5vw, 72px)",
+              background: bg,
+              border: `2px solid ${border}`,
+              padding: "min(0.6vw, 8px)",
+              boxShadow: `0 0 14px ${border}`,
             }}
           >
-            {score}
-          </p>
+            <img src={src} alt="" className="w-full h-full object-contain" style={{ filter: "brightness(0) invert(1)" }} />
+          </div>
+        ))}
+      </div>
+
+      {/* ── Section 3: Judge indicators ── */}
+      <div
+        className="flex flex-col items-center justify-center gap-1.5 py-3"
+        style={{ backgroundColor: bgDark, borderBottom: "1px solid rgba(255,255,255,0.08)" }}
+      >
+        <div className="flex gap-2">
+          {slots.map((slot) => (
+            <JudgeIndicator key={`punch-${slot.number}`} number={slot.number} tap={slot.tap} corner={corner} type="punch" />
+          ))}
+        </div>
+        <div className="flex gap-2">
+          {slots.map((slot) => (
+            <JudgeIndicator key={`kick-${slot.number}`} number={slot.number} tap={slot.tap} corner={corner} type="kick" />
+          ))}
         </div>
       </div>
+
+      {/* ── Score ── */}
+      <div className="flex-1 flex items-center justify-center">
+        <p
+          className="font-black text-white tabular-nums leading-none transition-all duration-300"
+          style={{
+            fontSize: "min(28vw, 50vh)",
+            ...(leading ? {
+              outline: "6px solid rgba(255,255,255,0.9)",
+              outlineOffset: "16px",
+              borderRadius: "12px",
+            } : {}),
+          }}
+        >
+          {score}
+        </p>
+      </div>
+
     </div>
   );
 }
