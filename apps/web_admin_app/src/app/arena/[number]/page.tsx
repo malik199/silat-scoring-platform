@@ -174,13 +174,13 @@ function CornerPanel({ corner, competitor, score, leading, judgeOrder, recentTap
   const jatohan = recentAdmin !== null && recentAdmin.points > 0;
 
   const indicators = [
-    { src: "/jatohan_sah.svg",  active: jatohan, bg: "rgba(0,208,132,0.5)",   border: "rgba(0,208,132,0.8)"   },
-    { src: "/warning_1.svg",    active: w1,      bg: "rgba(250,173,20,0.45)", border: "rgba(250,173,20,0.75)" },
-    { src: "/warning_2.svg",    active: w2,      bg: "rgba(250,173,20,0.45)", border: "rgba(250,173,20,0.75)" },
-    { src: "/violation_1.svg",  active: m1,      bg: "rgba(250,173,20,0.45)", border: "rgba(250,173,20,0.75)" },
-    { src: "/violation_2.svg",  active: m2,      bg: "rgba(250,173,20,0.45)", border: "rgba(250,173,20,0.75)" },
-    { src: "/violation_5.svg",  active: m5,      bg: "rgba(255,77,79,0.45)",  border: "rgba(255,77,79,0.75)"  },
-    { src: "/violation_10.svg", active: m10,     bg: "rgba(255,77,79,0.45)",  border: "rgba(255,77,79,0.75)"  },
+    { src: "/jatohan_sah.svg",  active: jatohan, bg: "rgba(0,208,132,0.5)",   border: "rgba(0,208,132,0.8)",   large: true  },
+    { src: "/warning_1.svg",    active: w1,      bg: "rgba(250,173,20,0.45)", border: "rgba(250,173,20,0.75)", large: false },
+    { src: "/warning_2.svg",    active: w2,      bg: "rgba(250,173,20,0.45)", border: "rgba(250,173,20,0.75)", large: false },
+    { src: "/violation_1.svg",  active: m1,      bg: "rgba(250,173,20,0.45)", border: "rgba(250,173,20,0.75)", large: false },
+    { src: "/violation_2.svg",  active: m2,      bg: "rgba(250,173,20,0.45)", border: "rgba(250,173,20,0.75)", large: false },
+    { src: "/violation_5.svg",  active: m5,      bg: "rgba(255,77,79,0.45)",  border: "rgba(255,77,79,0.75)",  large: false },
+    { src: "/violation_10.svg", active: m10,     bg: "rgba(255,77,79,0.45)",  border: "rgba(255,77,79,0.75)",  large: false },
   ];
   const activeIndicators = indicators.filter((i) => i.active);
 
@@ -216,17 +216,17 @@ function CornerPanel({ corner, competitor, score, leading, judgeOrder, recentTap
         >
           {activeIndicators.length === 0 ? (
             <span style={{ fontSize: "min(1.2vw, 14px)", color: "rgba(255,255,255,0.12)", fontWeight: 600 }}>—</span>
-          ) : activeIndicators.map(({ src, bg, border }, idx) => (
+          ) : activeIndicators.map(({ src, bg, border, large }, idx) => (
             <div
               key={idx}
-              className="rounded-xl flex-shrink-0"
+              className={`rounded-xl flex-shrink-0${large ? " animate-pulse" : ""}`}
               style={{
-                width:      "min(3.6vw, 46px)",
-                height:     "min(3.6vw, 46px)",
+                width:      large ? "min(6.5vw, 84px)" : "min(3.6vw, 46px)",
+                height:     large ? "min(6.5vw, 84px)" : "min(3.6vw, 46px)",
                 background: bg,
                 border:     `2px solid ${border}`,
-                padding:    "min(0.4vw, 5px)",
-                boxShadow:  `0 0 10px ${border}`,
+                padding:    large ? "min(0.6vw, 8px)" : "min(0.4vw, 5px)",
+                boxShadow:  large ? `0 0 24px ${border}` : `0 0 10px ${border}`,
               }}
             >
               <img src={src} alt="" className="w-full h-full object-contain" style={{ filter: "brightness(0) invert(1)" }} />
