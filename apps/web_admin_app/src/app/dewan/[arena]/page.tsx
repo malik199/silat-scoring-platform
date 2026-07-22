@@ -128,17 +128,19 @@ function AdminBtn({
   label: string;
   sublabel?: string;
   onClick: () => void;
-  variant: "red-positive" | "red-penalty" | "blue-positive" | "blue-penalty" | "warn" | "warn-active";
+  variant: "red-positive" | "red-penalty" | "red-penalty-active" | "blue-positive" | "blue-penalty" | "blue-penalty-active" | "warn" | "warn-active";
   className?: string;
   disabled?: boolean;
 }) {
   const styles = {
-    "red-positive":  "bg-danger text-white hover:bg-danger/80",
-    "red-penalty":   "bg-danger/10 text-danger border border-danger/30 hover:bg-danger/20",
-    "blue-positive": "bg-blue-500 text-white hover:bg-blue-500/80",
-    "blue-penalty":  "bg-blue-500/10 text-blue-400 border border-blue-500/30 hover:bg-blue-500/20",
-    "warn":          "bg-warn/10 text-warn border border-warn/30 hover:bg-warn/20",
-    "warn-active":   "bg-warn text-black border border-warn hover:bg-warn/80",
+    "red-positive":        "bg-danger text-white hover:bg-danger/80",
+    "red-penalty":         "bg-danger/10 text-danger border border-danger/30 hover:bg-danger/20",
+    "red-penalty-active":  "bg-danger/35 text-danger border border-danger/70 hover:bg-danger/45",
+    "blue-positive":       "bg-blue-500 text-white hover:bg-blue-500/80",
+    "blue-penalty":        "bg-blue-500/10 text-blue-400 border border-blue-500/30 hover:bg-blue-500/20",
+    "blue-penalty-active": "bg-blue-500/35 text-blue-300 border border-blue-500/70 hover:bg-blue-500/45",
+    "warn":                "bg-warn/10 text-warn border border-warn/30 hover:bg-warn/20",
+    "warn-active":         "bg-warn text-black border border-warn hover:bg-warn/80",
   }[variant];
 
   return (
@@ -243,6 +245,22 @@ export default function DewanPage() {
   const winner    = totalRed !== totalBlue ? (totalRed > totalBlue ? "red" : "blue") : null;
 
   const confirmedTaps = confirmedEventIds.size;
+
+  // Pre-compute which penalty buttons are "lit" (at least one applied)
+  const penaltyActive = {
+    blue: {
+      "-1":  adminEvents.some((e) => e.side === "blue" && e.points === -1  && e.round === currentRound),
+      "-2":  adminEvents.some((e) => e.side === "blue" && e.points === -2  && e.round === currentRound),
+      "-5":  adminEvents.some((e) => e.side === "blue" && e.points === -5),
+      "-10": adminEvents.some((e) => e.side === "blue" && e.points === -10),
+    },
+    red: {
+      "-1":  adminEvents.some((e) => e.side === "red"  && e.points === -1  && e.round === currentRound),
+      "-2":  adminEvents.some((e) => e.side === "red"  && e.points === -2  && e.round === currentRound),
+      "-5":  adminEvents.some((e) => e.side === "red"  && e.points === -5),
+      "-10": adminEvents.some((e) => e.side === "red"  && e.points === -10),
+    },
+  } as const;
 
   async function apply(side: "red" | "blue", pts: number) {
     if (!match) return;
@@ -544,26 +562,26 @@ export default function DewanPage() {
               <AdminBtn
                 label="-1" sublabel="Penalty"
                 onClick={() => apply("blue", -1)}
-                variant="blue-penalty"
+                variant={penaltyActive.blue["-1"] ? "blue-penalty-active" : "blue-penalty"}
                 disabled={isRunning && !dirtyTime}
               />
               <AdminBtn
                 label="-2" sublabel="Penalty"
                 onClick={() => apply("blue", -2)}
-                variant="blue-penalty"
+                variant={penaltyActive.blue["-2"] ? "blue-penalty-active" : "blue-penalty"}
                 disabled={isRunning && !dirtyTime}
               />
               <AdminBtn
                 label="-5" sublabel="Penalty"
                 onClick={() => apply("blue", -5)}
-                variant="blue-penalty"
+                variant={penaltyActive.blue["-5"] ? "blue-penalty-active" : "blue-penalty"}
                 className="col-span-2"
                 disabled={isRunning && !dirtyTime}
               />
               <AdminBtn
                 label="-10" sublabel="Penalty"
                 onClick={() => apply("blue", -10)}
-                variant="blue-penalty"
+                variant={penaltyActive.blue["-10"] ? "blue-penalty-active" : "blue-penalty"}
                 className="col-span-2"
                 disabled={isRunning && !dirtyTime}
               />
@@ -619,26 +637,26 @@ export default function DewanPage() {
               <AdminBtn
                 label="-1" sublabel="Penalty"
                 onClick={() => apply("red", -1)}
-                variant="red-penalty"
+                variant={penaltyActive.red["-1"] ? "red-penalty-active" : "red-penalty"}
                 disabled={isRunning && !dirtyTime}
               />
               <AdminBtn
                 label="-2" sublabel="Penalty"
                 onClick={() => apply("red", -2)}
-                variant="red-penalty"
+                variant={penaltyActive.red["-2"] ? "red-penalty-active" : "red-penalty"}
                 disabled={isRunning && !dirtyTime}
               />
               <AdminBtn
                 label="-5" sublabel="Penalty"
                 onClick={() => apply("red", -5)}
-                variant="red-penalty"
+                variant={penaltyActive.red["-5"] ? "red-penalty-active" : "red-penalty"}
                 className="col-span-2"
                 disabled={isRunning && !dirtyTime}
               />
               <AdminBtn
                 label="-10" sublabel="Penalty"
                 onClick={() => apply("red", -10)}
-                variant="red-penalty"
+                variant={penaltyActive.red["-10"] ? "red-penalty-active" : "red-penalty"}
                 className="col-span-2"
                 disabled={isRunning && !dirtyTime}
               />
