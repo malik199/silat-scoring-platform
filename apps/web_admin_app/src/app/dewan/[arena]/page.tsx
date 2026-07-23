@@ -398,6 +398,15 @@ export default function DewanPage() {
               }
             </button>
           )}
+          {match && (
+            <button
+              type="button"
+              onClick={() => setConfirmEndEarly(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-danger/10 border border-danger/40 text-danger hover:bg-danger/20 hover:border-danger/70 transition-colors select-none"
+            >
+              <span className="text-xs font-semibold">End Current Match</span>
+            </button>
+          )}
         </div>
       }
     >
@@ -508,33 +517,6 @@ export default function DewanPage() {
               {winner === "red" && <p className="text-xs font-semibold text-danger mt-1">Leading</p>}
             </div>
           </div>
-        </div>
-
-        {/* ── End match early ── */}
-        <div className="flex justify-center mb-3">
-          {!confirmEndEarly ? (
-            <button
-              type="button"
-              onClick={() => setConfirmEndEarly(true)}
-              className="text-xs text-muted hover:text-danger transition-colors"
-            >
-              End Current Match
-            </button>
-          ) : (
-            <div className="flex items-center gap-3 px-4 py-2 rounded-lg border border-danger/30 bg-danger/5">
-              <p className="text-xs text-danger font-semibold">End this match now?</p>
-              <button
-                type="button"
-                onClick={() => setConfirmEndEarly(false)}
-                className="text-xs text-muted hover:text-warn transition-colors"
-              >Cancel</button>
-              <button
-                type="button"
-                onClick={handleEndMatchEarly}
-                className="text-xs font-bold text-danger hover:underline"
-              >Yes, end now</button>
-            </div>
-          )}
         </div>
 
         {/* ── Admin action buttons ── */}
@@ -792,6 +774,35 @@ export default function DewanPage() {
         </div>
 
       </>)}
+
+      {confirmEndEarly && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setConfirmEndEarly(false)} />
+          <div className="relative z-10 w-full max-w-sm bg-surface border border-border rounded-2xl shadow-2xl p-6">
+            <h3 className="text-base font-semibold text-primary mb-1">End Current Match?</h3>
+            <p className="text-sm text-secondary mt-1">
+              This cannot be undone — the match cannot be restarted.
+            </p>
+            <div className="flex gap-3 mt-5">
+              <button
+                type="button"
+                onClick={() => setConfirmEndEarly(false)}
+                className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-primary hover:bg-elevated transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleEndMatchEarly}
+                className="flex-1 px-4 py-2.5 rounded-lg bg-danger text-white text-sm font-semibold hover:bg-danger/80 transition-colors"
+              >
+                End Match
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </Shell>
   );
 }
