@@ -406,12 +406,17 @@ export default function DewanPage() {
         <p className="text-sm text-secondary mb-4">Loading…</p>
       )}
       {match === null && (
-        <div className="flex items-center gap-3 bg-surface border border-border rounded-xl px-5 py-4 mb-4">
-          <span className="text-2xl">⏳</span>
+        <div className="flex items-center justify-between gap-4 bg-surface border border-border rounded-xl px-5 py-4 mb-4">
           <div>
             <p className="text-sm font-semibold text-primary">No match in progress</p>
-            <p className="text-xs text-muted mt-0.5">Waiting for admin to start a match on Arena {arenaNumber}.</p>
+            <p className="text-xs text-muted mt-0.5">To set up or start a new match, go to &ldquo;Matches&rdquo;</p>
           </div>
+          <button
+            onClick={() => router.push("/matches")}
+            className="shrink-0 px-4 py-2 rounded-lg bg-accent text-black text-sm font-bold hover:bg-accent/80 transition-colors"
+          >
+            Matches
+          </button>
         </div>
       )}
 
