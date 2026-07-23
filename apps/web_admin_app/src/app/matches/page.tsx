@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import {
@@ -506,15 +507,16 @@ interface MatchRowProps {
   redName: string;
   blueName: string;
   arenaBlocked: boolean;
-  onDelete:     () => void;
-  onStart:      () => void;
-  onEnd:        () => void;
-  onViewDetail: () => void;
+  onDelete:       () => void;
+  onStart:        () => void;
+  onEndRequest:   () => void;
+  onDewan:        () => void;
+  onViewDetail:   () => void;
 }
 
 function MatchRow({
   match, matchNumber, redName, blueName, arenaBlocked,
-  onDelete, onStart, onEnd, onViewDetail,
+  onDelete, onStart, onEndRequest, onDewan, onViewDetail,
 }: MatchRowProps) {
   const isPending  = match.status === "pending";
   const isRunning  = match.status === "in_progress";
@@ -611,12 +613,21 @@ function MatchRow({
           </button>
         )}
         {isRunning && (
-          <button
-            onClick={onEnd}
-            className="px-2.5 py-1 rounded-md bg-danger text-white text-xs font-semibold hover:bg-danger/80 transition-colors"
-          >
-            End Current Match
-          </button>
+          <>
+            <button
+              onClick={onDewan}
+              className="px-2.5 py-1 rounded-md bg-accent text-black text-xs font-semibold hover:bg-accent-hover transition-colors"
+            >
+              Dewan Section
+            </button>
+            <button
+              onClick={onEndRequest}
+              title="End match"
+              className="w-7 h-7 flex items-center justify-center rounded-md text-muted hover:text-danger hover:bg-danger/10 transition-colors"
+            >
+              ✕
+            </button>
+          </>
         )}
         {isFinished && (
           <span className="px-2.5 py-1 rounded-md bg-elevated text-muted text-xs font-medium">
@@ -641,13 +652,15 @@ function MatchRow({
 
 export default function MatchesPage() {
   const { user } = useAuth();
+  const router   = useRouter();
 
-  const [tournament,  setTournament]  = useState<Tournament | null | undefined>(undefined);
-  const [competitors, setCompetitors] = useState<Competitor[]>([]);
-  const [matches,     setMatches]     = useState<Match[]>([]);
-  const [showModal,   setShowModal]   = useState(false);
-  const [detailMatch, setDetailMatch] = useState<Match | null>(null);
-  const [busy,        setBusy]        = useState(false);
+  const [tournament,      setTournament]      = useState<Tournament | null | undefined>(undefined);
+  const [competitors,     setCompetitors]     = useState<Competitor[]>([]);
+  const [matches,         setMatches]         = useState<Match[]>([]);
+  const [showModal,       setShowModal]       = useState(false);
+  const [detailMatch,     setDetailMatch]     = useState<Match | null>(null);
+  const [endConfirmMatch, setEndConfirmMatch] = useState<Match | null>(null);
+  const [busy,            setBusy]            = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -701,7 +714,6 @@ export default function MatchesPage() {
   }
 
   async function handleEnd(match: Match) {
-    if (!confirm(`End Match #${match.order}? This cannot be undone — the match cannot be restarted.`)) return;
     await endMatch(match.id);
   }
 
@@ -769,7 +781,8 @@ export default function MatchesPage() {
                       arenaBlocked={runningArenas.has(m.arenaNumber)}
                       onDelete={() => handleDelete(m)}
                       onStart={() => handleStart(m)}
-                      onEnd={() => handleEnd(m)}
+                      onEndRequest={() => setEndConfirmMatch(m)}
+                      onDewan={() => router.push(`/dewan/${m.arenaNumber}`)}
                       onViewDetail={() => setDetailMatch(m)}
                     />
                   );
@@ -787,6 +800,38 @@ export default function MatchesPage() {
           currentCount={matches.length}
           onClose={() => setShowModal(false)}
         />
+      )}
+
+      {endConfirmMatch && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setEndConfirmMatch(null)} />
+          <div className="relative z-10 w-full max-w-sm bg-surface border border-border rounded-2xl shadow-2xl p-6">
+            <h3 className="text-base font-semibold text-primary mb-1">
+              End Match #{endConfirmMatch.order}?
+            </h3>
+            <p className="text-sm text-secondary mt-1">
+              This cannot be undone — the match cannot be restarted.
+            </p>
+            <div className="flex gap-3 mt-5">
+              <button
+                onClick={() => setEndConfirmMatch(null)}
+                className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-primary hover:bg-elevated transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  const m = endConfirmMatch;
+                  setEndConfirmMatch(null);
+                  await handleEnd(m);
+                }}
+                className="flex-1 px-4 py-2.5 rounded-lg bg-danger text-white text-sm font-semibold hover:bg-danger/80 transition-colors"
+              >
+                End Match
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {detailMatch && (() => {
