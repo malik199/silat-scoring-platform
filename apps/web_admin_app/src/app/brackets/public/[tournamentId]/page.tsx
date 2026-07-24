@@ -28,12 +28,12 @@ export default function PublicBracketsPage() {
   return (
     <div className="min-h-screen bg-base text-primary" style={{ fontFamily: "system-ui, sans-serif" }}>
       {/* Header */}
-      <div className="border-b border-border bg-surface px-6 py-5 flex items-center gap-4">
+      <div className="border-b border-border bg-surface px-6 py-5 flex items-center justify-between">
         <img src="/SilatScore.svg" alt="Silat Score" className="h-8 w-auto flex-shrink-0" />
-        <div>
+        <div className="text-right">
           <p className="text-xs font-semibold uppercase tracking-widest text-muted mb-0.5">Tournament Brackets</p>
           <h1 className="text-xl font-bold text-primary leading-tight">
-            {tournamentName || "Brackets"}
+            {tournamentName || "—"}
           </h1>
         </div>
       </div>
