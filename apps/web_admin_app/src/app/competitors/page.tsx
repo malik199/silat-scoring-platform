@@ -471,6 +471,9 @@ function CsvModal({ organiserId, slotsRemaining, onClose }: CsvModalProps) {
                   Use <span className="text-secondary">weight_kg</span> or <span className="text-secondary">weight_lbs</span> (or both — kg takes priority). Values are always stored as kg.
                 </p>
                 <p className="text-xs text-muted mt-1">
+                  Date of birth: <span className="text-secondary font-mono">YYYY-MM-DD</span> (e.g. <span className="text-secondary font-mono">2000-01-31</span>) — optional, leave blank to skip
+                </p>
+                <p className="text-xs text-muted mt-1">
                   Gender: <span className="text-secondary">male · female</span>
                 </p>
                 <p className="text-xs text-muted mt-1">

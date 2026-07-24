@@ -119,6 +119,11 @@ export function parseCsv(text: string): CsvParseResult {
     if (!firstName) { errors.push({ row, message: "Missing first_name" }); continue; }
     if (!lastName)  { errors.push({ row, message: "Missing last_name" });  continue; }
 
+    if (dob && !/^\d{4}-\d{2}-\d{2}$/.test(dob)) {
+      errors.push({ row, message: `Invalid date_of_birth: "${dob}" — use YYYY-MM-DD (e.g. 2000-01-31)` });
+      continue;
+    }
+
     // weight_kg takes priority; fall back to weight_lbs converted to kg
     const weightKgRaw  = hasWeightKg  ? cells[idx("weight_kg")]  ?? "" : "";
     const weightLbsRaw = hasWeightLbs ? cells[idx("weight_lbs")] ?? "" : "";
