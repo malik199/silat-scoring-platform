@@ -622,6 +622,23 @@ function CsvModal({ organiserId, slotsRemaining, onClose }: CsvModalProps) {
 
 // ─── Helpers for sortable table ───────────────────────────────────────────────
 
+const AGE_CATS = [
+  { key: "all",       label: "All Ages",     min: 0,  max: 999 },
+  { key: "kids",      label: "Kids (U10)",   min: 0,  max: 9   },
+  { key: "prejunior", label: "Pre-Junior",   min: 10, max: 12  },
+  { key: "junior",    label: "Junior",       min: 13, max: 17  },
+  { key: "senior",    label: "Senior (18+)", min: 18, max: 999 },
+];
+
+function getAgeYears(dob: string): number {
+  if (!dob) return 0;
+  const d = new Date(dob + "T00:00:00");
+  const now = new Date();
+  let years = now.getFullYear() - d.getFullYear();
+  if (now.getMonth() < d.getMonth() || (now.getMonth() === d.getMonth() && now.getDate() < d.getDate())) years--;
+  return Math.max(0, years);
+}
+
 type SortCol = "name" | "age" | "kg" | "gender" | "country" | "school" | "experience";
 
 const EXPERIENCE_ORDER: Record<string, number> = {
@@ -661,6 +678,8 @@ export default function CompetitorsPage() {
   const [modal,           setModal]           = useState<"manual" | "csv" | null>(null);
   const [editingCompetitor, setEditingCompetitor] = useState<Competitor | null>(null);
   const [search,          setSearch]          = useState("");
+  const [genderFilter,    setGenderFilter]    = useState<"all" | "male" | "female">("all");
+  const [ageCat,          setAgeCat]          = useState("all");
   const [sortCol,         setSortCol]         = useState<SortCol | null>(null);
   const [sortDir,         setSortDir]         = useState<"asc" | "desc">("asc");
   const [migratingDates,  setMigratingDates]  = useState(false);
@@ -694,7 +713,13 @@ export default function CompetitorsPage() {
   const atLimit        = competitors.length >= tierLimit;
   const isFreeTier     = tierLimit === 10;
 
+  const ageCatDef = AGE_CATS.find((a) => a.key === ageCat);
   const filtered = competitors.filter((c) => {
+    if (genderFilter !== "all" && c.gender !== genderFilter) return false;
+    if (ageCat !== "all" && ageCatDef) {
+      const age = getAgeYears(c.dateOfBirth);
+      if (age < ageCatDef.min || age > ageCatDef.max) return false;
+    }
     const q = search.toLowerCase();
     return (
       !q ||
@@ -749,26 +774,43 @@ export default function CompetitorsPage() {
       )}
 
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">
-        {/* Search */}
-        <div className="relative flex-1 w-full sm:max-w-xs">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted text-sm">⌕</span>
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name, country, school…"
-            className="w-full bg-surface border border-border rounded-lg pl-8 pr-3 py-2 text-sm text-primary placeholder-muted focus:outline-none focus:border-accent transition-colors"
-          />
-        </div>
+      <div className="flex flex-col gap-3 mb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          {/* Search */}
+          <div className="relative flex-1 w-full sm:max-w-xs">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted text-sm">⌕</span>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name, country, school…"
+              className="w-full bg-surface border border-border rounded-lg pl-8 pr-3 py-2 text-sm text-primary placeholder-muted focus:outline-none focus:border-accent transition-colors"
+            />
+          </div>
 
-        {/* Count */}
-        <p className="text-xs text-muted flex-1 hidden sm:block">
-          {loading ? "" : `${competitors.length} competitor${competitors.length !== 1 ? "s" : ""}`}
-        </p>
+          {/* Gender filter */}
+          <div className="flex rounded-lg overflow-hidden border border-border text-sm font-semibold flex-shrink-0">
+            {(["all", "male", "female"] as const).map((g) => (
+              <button
+                key={g}
+                type="button"
+                onClick={() => setGenderFilter(g)}
+                className={`px-3 py-2 transition-colors capitalize ${
+                  genderFilter === g ? "bg-accent text-black" : "bg-elevated text-secondary hover:text-primary"
+                }`}
+              >
+                {g === "all" ? "All" : g === "male" ? "Male" : "Female"}
+              </button>
+            ))}
+          </div>
 
-        {/* Actions */}
-        <div className="flex gap-2 flex-shrink-0">
+          {/* Count */}
+          <p className="text-xs text-muted hidden sm:block flex-shrink-0">
+            {loading ? "" : `${filtered.length}${filtered.length !== competitors.length ? ` of ${competitors.length}` : ""} competitor${competitors.length !== 1 ? "s" : ""}`}
+          </p>
+
+          {/* Actions */}
+          <div className="flex gap-2 flex-shrink-0">
           {(() => {
             const badCount = competitors.filter((c) => c.dateOfBirth && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(c.dateOfBirth)).length;
             if (badCount === 0 && migrateResult === null) return null;
@@ -806,6 +848,23 @@ export default function CompetitorsPage() {
           >
             + Add Manually
           </button>
+          </div>
+        </div>
+
+        {/* Age category filter */}
+        <div className="flex rounded-lg overflow-hidden border border-border text-sm font-semibold w-fit">
+          {AGE_CATS.map((cat) => (
+            <button
+              key={cat.key}
+              type="button"
+              onClick={() => setAgeCat(cat.key)}
+              className={`px-3 py-2 transition-colors ${
+                ageCat === cat.key ? "bg-accent text-black" : "bg-elevated text-secondary hover:text-primary"
+              }`}
+            >
+              {cat.label}
+            </button>
+          ))}
         </div>
       </div>
 
