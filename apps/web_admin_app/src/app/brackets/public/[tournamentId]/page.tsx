@@ -28,11 +28,14 @@ export default function PublicBracketsPage() {
   return (
     <div className="min-h-screen bg-base text-primary" style={{ fontFamily: "system-ui, sans-serif" }}>
       {/* Header */}
-      <div className="border-b border-border bg-surface px-6 py-5">
-        <p className="text-xs font-semibold uppercase tracking-widest text-muted mb-1">Tournament Brackets</p>
-        <h1 className="text-xl font-bold text-primary">
-          {tournamentName || "Brackets"}
-        </h1>
+      <div className="border-b border-border bg-surface px-6 py-5 flex items-center gap-4">
+        <img src="/SilatScore.svg" alt="Silat Score" className="h-8 w-auto flex-shrink-0" />
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted mb-0.5">Tournament Brackets</p>
+          <h1 className="text-xl font-bold text-primary leading-tight">
+            {tournamentName || "Brackets"}
+          </h1>
+        </div>
       </div>
 
       {/* Content */}
@@ -52,7 +55,7 @@ export default function PublicBracketsPage() {
               return (
                 <li key={b.id}>
                   <button
-                    onClick={() => router.push(`/brackets/${b.id}`)}
+                    onClick={() => router.push(`/b/${b.id}`)}
                     className="w-full flex items-center gap-4 px-5 py-4 bg-surface border border-border rounded-xl hover:border-accent/40 hover:bg-elevated/50 transition-colors text-left"
                   >
                     <div className="w-9 h-9 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center text-base flex-shrink-0">
