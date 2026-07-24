@@ -119,7 +119,11 @@ export function parseCsv(text: string): CsvParseResult {
     if (!firstName) { errors.push({ row, message: "Missing first_name" }); continue; }
     if (!lastName)  { errors.push({ row, message: "Missing last_name" });  continue; }
 
-    if (dob && !/^\d{4}-\d{2}-\d{2}$/.test(dob)) {
+    if (!dob) {
+      errors.push({ row, message: "Missing date_of_birth — use YYYY-MM-DD (e.g. 2000-01-31)" });
+      continue;
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dob)) {
       errors.push({ row, message: `Invalid date_of_birth: "${dob}" — use YYYY-MM-DD (e.g. 2000-01-31)` });
       continue;
     }

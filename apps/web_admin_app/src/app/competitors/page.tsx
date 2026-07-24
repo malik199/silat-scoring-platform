@@ -107,6 +107,10 @@ function ManualModal({ existing, organiserId, atLimit, onClose }: ManualModalPro
       setError("First and last name are required.");
       return;
     }
+    if (!form.dateOfBirth) {
+      setError("Date of birth is required.");
+      return;
+    }
     if (!form.weightKg || form.weightKg <= 0) {
       setError("A valid weight is required.");
       return;
@@ -228,10 +232,11 @@ function ManualModal({ existing, organiserId, atLimit, onClose }: ManualModalPro
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-secondary uppercase tracking-widest mb-1.5">
-                  Date of Birth
+                  Date of Birth <span className="text-danger">*</span>
                 </label>
                 <input
                   type="date"
+                  required
                   value={form.dateOfBirth}
                   onChange={(e) => set("dateOfBirth", e.target.value)}
                   max={new Date().toISOString().split("T")[0]}
@@ -472,7 +477,7 @@ function CsvModal({ organiserId, slotsRemaining, onClose }: CsvModalProps) {
                   Use <span className="text-secondary">weight_kg</span> or <span className="text-secondary">weight_lbs</span> (or both — kg takes priority). Values are always stored as kg.
                 </p>
                 <p className="text-xs text-muted mt-1">
-                  Date of birth: <span className="text-secondary font-mono">YYYY-MM-DD</span> (e.g. <span className="text-secondary font-mono">2000-01-31</span>) — optional, leave blank to skip
+                  Date of birth: <span className="text-secondary font-mono">YYYY-MM-DD</span> (e.g. <span className="text-secondary font-mono">2000-01-31</span>)
                 </p>
                 <p className="text-xs text-muted mt-1">
                   Gender: <span className="text-secondary">male · female</span>
