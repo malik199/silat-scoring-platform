@@ -244,3 +244,35 @@ export async function bulkAddCompetitors(
     await batch.commit();
   }
 }
+
+/** Convert M/D/YYYY or MM/DD/YYYY → YYYY-MM-DD. Returns null if not that format. */
+function fixDateFormat(dob: string): string | null {
+  const m = dob.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return null;
+  const [, month, day, year] = m;
+  return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+}
+
+/** Scan all competitors for malformed dateOfBirth values and fix them in place.
+ *  Returns the number of documents updated. */
+export async function migrateCompetitorDates(organiserId: string): Promise<number> {
+  const snap = await getDocs(
+    query(collection(db, COL), where("organiserId", "==", organiserId))
+  );
+  const toFix = snap.docs.flatMap((d) => {
+    const dob = (d.data() as Competitor).dateOfBirth;
+    if (!dob) return [];
+    const fixed = fixDateFormat(dob);
+    if (!fixed) return [];
+    return [{ ref: d.ref, dob: fixed }];
+  });
+  const CHUNK = 500;
+  for (let i = 0; i < toFix.length; i += CHUNK) {
+    const batch = writeBatch(db);
+    for (const { ref, dob } of toFix.slice(i, i + CHUNK)) {
+      batch.update(ref, { dateOfBirth: dob });
+    }
+    await batch.commit();
+  }
+  return toFix.length;
+}

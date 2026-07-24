@@ -12,6 +12,7 @@ import {
   updateCompetitor,
   deleteCompetitor,
   bulkAddCompetitors,
+  migrateCompetitorDates,
   parseCsv,
   EXPERIENCE_LABELS,
   EXPERIENCE_DESCRIPTIONS,
@@ -657,6 +658,8 @@ export default function CompetitorsPage() {
   const [search,          setSearch]          = useState("");
   const [sortCol,         setSortCol]         = useState<SortCol | null>(null);
   const [sortDir,         setSortDir]         = useState<"asc" | "desc">("asc");
+  const [migratingDates,  setMigratingDates]  = useState(false);
+  const [migrateResult,   setMigrateResult]   = useState<number | null>(null);
 
   function handleSort(col: SortCol) {
     if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -761,6 +764,29 @@ export default function CompetitorsPage() {
 
         {/* Actions */}
         <div className="flex gap-2 flex-shrink-0">
+          {(() => {
+            const badCount = competitors.filter((c) => c.dateOfBirth && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(c.dateOfBirth)).length;
+            if (badCount === 0 && migrateResult === null) return null;
+            return (
+              <button
+                onClick={async () => {
+                  if (!user) return;
+                  setMigratingDates(true);
+                  const n = await migrateCompetitorDates(user.uid);
+                  setMigrateResult(n);
+                  setMigratingDates(false);
+                }}
+                disabled={migratingDates || badCount === 0}
+                className="px-4 py-2 rounded-lg border border-warn/40 bg-warn/10 text-warn text-sm font-semibold hover:bg-warn/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {migratingDates
+                  ? "Fixing…"
+                  : migrateResult !== null
+                  ? `✓ Fixed ${migrateResult} date${migrateResult !== 1 ? "s" : ""}`
+                  : `Fix ${badCount} date format${badCount !== 1 ? "s" : ""}`}
+              </button>
+            );
+          })()}
           <button
             onClick={() => setModal("csv")}
             className="px-4 py-2 rounded-lg border border-border text-sm font-semibold text-secondary hover:text-warn hover:bg-elevated transition-colors"
