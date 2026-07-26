@@ -36,6 +36,7 @@ import {
   startMatch,
   endMatch,
   computeConfirmedScores,
+  computePenaltyFlagPoints,
   MATCH_STATUS_LABELS,
   MATCH_STATUS_COLOR,
   type Match,
@@ -342,10 +343,12 @@ function MatchDetailModal({ match, redName, blueName, onClose }: MatchDetailModa
   }, [match.id]);
 
   const { red: confirmedRed, blue: confirmedBlue } = computeConfirmedScores(scoreEvents);
-  const adminRed  = adminEvents.filter((e) => e.side === "red").reduce((s, e) => s + e.points, 0);
-  const adminBlue = adminEvents.filter((e) => e.side === "blue").reduce((s, e) => s + e.points, 0);
-  const totalRed  = confirmedRed + adminRed;
-  const totalBlue = confirmedBlue + adminBlue;
+  const adminRed   = adminEvents.filter((e) => e.side === "red"  && e.points > 0).reduce((s, e) => s + e.points, 0);
+  const adminBlue  = adminEvents.filter((e) => e.side === "blue" && e.points > 0).reduce((s, e) => s + e.points, 0);
+  const penaltyRed  = computePenaltyFlagPoints(match.warnings, "red",  match.currentRound ?? 1);
+  const penaltyBlue = computePenaltyFlagPoints(match.warnings, "blue", match.currentRound ?? 1);
+  const totalRed  = confirmedRed + adminRed + penaltyRed;
+  const totalBlue = confirmedBlue + adminBlue + penaltyBlue;
   const winner    = totalRed !== totalBlue ? (totalRed > totalBlue ? "red" : "blue") : null;
 
   // Per-judge raw tallies
@@ -360,15 +363,22 @@ function MatchDetailModal({ match, redName, blueName, onClose }: MatchDetailModa
     if (e.side === "red") t.red += e.points; else t.blue += e.points;
   }
 
-  const ACTIONS = [
-    { pts:  3, label: "+3",  sublabel: "Takedown / Sweep" },
-    { pts: -1, label: "−1",  sublabel: "Minor penalty"    },
-    { pts: -2, label: "−2",  sublabel: "Warning"          },
-    { pts: -5, label: "−5",  sublabel: "Major penalty"    },
-    { pts:-10, label: "−10", sublabel: "Disqualification" },
-  ];
-  const count = (side: "red" | "blue", pts: number) =>
-    adminEvents.filter((e) => e.side === side && e.points === pts).length;
+  function cntFlags(side: "red" | "blue", type: string): number {
+    const w = match.warnings;
+    if (!w) return 0;
+    let n = 0;
+    for (let r = 1; r <= 3; r++) if (w[`r${r}_${side}_${type}`]) n++;
+    return n;
+  }
+  const breakdownRows = [
+    { label: "+3",  sublabel: "Takedown / Sweep",  r: adminEvents.filter(e => e.side === "red"  && e.points > 0).length, b: adminEvents.filter(e => e.side === "blue" && e.points > 0).length, accent: "text-accent"  },
+    { label: "W1",  sublabel: "Warning 1",         r: cntFlags("red","w1"),  b: cntFlags("blue","w1"),  accent: "text-warn"   },
+    { label: "W2",  sublabel: "Warning 2",         r: cntFlags("red","w2"),  b: cntFlags("blue","w2"),  accent: "text-warn"   },
+    { label: "−1",  sublabel: "Minor Violation",   r: cntFlags("red","m1"),  b: cntFlags("blue","m1"),  accent: "text-danger" },
+    { label: "−2",  sublabel: "Violation",         r: cntFlags("red","m2"),  b: cntFlags("blue","m2"),  accent: "text-danger" },
+    { label: "−5",  sublabel: "Major Violation",   r: cntFlags("red","m5"),  b: cntFlags("blue","m5"),  accent: "text-danger" },
+    { label: "−10", sublabel: "Serious Violation", r: cntFlags("red","m10"), b: cntFlags("blue","m10"), accent: "text-danger" },
+  ].filter(({ r, b }) => r > 0 || b > 0);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -455,7 +465,7 @@ function MatchDetailModal({ match, redName, blueName, onClose }: MatchDetailModa
           </div>
 
           {/* ── Score Breakdown ── */}
-          {adminEvents.length > 0 && (
+          {breakdownRows.length > 0 && (
             <div className="bg-elevated border border-border rounded-xl overflow-hidden">
               <div className="px-4 py-2.5 border-b border-border">
                 <p className="text-xs font-semibold uppercase tracking-widest text-muted">Score Breakdown</p>
@@ -469,25 +479,20 @@ function MatchDetailModal({ match, redName, blueName, onClose }: MatchDetailModa
                   </tr>
                 </thead>
                 <tbody>
-                  {ACTIONS.map(({ pts, label, sublabel }) => {
-                    const r = count("red", pts);
-                    const b = count("blue", pts);
-                    if (r === 0 && b === 0) return null;
-                    return (
-                      <tr key={pts} className="border-b border-border last:border-b-0">
-                        <td className="px-4 py-2.5 text-center">
-                          <span className={`text-lg font-black ${r > 0 ? "text-danger" : "text-muted/30"}`}>{r}</span>
-                        </td>
-                        <td className="px-4 py-2.5 text-center">
-                          <p className="text-sm font-bold text-secondary">{label}</p>
-                          <p className="text-xs text-muted">{sublabel}</p>
-                        </td>
-                        <td className="px-4 py-2.5 text-center">
-                          <span className={`text-lg font-black ${b > 0 ? "text-blue-400" : "text-muted/30"}`}>{b}</span>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {breakdownRows.map(({ label, sublabel, r, b, accent }) => (
+                    <tr key={label} className="border-b border-border last:border-b-0">
+                      <td className="px-4 py-2.5 text-center">
+                        <span className={`text-lg font-black ${r > 0 ? "text-danger" : "text-muted/30"}`}>{r}</span>
+                      </td>
+                      <td className="px-4 py-2.5 text-center">
+                        <p className={`text-sm font-bold ${accent}`}>{label}</p>
+                        <p className="text-xs text-muted">{sublabel}</p>
+                      </td>
+                      <td className="px-4 py-2.5 text-center">
+                        <span className={`text-lg font-black ${b > 0 ? "text-blue-400" : "text-muted/30"}`}>{b}</span>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -661,6 +666,7 @@ export default function MatchesPage() {
   const [detailMatch,     setDetailMatch]     = useState<Match | null>(null);
   const [endConfirmMatch, setEndConfirmMatch] = useState<Match | null>(null);
   const [busy,            setBusy]            = useState(false);
+  const [shareCopied,     setShareCopied]     = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -717,6 +723,14 @@ export default function MatchesPage() {
     await endMatch(match.id);
   }
 
+  function handleShareMatches() {
+    if (!tournament) return;
+    const url = `${window.location.origin}/matches/public/${tournament.id}`;
+    navigator.clipboard.writeText(url);
+    setShareCopied(true);
+    setTimeout(() => setShareCopied(false), 2500);
+  }
+
   return (
     <Shell title="Matches">
       <ActiveTournamentBanner />
@@ -735,14 +749,24 @@ export default function MatchesPage() {
               </p>
             )}
           </div>
-          <button
-            onClick={() => setShowModal(true)}
-            disabled={!tournament}
-            title={!tournament ? "Create a tournament first" : undefined}
-            className="px-4 py-2 rounded-lg bg-accent text-black text-sm font-semibold hover:bg-accent-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            + New Match
-          </button>
+          <div className="flex items-center gap-2">
+            {tournament && (
+              <button
+                onClick={handleShareMatches}
+                className="px-4 py-2 rounded-lg border border-border text-sm font-semibold text-secondary hover:text-accent hover:border-accent/50 transition-colors"
+              >
+                {shareCopied ? "✓ Link Copied" : "Share Matches"}
+              </button>
+            )}
+            <button
+              onClick={() => setShowModal(true)}
+              disabled={!tournament}
+              title={!tournament ? "Create a tournament first" : undefined}
+              className="px-4 py-2 rounded-lg bg-accent text-black text-sm font-semibold hover:bg-accent-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              + New Match
+            </button>
+          </div>
         </div>
 
         {/* Column headers */}
