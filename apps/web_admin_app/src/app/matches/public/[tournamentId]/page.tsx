@@ -267,10 +267,12 @@ export default function PublicMatchesPage() {
                     <div className="flex items-center gap-2 min-w-0">
                       <div className="w-2 h-2 rounded-full bg-danger flex-shrink-0" />
                       <span className="text-sm font-medium text-primary truncate">{red}</span>
+                      {m.winnerCorner === "red" && <img src="/greencheckmark.svg" alt="Winner" className="w-3.5 h-3.5 flex-shrink-0" />}
                     </div>
                     <div className="flex items-center gap-2 min-w-0">
                       <div className="w-2 h-2 rounded-full bg-blue-400 flex-shrink-0" />
                       <span className="text-sm font-medium text-primary truncate">{blue}</span>
+                      {m.winnerCorner === "blue" && <img src="/greencheckmark.svg" alt="Winner" className="w-3.5 h-3.5 flex-shrink-0" />}
                     </div>
                     <span className="text-sm text-secondary">Arena {m.arenaNumber}</span>
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${MATCH_STATUS_COLOR[m.status]}`}>
