@@ -8,8 +8,6 @@ import {
   subscribeAdminEvents,
   computeConfirmedScores,
   computePenaltyFlagPoints,
-  MATCH_STATUS_LABELS,
-  MATCH_STATUS_COLOR,
   type Match,
   type ScoreEvent,
   type AdminEvent,
@@ -245,10 +243,25 @@ export default function PublicMatchesPage() {
           </div>
         ) : (
           <div className="bg-surface border border-border rounded-xl overflow-hidden">
-            <div className="grid grid-cols-[40px_1fr_1fr_80px_110px] gap-3 px-5 py-3 border-b border-border">
-              {["#", "Red Corner", "Blue Corner", "Arena", "Status"].map((h) => (
-                <span key={h} className="text-xs font-semibold uppercase tracking-widest text-muted">{h}</span>
-              ))}
+            {/* Column headers */}
+            <div className="grid grid-cols-[28px_1fr_1fr_24px_24px] gap-2 px-4 py-3 border-b border-border">
+              <span className="text-xs font-semibold text-muted">#</span>
+              <span className="text-xs font-semibold uppercase tracking-widest text-muted">Red</span>
+              <span className="text-xs font-semibold uppercase tracking-widest text-muted">Blue</span>
+              {/* Arena icon — mat shape */}
+              <span className="flex items-center justify-center text-muted">
+                <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="1" y="1" width="12" height="12" rx="1.5"/>
+                  <rect x="4" y="4" width="6" height="6" rx="0.5"/>
+                </svg>
+              </span>
+              {/* Status icon — circle indicator */}
+              <span className="flex items-center justify-center text-muted">
+                <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6">
+                  <circle cx="7" cy="7" r="5.5"/>
+                  <circle cx="7" cy="7" r="2" fill="currentColor" stroke="none"/>
+                </svg>
+              </span>
             </div>
             <ul>
               {matches.map((m) => {
@@ -259,28 +272,38 @@ export default function PublicMatchesPage() {
                   <li
                     key={m.id}
                     onClick={() => isClickable && setDetailMatch(m)}
-                    className={`grid grid-cols-[40px_1fr_1fr_80px_110px] gap-3 items-center px-5 py-3.5 border-b border-border last:border-b-0 ${
+                    className={`grid grid-cols-[28px_1fr_1fr_24px_24px] gap-2 items-center px-4 py-3.5 border-b border-border last:border-b-0 ${
                       isClickable ? "cursor-pointer hover:bg-elevated/50 transition-colors" : ""
                     }`}
                   >
                     <span className="text-sm font-bold text-muted">{m.order}</span>
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-2 h-2 rounded-full bg-danger flex-shrink-0" />
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <div className="w-1.5 h-1.5 rounded-full bg-danger flex-shrink-0" />
                       <span className="text-sm font-medium text-primary truncate">{red}</span>
-                      {m.winnerCorner === "red" && <img src="/greencheckmark.svg" alt="Winner" className="w-3.5 h-3.5 flex-shrink-0" />}
+                      {m.winnerCorner === "red" && <img src="/greencheckmark.svg" alt="Winner" className="w-3 h-3 flex-shrink-0" />}
                     </div>
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-2 h-2 rounded-full bg-blue-400 flex-shrink-0" />
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-400 flex-shrink-0" />
                       <span className="text-sm font-medium text-primary truncate">{blue}</span>
-                      {m.winnerCorner === "blue" && <img src="/greencheckmark.svg" alt="Winner" className="w-3.5 h-3.5 flex-shrink-0" />}
+                      {m.winnerCorner === "blue" && <img src="/greencheckmark.svg" alt="Winner" className="w-3 h-3 flex-shrink-0" />}
                     </div>
-                    <span className="text-sm text-secondary">Arena {m.arenaNumber}</span>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${MATCH_STATUS_COLOR[m.status]}`}>
+                    {/* Arena number */}
+                    <span className="text-xs font-semibold text-secondary text-center">{m.arenaNumber}</span>
+                    {/* Compact status */}
+                    <div className="flex justify-center">
                       {m.status === "in_progress" && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-warn mr-1.5 animate-pulse" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-warn animate-pulse" title="In progress" />
                       )}
-                      {MATCH_STATUS_LABELS[m.status]}
-                    </span>
+                      {m.status === "completed" && (
+                        <img src="/greencheckmark.svg" alt="Done" className="w-3.5 h-3.5" />
+                      )}
+                      {m.status === "pending" && (
+                        <span className="text-muted text-xs leading-none">—</span>
+                      )}
+                      {m.status === "cancelled" && (
+                        <span className="text-muted text-xs leading-none">✕</span>
+                      )}
+                    </div>
                   </li>
                 );
               })}
