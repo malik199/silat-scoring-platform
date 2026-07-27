@@ -66,7 +66,7 @@ function PublicMatchDetail({ match, redName, blueName, onClose }: {
     { label: "+3",  sublabel: "Takedown / Sweep",  r: adminEvents.filter(e => e.side === "red"  && e.points > 0).length, b: adminEvents.filter(e => e.side === "blue" && e.points > 0).length, accent: "text-accent"  },
     { label: "W1",  sublabel: "Warning 1",         r: cntFlags(match.warnings,"red","w1"),  b: cntFlags(match.warnings,"blue","w1"),  accent: "text-warn"   },
     { label: "W2",  sublabel: "Warning 2",         r: cntFlags(match.warnings,"red","w2"),  b: cntFlags(match.warnings,"blue","w2"),  accent: "text-warn"   },
-    { label: "−1",  sublabel: "Minor Violation",   r: cntFlags(match.warnings,"red","m1"),  b: cntFlags(match.warnings,"blue","m1"),  accent: "text-danger" },
+    { label: "−1",  sublabel: "Moderate Violation",   r: cntFlags(match.warnings,"red","m1"),  b: cntFlags(match.warnings,"blue","m1"),  accent: "text-danger" },
     { label: "−2",  sublabel: "Violation",         r: cntFlags(match.warnings,"red","m2"),  b: cntFlags(match.warnings,"blue","m2"),  accent: "text-danger" },
     { label: "−5",  sublabel: "Major Violation",   r: cntFlags(match.warnings,"red","m5"),  b: cntFlags(match.warnings,"blue","m5"),  accent: "text-danger" },
     { label: "−10", sublabel: "Serious Violation", r: cntFlags(match.warnings,"red","m10"), b: cntFlags(match.warnings,"blue","m10"), accent: "text-danger" },

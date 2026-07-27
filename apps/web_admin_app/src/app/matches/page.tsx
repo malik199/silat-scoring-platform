@@ -374,7 +374,7 @@ function MatchDetailModal({ match, redName, blueName, onClose }: MatchDetailModa
     { label: "+3",  sublabel: "Takedown / Sweep",  r: adminEvents.filter(e => e.side === "red"  && e.points > 0).length, b: adminEvents.filter(e => e.side === "blue" && e.points > 0).length, accent: "text-accent"  },
     { label: "W1",  sublabel: "Warning 1",         r: cntFlags("red","w1"),  b: cntFlags("blue","w1"),  accent: "text-warn"   },
     { label: "W2",  sublabel: "Warning 2",         r: cntFlags("red","w2"),  b: cntFlags("blue","w2"),  accent: "text-warn"   },
-    { label: "−1",  sublabel: "Minor Violation",   r: cntFlags("red","m1"),  b: cntFlags("blue","m1"),  accent: "text-danger" },
+    { label: "−1",  sublabel: "Moderate Violation",   r: cntFlags("red","m1"),  b: cntFlags("blue","m1"),  accent: "text-danger" },
     { label: "−2",  sublabel: "Violation",         r: cntFlags("red","m2"),  b: cntFlags("blue","m2"),  accent: "text-danger" },
     { label: "−5",  sublabel: "Major Violation",   r: cntFlags("red","m5"),  b: cntFlags("blue","m5"),  accent: "text-danger" },
     { label: "−10", sublabel: "Serious Violation", r: cntFlags("red","m10"), b: cntFlags("blue","m10"), accent: "text-danger" },
