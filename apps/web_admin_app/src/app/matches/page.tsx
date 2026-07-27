@@ -35,6 +35,7 @@ import {
   reorderMatches,
   startMatch,
   endMatch,
+  swapMatchCorners,
   computeConfirmedScores,
   computePenaltyFlagPoints,
   MATCH_STATUS_LABELS,
@@ -517,11 +518,12 @@ interface MatchRowProps {
   onEndRequest:   () => void;
   onDewan:        () => void;
   onViewDetail:   () => void;
+  onSwap:         () => void;
 }
 
 function MatchRow({
   match, matchNumber, redName, blueName, arenaBlocked,
-  onDelete, onStart, onEndRequest, onDewan, onViewDetail,
+  onDelete, onStart, onEndRequest, onDewan, onViewDetail, onSwap,
 }: MatchRowProps) {
   const isPending  = match.status === "pending";
   const isRunning  = match.status === "in_progress";
@@ -556,7 +558,7 @@ function MatchRow({
     <li
       ref={setNodeRef}
       style={style}
-      className={`grid grid-cols-[20px_40px_1fr_1fr_80px_130px_160px] gap-3 px-5 py-3.5 items-center border-b border-border last:border-b-0 ${isFinished ? "cursor-pointer hover:bg-elevated/50 transition-colors" : ""}`}
+      className={`grid grid-cols-[20px_40px_1fr_28px_1fr_80px_130px_160px] gap-3 px-5 py-3.5 items-center border-b border-border last:border-b-0 ${isFinished ? "cursor-pointer hover:bg-elevated/50 transition-colors" : ""}`}
       onClick={isFinished ? onViewDetail : undefined}
     >
       {/* Drag handle */}
@@ -587,6 +589,22 @@ function MatchRow({
         <div className="w-2 h-2 rounded-full bg-danger flex-shrink-0" />
         <span className="text-sm font-medium text-primary truncate">{redName}</span>
         {winner === "red" && <WinnerCheck />}
+      </div>
+
+      {/* Swap */}
+      <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+        {isPending && (
+          <button
+            onClick={onSwap}
+            title="Swap corners"
+            className="w-7 h-7 flex items-center justify-center rounded-md text-muted hover:text-secondary hover:bg-elevated transition-colors"
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M1 4h12M1 4l2.5-2.5M1 4l2.5 2.5" />
+              <path d="M13 10H1M13 10l-2.5-2.5M13 10l-2.5 2.5" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Blue */}
@@ -770,8 +788,8 @@ export default function MatchesPage() {
         </div>
 
         {/* Column headers */}
-        <div className="grid grid-cols-[20px_40px_1fr_1fr_80px_130px_160px] gap-3 px-5 py-3 border-b border-border">
-          {["", "#", "Red Corner", "Blue Corner", "Arena", "Status", ""].map((h, i) => (
+        <div className="grid grid-cols-[20px_40px_1fr_28px_1fr_80px_130px_160px] gap-3 px-5 py-3 border-b border-border">
+          {["", "#", "Red Corner", "", "Blue Corner", "Arena", "Status", ""].map((h, i) => (
             <span key={i} className="text-xs font-semibold uppercase tracking-widest text-muted">
               {h}
             </span>
@@ -808,6 +826,7 @@ export default function MatchesPage() {
                       onEndRequest={() => setEndConfirmMatch(m)}
                       onDewan={() => router.push(`/dewan/${m.arenaNumber}`)}
                       onViewDetail={() => setDetailMatch(m)}
+                      onSwap={() => swapMatchCorners(m.id, m.redCornerCompetitorId, m.blueCornerCompetitorId)}
                     />
                   );
                 })}

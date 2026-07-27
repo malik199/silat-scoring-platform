@@ -165,6 +165,13 @@ export async function swapMatchOrder(
   await batch.commit();
 }
 
+export async function swapMatchCorners(id: string, redId: string, blueId: string): Promise<void> {
+  await updateDoc(doc(db, COL, id), {
+    redCornerCompetitorId: blueId,
+    blueCornerCompetitorId: redId,
+  });
+}
+
 export async function reorderMatches(updates: { id: string; order: number }[]): Promise<void> {
   const batch = writeBatch(db);
   for (const { id, order } of updates) {
