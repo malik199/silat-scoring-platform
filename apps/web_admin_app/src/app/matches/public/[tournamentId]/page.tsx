@@ -295,7 +295,10 @@ export default function PublicMatchesPage() {
                         <span className="w-2.5 h-2.5 rounded-full bg-warn animate-pulse" title="In progress" />
                       )}
                       {m.status === "completed" && (
-                        <img src="/greencheckmark.svg" alt="Done" className="w-3.5 h-3.5" />
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#00d084" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-label="Completed">
+                          <circle cx="7" cy="7" r="6"/>
+                          <path d="M4.5 7l2 2 3-3"/>
+                        </svg>
                       )}
                       {m.status === "pending" && (
                         <span className="text-muted text-xs leading-none">—</span>
