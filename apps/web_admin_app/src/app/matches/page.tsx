@@ -593,7 +593,7 @@ function MatchRow({
 
       {/* Swap */}
       <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-        <button
+        {!isFinished && <button
           onClick={onSwap}
           title="Swap corners"
           className="w-7 h-7 flex items-center justify-center rounded-md text-muted hover:text-secondary hover:bg-elevated transition-colors"
@@ -602,7 +602,7 @@ function MatchRow({
             <path d="M1 4h12M1 4l2.5-2.5M1 4l2.5 2.5" />
             <path d="M13 10H1M13 10l-2.5-2.5M13 10l-2.5 2.5" />
           </svg>
-        </button>
+        </button>}
       </div>
 
       {/* Blue */}
