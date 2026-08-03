@@ -89,138 +89,137 @@ export default function OBSPage() {
   const redName  = redComp  ? `${redComp.firstName} ${redComp.lastName}`   : "—";
   const blueName = blueComp ? `${blueComp.firstName} ${blueComp.lastName}` : "—";
 
+  // SVG viewBox: 1485.57 × 156.63
+  // Panel boundaries as % of width:
+  //   Left  0 → 40.69%  |  Center 41.28 → 58.71%  |  Right 59.31 → 100%
+  // Height: 156.63 / 1485.57 = 10.54vw
+
   return (
     <div
-      style={{ background: "transparent", userSelect: "none", fontFamily: "'Arial Black', Arial, sans-serif" }}
+      style={{ background: "transparent", userSelect: "none", fontFamily: "'Impact', 'Arial Black', Arial, sans-serif" }}
       className="w-screen h-screen"
     >
-      {/* ── Lower-third broadcast strip ── */}
       <div style={{
         position: "fixed", bottom: 0, left: 0, right: 0,
-        height: 88,
-        display: "flex",
-        background: "rgba(14, 14, 18, 0.97)",
+        height: "10.54vw",
       }}>
 
-        {/* ── Red corner: [red accent | NAME | SCORE] ── */}
+        {/* ── SVG background ── */}
+        <svg
+          viewBox="0 0 1485.57 156.63"
+          preserveAspectRatio="none"
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          {/* Left panel main */}
+          <polygon points="604.36 143.96 47.69 143.96 0 .59 587.77 .59 604.36 143.96" fill="#323232" />
+          {/* Left panel darker right accent */}
+          <polygon points="604.36 143.96 507 143.96 482.11 .59 587.77 .59 604.36 143.96" fill="#465155" />
+          {/* Center panel */}
+          <polygon points="858.83 143.96 626.69 143.96 613.21 .59 872.31 .59 858.83 143.96" fill="#343434" />
+          {/* Red diagonal stripe */}
+          <polygon points="92.96 102.56 70.29 102.56 52.04 38.93 74.71 38.93 92.96 102.56" fill="#d5363b" />
+          {/* Red bottom stripe */}
+          <polygon points="606.01 156.63 212.6 156.63 202.23 143.98 603.94 143.98 606.01 156.63" fill="#d5363b" />
+          {/* Right panel main */}
+          <polygon points="881.21 143.37 1437.87 143.37 1485.57 0 897.8 0 881.21 143.37" fill="#323232" />
+          {/* Right panel darker left accent */}
+          <polygon points="881.21 143.37 978.57 143.37 1003.45 0 897.8 0 881.21 143.37" fill="#465155" />
+          {/* Blue diagonal stripe */}
+          <polygon points="1392.61 101.97 1415.27 101.97 1433.52 38.34 1410.86 38.34 1392.61 101.97" fill="#0068ff" />
+          {/* Blue bottom stripe */}
+          <polygon points="879.55 156.04 1272.97 156.04 1283.34 143.39 881.63 143.39 879.55 156.04" fill="#0068ff" />
+          {/* Center bottom gray bar */}
+          <rect x="626.29" y="143.39" width="232.97" height="13.13" fill="#969696" />
+        </svg>
+
+        {/* ── Left panel text: NAME ... SCORE ── */}
+        {/* Content sits between red stripe (~6.3%) and left panel right edge (~40.7%) */}
         <div style={{
-          flex: 1, display: "flex", alignItems: "center",
+          position: "absolute",
+          left: "7.5%", right: "61%",
+          top: 0, bottom: "8%",
+          display: "flex", alignItems: "center",
+          gap: "1vw",
           overflow: "hidden",
         }}>
-          {/* Diagonal red accent — parallelogram narrowing toward bottom-right */}
           <div style={{
-            width: 24, alignSelf: "stretch", flexShrink: 0,
-            background: "#c42e28",
-            clipPath: "polygon(0 0, 100% 0, 58% 100%, 0 100%)",
-          }} />
-
-          {/* Name */}
-          <div style={{ flex: 1, padding: "0 10px 0 14px", minWidth: 0 }}>
-            <div style={{
-              color: "#ffffff",
-              fontWeight: 900,
-              fontSize: 20,
-              textTransform: "uppercase",
-              letterSpacing: 1.5,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}>
-              {redName}
-            </div>
-          </div>
-
-          {/* Score */}
-          <div style={{
-            fontSize: 54,
+            flex: 1, minWidth: 0,
+            color: "#ffffff",
             fontWeight: 900,
-            lineHeight: 1,
+            fontSize: "1.7vw",
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}>
+            {redName}
+          </div>
+          <div style={{
             flexShrink: 0,
             color: totalRed > totalBlue ? "#facc15" : "#ffffff",
-            padding: "0 22px 0 8px",
-            letterSpacing: -1,
+            fontWeight: 900,
+            fontSize: "3.5vw",
+            lineHeight: 1,
+            letterSpacing: "-0.02em",
           }}>
             {totalRed}
           </div>
         </div>
 
-        {/* ── Center: timer + round ── */}
+        {/* ── Center text: TIMER ── */}
+        {/* Center panel spans 41.28% → 58.71% */}
         <div style={{
-          flexShrink: 0,
-          width: 128,
-          background: "rgba(8, 8, 12, 0.99)",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          borderLeft:  "1px solid rgba(255,255,255,0.08)",
-          borderRight: "1px solid rgba(255,255,255,0.08)",
+          position: "absolute",
+          left: "41.3%", right: "41.3%",
+          top: 0, bottom: "8%",
+          display: "flex", alignItems: "center", justifyContent: "center",
         }}>
           <span style={{
             color: timerColor,
-            fontSize: 28,
             fontWeight: 900,
+            fontSize: "3.7vw",
             fontFamily: "monospace",
-            letterSpacing: 2,
+            letterSpacing: "0.04em",
+            lineHeight: 1,
           }}>
             {formatTime(remaining)}
           </span>
-          <span style={{
-            color: "rgba(255,255,255,0.28)",
-            fontSize: 9,
-            fontWeight: 700,
-            letterSpacing: 2,
-            textTransform: "uppercase",
-            marginTop: 4,
-          }}>
-            R{currentRound} · A{arenaNumber}
-          </span>
         </div>
 
-        {/* ── Blue corner: [SCORE | NAME | blue accent] ── */}
+        {/* ── Right panel text: SCORE ... NAME ── */}
+        {/* Content sits between right panel left edge (~59.3%) and blue stripe (~93.7%) */}
         <div style={{
-          flex: 1,
-          display: "flex",
-          alignItems: "center",
-          flexDirection: "row-reverse",
+          position: "absolute",
+          left: "60%", right: "7.5%",
+          top: 0, bottom: "8%",
+          display: "flex", alignItems: "center",
+          gap: "1vw",
           overflow: "hidden",
         }}>
-          {/* Diagonal blue accent — parallelogram narrowing toward bottom-left */}
           <div style={{
-            width: 24,
-            alignSelf: "stretch",
-            flexShrink: 0,
-            background: "#1855b8",
-            clipPath: "polygon(42% 0, 100% 0, 100% 100%, 0 100%)",
-          }} />
-
-          {/* Name (row-reverse: DOM 2nd → renders right of score, left of accent) */}
-          <div style={{ flex: 1, padding: "0 14px 0 10px", minWidth: 0, textAlign: "right" }}>
-            <div style={{
-              color: "#ffffff",
-              fontWeight: 900,
-              fontSize: 20,
-              textTransform: "uppercase",
-              letterSpacing: 1.5,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}>
-              {blueName}
-            </div>
-          </div>
-
-          {/* Score (row-reverse: DOM 1st → renders nearest center) */}
-          <div style={{
-            fontSize: 54,
-            fontWeight: 900,
-            lineHeight: 1,
             flexShrink: 0,
             color: totalBlue > totalRed ? "#facc15" : "#ffffff",
-            padding: "0 8px 0 22px",
-            letterSpacing: -1,
+            fontWeight: 900,
+            fontSize: "3.5vw",
+            lineHeight: 1,
+            letterSpacing: "-0.02em",
           }}>
             {totalBlue}
+          </div>
+          <div style={{
+            flex: 1, minWidth: 0, textAlign: "right",
+            color: "#ffffff",
+            fontWeight: 900,
+            fontSize: "1.7vw",
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}>
+            {blueName}
           </div>
         </div>
 
