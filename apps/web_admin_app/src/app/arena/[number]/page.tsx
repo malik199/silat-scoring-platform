@@ -288,11 +288,11 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
   const [adminEvents, setAdminEvents] = useState<AdminEvent[]>([]);
 
   // ── Judge activity tracking ──────────────────────────────────────────────
-  const prevScoreLen = useRef(0);
+  const seenScoreIds = useRef(new Set<string>());
   const [recentTaps, setRecentTaps] = useState<Map<string, RecentTap>>(new Map());
 
   // ── Dewan action tracking ────────────────────────────────────────────────
-  const prevAdminLen = useRef(0);
+  const seenAdminIds = useRef(new Set<string>());
   const [recentAdminRed,  setRecentAdminRed]  = useState<RecentAdminAction | null>(null);
   const [recentAdminBlue, setRecentAdminBlue] = useState<RecentAdminAction | null>(null);
 
@@ -326,8 +326,8 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
     if (!runningMatch) {
       setRedComp(null); setBlueComp(null);
       setScoreEvents([]); setAdminEvents([]);
-      prevScoreLen.current = 0;
-      prevAdminLen.current = 0;
+      seenScoreIds.current = new Set();
+      seenAdminIds.current = new Set();
       setRecentTaps(new Map());
       setRecentAdminRed(null);
       setRecentAdminBlue(null);
@@ -340,10 +340,10 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
     return () => { unsubRed(); unsubBlue(); unsubEvents(); unsubAdmin(); };
   }, [runningMatch?.id]);
 
-  // Detect new score events and record local arrival time
+  // Detect new score events by ID — immune to reordering from device-clock skew
   useEffect(() => {
-    const newEvents = scoreEvents.slice(prevScoreLen.current);
-    prevScoreLen.current = scoreEvents.length;
+    const newEvents = scoreEvents.filter((e) => !seenScoreIds.current.has(e.id));
+    for (const e of newEvents) seenScoreIds.current.add(e.id);
     if (newEvents.length === 0) return;
     const now = Date.now();
     setRecentTaps((prev) => {
@@ -370,10 +370,10 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
     return () => clearInterval(id);
   }, []);
 
-  // Detect new admin events and show indicator
+  // Detect new admin events by ID — immune to reordering
   useEffect(() => {
-    const newEvents = adminEvents.slice(prevAdminLen.current);
-    prevAdminLen.current = adminEvents.length;
+    const newEvents = adminEvents.filter((e) => !seenAdminIds.current.has(e.id));
+    for (const e of newEvents) seenAdminIds.current.add(e.id);
     if (newEvents.length === 0) return;
     const now = Date.now();
     for (const e of newEvents) {
