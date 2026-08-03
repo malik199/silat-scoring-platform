@@ -190,7 +190,7 @@ export default function OBSPage() {
         }}>
           {tournamentName && (
             <div style={{
-              color: "rgba(255,255,255,0.9)", fontWeight: 600, fontSize: "1.05vw",
+              color: "rgba(255,255,255,0.9)", fontWeight: 600, fontSize: "1.6vw",
               textTransform: "uppercase", letterSpacing: "0.1em",
               textAlign: "center", lineHeight: 1.15,
               wordBreak: "break-word",
@@ -200,8 +200,8 @@ export default function OBSPage() {
             </div>
           )}
           <div style={{
-            color: "rgba(255,255,255,0.55)", fontWeight: 500, fontSize: "0.65vw",
-            letterSpacing: "0.2em", textTransform: "uppercase", lineHeight: 1,
+            color: "rgba(255,255,255,0.75)", fontWeight: 600, fontSize: "1.2vw",
+            letterSpacing: "0.15em", textTransform: "uppercase", lineHeight: 1,
           }}>
             Round {currentRound}
           </div>
