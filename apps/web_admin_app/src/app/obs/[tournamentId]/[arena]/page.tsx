@@ -114,6 +114,8 @@ export default function OBSPage() {
         left: "2.8%",
         right: "2.8%",
         height: "10.54vw",
+        transform: "scale(0.8)",
+        transformOrigin: "bottom center",
       }}>
 
         {/* ── SVG background ── */}
