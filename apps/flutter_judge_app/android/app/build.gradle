@@ -32,7 +32,7 @@ if (flutterVersionName == null) {
 android {
     namespace "com.visdevelop.silatscore"
     compileSdkVersion 36
-    ndkVersion flutter.ndkVersion
+    ndkVersion "27.2.12479018"
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
