@@ -31,6 +31,14 @@
           }
         },
         {
+          "client_id": "191446392057-ssqtqndajltcmvd169ad7e9c0piissuf.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.visdevelop.silatscore",
+            "certificate_hash": "3fac0798b66c538e1372d62cb6f67fa6d667669f"
+          }
+        },
+        {
           "client_id": "191446392057-16pt9ml1r1q89f13bhpveu7qbb7brcg8.apps.googleusercontent.com",
           "client_type": 3
         }
