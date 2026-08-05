@@ -52,7 +52,7 @@ export interface Match {
   /** 1-based position within the tournament — determines display order */
   order: number;
   /** Duration of each round in seconds — either 90 (1:30) or 120 (2:00) */
-  roundDurationSeconds: 90 | 120;
+  roundDurationSeconds: 60 | 90 | 120;
   /** Current round number (1–3) */
   currentRound: number;
   /** Whether the timer is currently counting down */
@@ -95,7 +95,7 @@ export interface CreateMatchInput {
   arenaNumber: number;
   redCornerCompetitorId: string;
   blueCornerCompetitorId: string;
-  roundDurationSeconds: 90 | 120;
+  roundDurationSeconds: 60 | 90 | 120;
   dirtyTime: boolean;
   /** Pass current match count so order = count + 1 */
   currentCount: number;
