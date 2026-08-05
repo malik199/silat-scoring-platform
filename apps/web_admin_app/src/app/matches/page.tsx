@@ -85,7 +85,7 @@ function NewMatchModal({ tournament, competitors, currentCount, onClose }: NewMa
   const [ageCat,               setAgeCat]               = useState("all");
   const [redId,                setRedId]                = useState("");
   const [blueId,               setBlueId]               = useState("");
-  const [roundDurationSeconds, setRoundDurationSeconds] = useState<90 | 120>(120);
+  const [roundDurationSeconds, setRoundDurationSeconds] = useState<60 | 90 | 120>(120);
   const [dirtyTime,            setDirtyTime]            = useState(false);
   const [saving,               setSaving]               = useState(false);
   const [error,                setError]                = useState("");
@@ -268,8 +268,8 @@ function NewMatchModal({ tournament, competitors, currentCount, onClose }: NewMa
             {/* Round duration */}
             <div>
               <label className="block text-xs font-semibold text-secondary uppercase tracking-widest mb-1.5">Round Duration</label>
-              <div className="grid grid-cols-2 gap-2">
-                {([120, 90] as const).map((secs) => (
+              <div className="grid grid-cols-3 gap-2">
+                {([120, 90, 60] as const).map((secs) => (
                   <button
                     key={secs}
                     type="button"
@@ -280,7 +280,7 @@ function NewMatchModal({ tournament, competitors, currentCount, onClose }: NewMa
                         : "bg-elevated border-border text-secondary hover:text-warn hover:bg-elevated/80"
                     }`}
                   >
-                    {secs === 120 ? "2:00" : "1:30"}
+                    {secs === 120 ? "2:00" : secs === 90 ? "1:30" : "1:00"}
                   </button>
                 ))}
               </div>

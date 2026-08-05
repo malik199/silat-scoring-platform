@@ -78,7 +78,7 @@ class MatchDoc {
   final bool                timerRunning;
   final DateTime?           timerStartedAt;       // null when timer is stopped
   final double              timerElapsedSeconds;  // seconds accumulated before last start
-  final int                 roundDurationSeconds; // 90 or 120
+  final int                 roundDurationSeconds; // 60, 90, or 120
   final int                 currentRound;         // 1-based
   final ActiveVerification? activeVerification;   // set when Dewan requests verification
 
