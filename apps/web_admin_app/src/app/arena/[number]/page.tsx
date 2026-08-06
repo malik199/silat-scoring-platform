@@ -188,7 +188,7 @@ function CornerPanel({ corner, competitor, score, leading, judgeOrder, recentTap
   const activeIndicators = indicators.filter((i) => i.active);
 
   return (
-    <div className="flex-1 flex flex-col" style={{ backgroundColor: bgMain }}>
+    <div className="flex-1 min-w-0 flex flex-col" style={{ backgroundColor: bgMain }}>
 
       {/* ── Header: 3 side-by-side columns ── */}
       <div className="flex items-stretch" style={{ backgroundColor: bgDark }}>
@@ -200,10 +200,10 @@ function CornerPanel({ corner, competitor, score, leading, judgeOrder, recentTap
         >
           {competitor ? (
             <>
-              <p className="font-black text-white leading-tight truncate" style={{ fontSize: "min(3vw, 42px)" }}>
+              <p className="font-black text-white leading-tight break-words" style={{ fontSize: "min(3vw, 42px)" }}>
                 {competitor.firstName} {competitor.lastName}
               </p>
-              <p className="font-semibold text-white/70 truncate mt-0.5" style={{ fontSize: "min(1.8vw, 24px)" }}>
+              <p className="font-semibold text-white/70 break-words mt-0.5" style={{ fontSize: "min(1.8vw, 24px)" }}>
                 {[competitor.schoolName, competitor.country].filter(Boolean).join("  ·  ")}
               </p>
             </>
