@@ -9,6 +9,7 @@ import {
   subscribeAdminEvents,
   computeConfirmedScores,
   computePenaltyFlagPoints,
+  computeTiebreaker,
   computeRemainingSeconds,
   formatTime,
   type Match,
@@ -482,11 +483,19 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
   // ── Active match ─────────────────────────────────────────────────────────
 
   const currentRound = runningMatch.currentRound ?? 1;
-  const { red: confirmedRed, blue: confirmedBlue } = computeConfirmedScores(scoreEvents);
+  const { red: confirmedRed, blue: confirmedBlue, redCounts, blueCounts } = computeConfirmedScores(scoreEvents);
   const adminRed  = adminEvents.filter((e) => e.side === "red"  && e.points > 0).reduce((s, e) => s + e.points, 0);
   const adminBlue = adminEvents.filter((e) => e.side === "blue" && e.points > 0).reduce((s, e) => s + e.points, 0);
   const totalRed  = confirmedRed  + adminRed  + computePenaltyFlagPoints(runningMatch.warnings, "red",  currentRound);
   const totalBlue = confirmedBlue + adminBlue + computePenaltyFlagPoints(runningMatch.warnings, "blue", currentRound);
+  const redThreePt  = adminEvents.filter((e) => e.side === "red"  && e.points === 3).length;
+  const blueThreePt = adminEvents.filter((e) => e.side === "blue" && e.points === 3).length;
+  const tiebreaker = totalRed === totalBlue ? computeTiebreaker({
+    redThreePt, blueThreePt, redCounts, blueCounts,
+    warnings: runningMatch.warnings,
+    redWeightKg: redComp?.weightKg,
+    blueWeightKg: blueComp?.weightKg,
+  }) : null;
 
   return (
     <div className="min-h-screen flex flex-col overflow-hidden" style={{ backgroundColor: "#111" }}>
@@ -522,7 +531,7 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
           corner="blue"
           competitor={blueComp}
           score={totalBlue}
-          leading={totalBlue > totalRed}
+          leading={totalBlue > totalRed || tiebreaker?.winner === "blue"}
           judgeOrder={judgeOrder}
           recentTaps={recentTaps}
           adminEvents={adminEvents}
@@ -535,7 +544,7 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
           corner="red"
           competitor={redComp}
           score={totalRed}
-          leading={totalRed > totalBlue}
+          leading={totalRed > totalBlue || tiebreaker?.winner === "red"}
           judgeOrder={judgeOrder}
           recentTaps={recentTaps}
           adminEvents={adminEvents}

@@ -28,6 +28,7 @@ import {
   startVerification,
   clearVerification,
   SERIOUS_VIOLATION_TYPES,
+  computeTiebreaker,
   type Match,
   type ScoreEvent,
   type AdminEvent,
@@ -244,7 +245,7 @@ export default function DewanPage() {
   // currentRound needed for penalty scoring — declared early to avoid TDZ
   const currentRound = match?.currentRound ?? 1;
 
-  const { red: confirmedRed, blue: confirmedBlue, confirmedEventIds } =
+  const { red: confirmedRed, blue: confirmedBlue, confirmedEventIds, redCounts, blueCounts } =
     computeConfirmedScores(scoreEvents);
   // adminEvents now only carries +3 takedowns; penalties live in match.warnings
   const { red: adminRed, blue: adminBlue } = adminTotals(adminEvents.filter((e) => e.points > 0));
@@ -253,7 +254,22 @@ export default function DewanPage() {
 
   const totalRed  = confirmedRed  + adminRed  + penaltyRed;
   const totalBlue = confirmedBlue + adminBlue + penaltyBlue;
-  const winner    = totalRed !== totalBlue ? (totalRed > totalBlue ? "red" : "blue") : null;
+
+  const redThreePt  = adminEvents.filter((e) => e.side === "red"  && e.points === 3).length;
+  const blueThreePt = adminEvents.filter((e) => e.side === "blue" && e.points === 3).length;
+
+  const tiebreaker = totalRed === totalBlue ? computeTiebreaker({
+    redThreePt, blueThreePt, redCounts, blueCounts,
+    warnings: match?.warnings,
+    redWeightKg:  redComp?.weightKg,
+    blueWeightKg: blueComp?.weightKg,
+  }) : null;
+
+  const winner = totalRed !== totalBlue
+    ? (totalRed > totalBlue ? "red" : "blue")
+    : tiebreaker?.winner === "red" || tiebreaker?.winner === "blue"
+      ? tiebreaker.winner
+      : null;
 
   const confirmedTaps = confirmedEventIds.size;
 
@@ -338,7 +354,7 @@ export default function DewanPage() {
   async function handleEndMatchEarly() {
     if (!match) return;
     if (isRunning) await timerStop(match.id, (match.roundDurationSeconds ?? 120) - remaining);
-    await endMatch(match.id);
+    await endMatch(match.id, redComp?.weightKg, blueComp?.weightKg);
     setConfirmEndEarly(false);
   }
 
@@ -439,7 +455,9 @@ export default function DewanPage() {
             <div className={`flex flex-col items-center justify-center py-6 ${winner === "blue" ? "bg-blue-500/10" : ""}`}>
               <p className="text-xs font-semibold uppercase tracking-widest text-blue-400 mb-1">Blue</p>
               <p className="text-6xl font-black text-blue-400">{totalBlue}</p>
-              {winner === "blue" && <p className="text-xs font-semibold text-blue-400 mt-1">Leading</p>}
+              {winner === "blue" && !tiebreaker && <p className="text-xs font-semibold text-blue-400 mt-1">Leading</p>}
+              {winner === "blue" && tiebreaker && <p className="text-xs font-semibold text-blue-400 mt-1">Leads ({tiebreaker.label})</p>}
+              {tiebreaker?.winner === "lots" && <p className="text-xs font-semibold text-warn mt-1">Draw Lots</p>}
             </div>
             <div className="col-span-2 flex flex-col items-center justify-center py-6 border-x border-border gap-3">
               {/* Round pips */}
@@ -516,7 +534,9 @@ export default function DewanPage() {
             <div className={`flex flex-col items-center justify-center py-6 ${winner === "red" ? "bg-danger/10" : ""}`}>
               <p className="text-xs font-semibold uppercase tracking-widest text-danger mb-1">Red</p>
               <p className="text-6xl font-black text-danger">{totalRed}</p>
-              {winner === "red" && <p className="text-xs font-semibold text-danger mt-1">Leading</p>}
+              {winner === "red" && !tiebreaker && <p className="text-xs font-semibold text-danger mt-1">Leading</p>}
+              {winner === "red" && tiebreaker && <p className="text-xs font-semibold text-danger mt-1">Leads ({tiebreaker.label})</p>}
+              {tiebreaker?.winner === "lots" && <p className="text-xs font-semibold text-warn mt-1">Draw Lots</p>}
             </div>
           </div>
         </div>

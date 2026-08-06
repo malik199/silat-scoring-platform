@@ -7,6 +7,7 @@ import {
   updateDoc,
   deleteDoc,
   getDocs,
+  getDoc,
   writeBatch,
   onSnapshot,
   orderBy,
@@ -184,11 +185,26 @@ export async function startMatch(id: string): Promise<void> {
   await updateDoc(doc(db, COL, id), { status: "in_progress" });
 }
 
-export async function endMatch(id: string): Promise<void> {
-  const eventsSnap = await getDocs(collection(db, COL, id, "scoreEvents"));
+export async function endMatch(id: string, redWeightKg?: number, blueWeightKg?: number): Promise<void> {
+  const [eventsSnap, adminSnap, matchSnap] = await Promise.all([
+    getDocs(collection(db, COL, id, "scoreEvents")),
+    getDocs(collection(db, COL, id, "adminEvents")),
+    getDoc(doc(db, COL, id)),
+  ]);
   const events: ScoreEvent[] = eventsSnap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<ScoreEvent, "id">) }));
-  const { red, blue } = computeConfirmedScores(events);
-  const winnerCorner: "red" | "blue" | "draw" = red > blue ? "red" : blue > red ? "blue" : "draw";
+  const { red, blue, redCounts, blueCounts } = computeConfirmedScores(events);
+
+  let winnerCorner: "red" | "blue" | "draw";
+  if (red !== blue) {
+    winnerCorner = red > blue ? "red" : "blue";
+  } else {
+    const adminData = adminSnap.docs.map((d) => d.data() as { side: string; points: number });
+    const redThreePt  = adminData.filter((e) => e.side === "red"  && e.points === 3).length;
+    const blueThreePt = adminData.filter((e) => e.side === "blue" && e.points === 3).length;
+    const matchData   = matchSnap.data() as Match | undefined;
+    const tb = computeTiebreaker({ redThreePt, blueThreePt, redCounts, blueCounts, warnings: matchData?.warnings, redWeightKg, blueWeightKg });
+    winnerCorner = tb.winner === "lots" ? "draw" : tb.winner;
+  }
   await updateDoc(doc(db, COL, id), { status: "completed", winnerCorner });
 }
 
@@ -242,11 +258,16 @@ function getEventSeconds(e: ScoreEvent): number {
  *  same judges (even within 5s) produces a separate confirmation rather than
  *  being absorbed into the first one and lost.
  */
-export function computeConfirmedScores(events: ScoreEvent[]): { red: number; blue: number; confirmedEventIds: Set<string> } {
+export function computeConfirmedScores(events: ScoreEvent[]): {
+  red: number; blue: number; confirmedEventIds: Set<string>;
+  redCounts: Record<number, number>; blueCounts: Record<number, number>;
+} {
   const sorted = [...events].sort((a, b) => getEventSeconds(a) - getEventSeconds(b));
   const used = new Set<string>();
   const confirmedEventIds = new Set<string>();
   let red = 0, blue = 0;
+  const redCounts: Record<number, number> = {};
+  const blueCounts: Record<number, number> = {};
 
   for (const side of ["red", "blue"] as const) {
     for (const pts of [1, 2]) {
@@ -268,7 +289,8 @@ export function computeConfirmedScores(events: ScoreEvent[]): { red: number; blu
         });
 
         if (onePerJudge.length >= 2) {
-          if (side === "red") red += pts; else blue += pts;
+          if (side === "red") { red += pts; redCounts[pts] = (redCounts[pts] ?? 0) + 1; }
+          else                { blue += pts; blueCounts[pts] = (blueCounts[pts] ?? 0) + 1; }
           // Mark only the one-per-judge events as used; later taps from the
           // same judges remain available for the next confirmation.
           for (const e of onePerJudge) { used.add(e.id); confirmedEventIds.add(e.id); }
@@ -279,7 +301,54 @@ export function computeConfirmedScores(events: ScoreEvent[]): { red: number; blu
     }
   }
 
-  return { red, blue, confirmedEventIds };
+  return { red, blue, confirmedEventIds, redCounts, blueCounts };
+}
+
+// ─── IPSF Tiebreaker (2026 Regulations) ─────────────────────────────────────
+
+export interface TiebreakerResult {
+  winner: "red" | "blue" | "lots";
+  reason: "3pt" | "2pt" | "1pt" | "penalties" | "weight" | "lots";
+  label: string;
+}
+
+export function computeTiebreaker({
+  redThreePt, blueThreePt,
+  redCounts, blueCounts,
+  warnings,
+  redWeightKg, blueWeightKg,
+}: {
+  redThreePt: number; blueThreePt: number;
+  redCounts: Record<number, number>; blueCounts: Record<number, number>;
+  warnings: Record<string, boolean> | undefined;
+  redWeightKg?: number | null; blueWeightKg?: number | null;
+}): TiebreakerResult {
+  // 1. Most 3-point scores (valid falls)
+  if (redThreePt !== blueThreePt)
+    return { winner: redThreePt > blueThreePt ? "red" : "blue", reason: "3pt", label: "most 3-pt falls" };
+
+  // 2. Most 2-point scores (kicks)
+  const red2 = redCounts[2] ?? 0, blue2 = blueCounts[2] ?? 0;
+  if (red2 !== blue2)
+    return { winner: red2 > blue2 ? "red" : "blue", reason: "2pt", label: "most kicks" };
+
+  // 3. Most 1-point scores (punches)
+  const red1 = redCounts[1] ?? 0, blue1 = blueCounts[1] ?? 0;
+  if (red1 !== blue1)
+    return { winner: red1 > blue1 ? "red" : "blue", reason: "1pt", label: "most punches" };
+
+  // 4. Fewest penalties (higher value = closer to 0 = fewer deductions)
+  const redPen  = computePenaltyFlagPoints(warnings, "red",  3);
+  const bluePen = computePenaltyFlagPoints(warnings, "blue", 3);
+  if (redPen !== bluePen)
+    return { winner: redPen > bluePen ? "red" : "blue", reason: "penalties", label: "fewest penalties" };
+
+  // 5. Lighter weight
+  if (redWeightKg != null && blueWeightKg != null && redWeightKg !== blueWeightKg)
+    return { winner: redWeightKg < blueWeightKg ? "red" : "blue", reason: "weight", label: "lighter weight" };
+
+  // 6. Drawing of lots
+  return { winner: "lots", reason: "lots", label: "draw lots" };
 }
 
 export interface ScoreEvent {

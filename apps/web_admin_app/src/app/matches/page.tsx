@@ -737,7 +737,9 @@ export default function MatchesPage() {
   }
 
   async function handleEnd(match: Match) {
-    await endMatch(match.id);
+    const red  = compMap.get(match.redCornerCompetitorId);
+    const blue = compMap.get(match.blueCornerCompetitorId);
+    await endMatch(match.id, red?.weightKg, blue?.weightKg);
   }
 
   function handleShareMatches() {
