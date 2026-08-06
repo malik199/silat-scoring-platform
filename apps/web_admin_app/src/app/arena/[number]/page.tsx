@@ -195,7 +195,7 @@ function CornerPanel({ corner, competitor, score, leading, judgeOrder, recentTap
 
         {/* Col 1: Name + school */}
         <div
-          className="flex-1 flex flex-col justify-center px-5 py-4 min-w-0"
+          className="flex-1 flex flex-col justify-center px-5 py-4 min-w-0 overflow-hidden"
           style={{ borderRight: "1px solid rgba(255,255,255,0.1)" }}
         >
           {competitor ? (
