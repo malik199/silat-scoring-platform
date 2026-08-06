@@ -170,8 +170,8 @@ function CornerPanel({ corner, competitor, score, leading, judgeOrder, recentTap
   const w2      = warnings?.[`r${currentRound}_${corner}_w2`]  === true;
   const m1      = warnings?.[`r${currentRound}_${corner}_m1`]  === true;
   const m2      = warnings?.[`r${currentRound}_${corner}_m2`]  === true;
-  const m5      = warnings?.[`r${currentRound}_${corner}_m5`]  === true;
-  const m10     = warnings?.[`r${currentRound}_${corner}_m10`] === true;
+  const m5      = warnings?.[`${corner}_m5`]  === true;
+  const m10     = warnings?.[`${corner}_m10`] === true;
   const dq      = warnings?.[`${corner}_dq`] === true;
   const jatohan = recentAdmin !== null && recentAdmin.points > 0;
 

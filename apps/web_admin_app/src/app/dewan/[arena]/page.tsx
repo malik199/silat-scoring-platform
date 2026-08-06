@@ -80,8 +80,8 @@ function IndicatorRow({
   const w2  = warnings?.[`r${currentRound}_${side}_w2`]  === true;
   const m1  = warnings?.[`r${currentRound}_${side}_m1`]  === true;
   const m2  = warnings?.[`r${currentRound}_${side}_m2`]  === true;
-  const m5  = warnings?.[`r${currentRound}_${side}_m5`]  === true;
-  const m10 = warnings?.[`r${currentRound}_${side}_m10`] === true;
+  const m5  = warnings?.[`${side}_m5`]  === true;
+  const m10 = warnings?.[`${side}_m10`] === true;
   const dq  = warnings?.[`${side}_dq`] === true;
 
   const items = [
@@ -276,7 +276,9 @@ export default function DewanPage() {
 
   async function handlePenalty(side: "red" | "blue", type: "m1" | "m2" | "m5" | "m10") {
     if (!match) return;
-    const key = `r${currentRound}_${side}_${type}`;
+    const key = (type === "m5" || type === "m10")
+      ? `${side}_${type}`
+      : `r${currentRound}_${side}_${type}`;
     await setMatchFlag(match.id, key, !(match.warnings?.[key] === true));
   }
 
@@ -305,15 +307,15 @@ export default function DewanPage() {
     blue: {
       "-1":  match?.warnings?.[`r${currentRound}_blue_m1`]  === true,
       "-2":  match?.warnings?.[`r${currentRound}_blue_m2`]  === true,
-      "-5":  match?.warnings?.[`r${currentRound}_blue_m5`]  === true,
-      "-10": match?.warnings?.[`r${currentRound}_blue_m10`] === true,
+      "-5":  match?.warnings?.["blue_m5"]  === true,
+      "-10": match?.warnings?.["blue_m10"] === true,
       "dq":  match?.warnings?.[`blue_dq`] === true,
     },
     red: {
       "-1":  match?.warnings?.[`r${currentRound}_red_m1`]  === true,
       "-2":  match?.warnings?.[`r${currentRound}_red_m2`]  === true,
-      "-5":  match?.warnings?.[`r${currentRound}_red_m5`]  === true,
-      "-10": match?.warnings?.[`r${currentRound}_red_m10`] === true,
+      "-5":  match?.warnings?.["red_m5"]  === true,
+      "-10": match?.warnings?.["red_m10"] === true,
       "dq":  match?.warnings?.[`red_dq`] === true,
     },
   };

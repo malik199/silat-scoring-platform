@@ -356,11 +356,12 @@ export function computePenaltyFlagPoints(
   if (!warnings) return 0;
   let total = 0;
   for (let r = 1; r <= upToRound; r++) {
-    if (warnings[`r${r}_${side}_m1`])  total -= 1;
-    if (warnings[`r${r}_${side}_m2`])  total -= 2;
-    if (warnings[`r${r}_${side}_m5`])  total -= 5;
-    if (warnings[`r${r}_${side}_m10`]) total -= 10;
+    if (warnings[`r${r}_${side}_m1`]) total -= 1;
+    if (warnings[`r${r}_${side}_m2`]) total -= 2;
   }
+  // m5 and m10 are match-wide — applied once, persist across all rounds
+  if (warnings[`${side}_m5`])  total -= 5;
+  if (warnings[`${side}_m10`]) total -= 10;
   return total;
 }
 

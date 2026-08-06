@@ -18,6 +18,7 @@ import { getCompetitorsByIds, type Competitor } from "@/lib/competitors";
 
 function cntFlags(warnings: Record<string, boolean> | undefined, side: "red" | "blue", type: string): number {
   if (!warnings) return 0;
+  if (type === "m5" || type === "m10") return warnings[`${side}_${type}`] ? 1 : 0;
   let n = 0;
   for (let r = 1; r <= 3; r++) if (warnings[`r${r}_${side}_${type}`]) n++;
   return n;
