@@ -528,7 +528,7 @@ export default function DewanPage() {
         )}
         <div className="grid grid-cols-2 gap-3 mb-4">
           {/* Blue corner */}
-          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3 min-w-0">
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-blue-400">Blue Corner</p>
               {blueComp && (
@@ -569,7 +569,7 @@ export default function DewanPage() {
           </div>
 
           {/* Red corner */}
-          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3 min-w-0">
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-danger">Red Corner</p>
               {redComp && (
