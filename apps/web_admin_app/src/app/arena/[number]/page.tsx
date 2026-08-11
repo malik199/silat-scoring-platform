@@ -191,55 +191,49 @@ function CornerPanel({ corner, competitor, score, leading, judgeOrder, recentTap
   return (
     <div className="flex-1 min-w-0 flex flex-col" style={{ backgroundColor: bgMain }}>
 
-      {/* ── Header: 3 side-by-side columns ── */}
-      <div className="flex items-stretch" style={{ backgroundColor: bgDark }}>
+      {/* ── Top: Name + school only ── */}
+      <div
+        className="flex flex-col justify-center px-5 py-4 min-w-0 overflow-hidden"
+        style={{ backgroundColor: bgDark }}
+      >
+        {competitor ? (
+          <>
+            <p className="font-black text-white leading-tight break-words" style={{ fontSize: "min(3vw, 42px)" }}>
+              {competitor.firstName} {competitor.lastName}
+            </p>
+            <p className="font-semibold text-white/70 break-words mt-0.5" style={{ fontSize: "min(1.8vw, 24px)" }}>
+              {[competitor.schoolName, competitor.country].filter(Boolean).join("  ·  ")}
+            </p>
+          </>
+        ) : (
+          <p className="text-white/30 font-bold" style={{ fontSize: "min(2.5vw, 36px)" }}>—</p>
+        )}
+      </div>
 
-        {/* Col 1: Name + school */}
-        <div
-          className="flex-1 flex flex-col justify-center px-5 py-4 min-w-0 overflow-hidden"
-          style={{ borderRight: "1px solid rgba(255,255,255,0.1)" }}
+      {/* ── Score ── */}
+      <div className="flex-1 flex items-center justify-center">
+        <p
+          className="font-black text-white tabular-nums leading-none transition-all duration-300"
+          style={{
+            fontSize: "min(28vw, 46vh)",
+            ...(leading ? {
+              outline: "6px solid rgba(255,255,255,0.9)",
+              outlineOffset: "16px",
+              borderRadius: "12px",
+            } : {}),
+          }}
         >
-          {competitor ? (
-            <>
-              <p className="font-black text-white leading-tight break-words" style={{ fontSize: "min(3vw, 42px)" }}>
-                {competitor.firstName} {competitor.lastName}
-              </p>
-              <p className="font-semibold text-white/70 break-words mt-0.5" style={{ fontSize: "min(1.8vw, 24px)" }}>
-                {[competitor.schoolName, competitor.country].filter(Boolean).join("  ·  ")}
-              </p>
-            </>
-          ) : (
-            <p className="text-white/30 font-bold" style={{ fontSize: "min(2.5vw, 36px)" }}>—</p>
-          )}
-        </div>
+          {score}
+        </p>
+      </div>
 
-        {/* Col 2: Takedown / violation indicators */}
-        <div
-          className="flex flex-wrap items-center justify-center content-center gap-1.5 px-4 py-4"
-          style={{ minWidth: "min(14vw, 180px)", borderRight: "1px solid rgba(255,255,255,0.1)" }}
-        >
-          {activeIndicators.length === 0 ? (
-            <span style={{ fontSize: "min(1.2vw, 14px)", color: "rgba(255,255,255,0.12)", fontWeight: 600 }}>—</span>
-          ) : activeIndicators.map(({ src, bg, border, large }, idx) => (
-            <div
-              key={idx}
-              className={`rounded-xl flex-shrink-0${large ? " animate-pulse" : ""}`}
-              style={{
-                width:      large ? "min(6.5vw, 84px)" : "min(3.6vw, 46px)",
-                height:     large ? "min(6.5vw, 84px)" : "min(3.6vw, 46px)",
-                background: bg,
-                border:     `2px solid ${border}`,
-                padding:    large ? "min(0.6vw, 8px)" : "min(0.4vw, 5px)",
-                boxShadow:  large ? `0 0 24px ${border}` : `0 0 10px ${border}`,
-              }}
-            >
-              <img src={src} alt="" className="w-full h-full object-contain" style={{ filter: "brightness(0) invert(1)" }} />
-            </div>
-          ))}
-        </div>
-
-        {/* Col 3: Judge indicators */}
-        <div className="flex flex-col items-center justify-center gap-1.5 px-4 py-4 flex-shrink-0">
+      {/* ── Bottom: Judge taps + indicators ── */}
+      <div
+        className="flex items-center justify-between gap-3 px-5 py-3"
+        style={{ backgroundColor: bgDark }}
+      >
+        {/* Judge rows */}
+        <div className="flex flex-col gap-1.5 flex-shrink-0">
           <div className="flex gap-1.5">
             {slots.map((slot) => (
               <JudgeIndicator key={`punch-${slot.number}`} number={slot.number} tap={slot.tap} corner={corner} type="punch" />
@@ -252,23 +246,25 @@ function CornerPanel({ corner, competitor, score, leading, judgeOrder, recentTap
           </div>
         </div>
 
-      </div>
-
-      {/* ── Score ── */}
-      <div className="flex-1 flex items-center justify-center">
-        <p
-          className="font-black text-white tabular-nums leading-none transition-all duration-300"
-          style={{
-            fontSize: "min(28vw, 52vh)",
-            ...(leading ? {
-              outline: "6px solid rgba(255,255,255,0.9)",
-              outlineOffset: "16px",
-              borderRadius: "12px",
-            } : {}),
-          }}
-        >
-          {score}
-        </p>
+        {/* Takedown / violation indicators */}
+        <div className="flex flex-wrap items-center justify-end content-center gap-1.5 flex-1">
+          {activeIndicators.map(({ src, bg, border, large }, idx) => (
+            <div
+              key={idx}
+              className={`rounded-xl flex-shrink-0${large ? " animate-pulse" : ""}`}
+              style={{
+                width:      large ? "min(5vw, 64px)" : "min(2.8vw, 36px)",
+                height:     large ? "min(5vw, 64px)" : "min(2.8vw, 36px)",
+                background: bg,
+                border:     `2px solid ${border}`,
+                padding:    large ? "min(0.5vw, 6px)" : "min(0.3vw, 4px)",
+                boxShadow:  large ? `0 0 20px ${border}` : `0 0 8px ${border}`,
+              }}
+            >
+              <img src={src} alt="" className="w-full h-full object-contain" style={{ filter: "brightness(0) invert(1)" }} />
+            </div>
+          ))}
+        </div>
       </div>
 
     </div>
