@@ -28,6 +28,7 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
   CompetitorDoc?  _blue;
   bool            _loadingMatch = true;
   Timer?          _pollTimer;
+  String?         _seatLabel;   // "J1", "J2", "J3", or null
 
   // ── Verification state ───────────────────────────────────────────────────────
   String? _handledVerificationId;
@@ -78,10 +79,28 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
         setState(() { _match = match; _loadingMatch = false; });
       }
 
+      _updateSeatLabel(match);
       _checkVerification(match);
     } catch (_) {
       if (mounted) setState(() => _loadingMatch = false);
     }
+  }
+
+  Future<void> _updateSeatLabel(MatchDoc match) async {
+    final myUid = FirebaseAuth.instance.currentUser?.uid ?? judgeSessionId;
+
+    // Check dewan-assigned seats first
+    for (final entry in match.judgeSeats.entries) {
+      if (entry.value == myUid) {
+        if (mounted) setState(() => _seatLabel = 'J${entry.key}');
+        return;
+      }
+    }
+
+    // Fall back to presence order
+    final order = await fetchJudgePresenceOrder(match.id);
+    final idx   = order.indexOf(myUid);
+    if (mounted) setState(() => _seatLabel = idx >= 0 ? 'J${idx + 1}' : null);
   }
 
   void _checkVerification(MatchDoc match) {
@@ -177,6 +196,31 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
           icon: const Icon(Icons.arrow_back_ios, color: Colors.white54, size: 18),
           onPressed: () => Navigator.of(context).pop(),
         ),
+        actions: [
+          if (_seatLabel != null)
+            Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                  ),
+                  child: Text(
+                    _seatLabel!,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
       body: _loadingMatch
           ? const Center(child: CircularProgressIndicator(color: Colors.white54))

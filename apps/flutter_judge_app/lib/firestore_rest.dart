@@ -71,16 +71,18 @@ class ActiveVerification {
 }
 
 class MatchDoc {
-  final String              id;
-  final String              redCompetitorId;
-  final String              blueCompetitorId;
-  final String              status;
-  final bool                timerRunning;
-  final DateTime?           timerStartedAt;       // null when timer is stopped
-  final double              timerElapsedSeconds;  // seconds accumulated before last start
-  final int                 roundDurationSeconds; // 60, 90, or 120
-  final int                 currentRound;         // 1-based
-  final ActiveVerification? activeVerification;   // set when Dewan requests verification
+  final String                        id;
+  final String                        redCompetitorId;
+  final String                        blueCompetitorId;
+  final String                        status;
+  final bool                          timerRunning;
+  final DateTime?                     timerStartedAt;
+  final double                        timerElapsedSeconds;
+  final int                           roundDurationSeconds;
+  final int                           currentRound;
+  final ActiveVerification?           activeVerification;
+  /// Dewan-assigned seats: key "1"/"2"/"3" → uid
+  final Map<String, String>           judgeSeats;
 
   const MatchDoc({
     required this.id,
@@ -93,6 +95,7 @@ class MatchDoc {
     required this.roundDurationSeconds,
     required this.currentRound,
     this.activeVerification,
+    this.judgeSeats = const {},
   });
 }
 
@@ -154,10 +157,48 @@ Future<MatchDoc?> fetchActiveMatch(String tournamentId, int arenaNumber) async {
         roundDurationSeconds: _int(fields, 'roundDurationSeconds', fallback: 120),
         currentRound:         _int(fields, 'currentRound',         fallback: 1),
         activeVerification:   activeVerification,
+        judgeSeats:           _parseJudgeSeats(fields),
       );
     }
   }
   return null;
+}
+
+Map<String, String> _parseJudgeSeats(Map<String, dynamic> fields) {
+  final seatsMap = ((fields['judgeSeats'] as Map?)?['mapValue'] as Map?)?['fields'] as Map<String, dynamic>?;
+  if (seatsMap == null) return {};
+  final result = <String, String>{};
+  for (final entry in seatsMap.entries) {
+    final seatFields = ((entry.value as Map?)?['mapValue'] as Map?)?['fields'] as Map<String, dynamic>?;
+    if (seatFields != null) {
+      final uid = (seatFields['uid'] as Map?)?['stringValue'] as String? ?? '';
+      if (uid.isNotEmpty) result[entry.key] = uid;
+    }
+  }
+  return result;
+}
+
+/// Fetches the judgePresence list for a match, sorted by connectedAt.
+Future<List<String>> fetchJudgePresenceOrder(String matchId) async {
+  try {
+    final uri = Uri.parse('$_base/matches/$matchId/judgePresence');
+    final headers = await _authHeaders();
+    final response = await http.get(uri, headers: headers);
+    if (response.statusCode != 200) return [];
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final docs = body['documents'] as List? ?? [];
+    final entries = <MapEntry<String, String>>[];
+    for (final doc in docs) {
+      final f = doc['fields'] as Map<String, dynamic>? ?? {};
+      final uid = (f['uid'] as Map?)?['stringValue'] as String? ?? '';
+      final ts  = (f['connectedAt'] as Map?)?['timestampValue'] as String? ?? '';
+      if (uid.isNotEmpty) entries.add(MapEntry(ts, uid));
+    }
+    entries.sort((a, b) => a.key.compareTo(b.key));
+    return entries.map((e) => e.value).toList();
+  } catch (_) {
+    return [];
+  }
 }
 
 /// Fetches a single competitor by ID.
