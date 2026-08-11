@@ -106,8 +106,8 @@ function JudgeIndicator({ number, tap, corner, type }: JudgeIndicatorProps) {
     <div
       className="flex flex-col items-center justify-center rounded-xl transition-all duration-200 flex-shrink-0"
       style={{
-        width:  "min(3.8vw, 50px)",
-        height: "min(3vw, 40px)",
+        width:  "min(5.5vw, 72px)",
+        height: "min(4.5vw, 60px)",
         background: active ? "rgba(255,255,255,0.95)" : "rgba(0,0,0,0.25)",
         boxShadow: active ? "0 0 16px rgba(255,255,255,0.5)" : "none",
         transform: active ? "scale(1.08)" : "scale(1)",
@@ -115,12 +115,12 @@ function JudgeIndicator({ number, tap, corner, type }: JudgeIndicatorProps) {
     >
       {active ? (
         <>
-          <span style={{ fontSize: "min(1.5vw, 18px)", lineHeight: 1 }}>
+          <span style={{ fontSize: "min(2.2vw, 26px)", lineHeight: 1 }}>
             {type === "punch" ? "👊" : "🦶"}
           </span>
           <span
             className="font-black leading-none mt-0.5"
-            style={{ fontSize: "min(0.9vw, 11px)", color: isRed ? "#c42e28" : "#0072c4" }}
+            style={{ fontSize: "min(1.3vw, 16px)", color: isRed ? "#c42e28" : "#0072c4" }}
           >
             J{number}
           </span>
@@ -253,12 +253,12 @@ function CornerPanel({ corner, competitor, score, leading, judgeOrder, recentTap
               key={idx}
               className={`rounded-xl flex-shrink-0${large ? " animate-pulse" : ""}`}
               style={{
-                width:      large ? "min(5vw, 64px)" : "min(2.8vw, 36px)",
-                height:     large ? "min(5vw, 64px)" : "min(2.8vw, 36px)",
+                width:      large ? "min(8vw, 100px)" : "min(5vw, 64px)",
+                height:     large ? "min(8vw, 100px)" : "min(5vw, 64px)",
                 background: bg,
                 border:     `2px solid ${border}`,
-                padding:    large ? "min(0.5vw, 6px)" : "min(0.3vw, 4px)",
-                boxShadow:  large ? `0 0 20px ${border}` : `0 0 8px ${border}`,
+                padding:    large ? "min(0.8vw, 10px)" : "min(0.5vw, 6px)",
+                boxShadow:  large ? `0 0 28px ${border}` : `0 0 12px ${border}`,
               }}
             >
               <img src={src} alt="" className="w-full h-full object-contain" style={{ filter: "brightness(0) invert(1)" }} />
