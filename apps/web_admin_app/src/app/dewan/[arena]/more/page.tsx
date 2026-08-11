@@ -103,7 +103,11 @@ export default function MoreDewanPage() {
   const totalBlue = confirmedBlue + adminBlue;
 
   const currentRound = match?.currentRound ?? 1;
-  const { byJudge, judgeOrder } = rawPerJudge(scoreEvents);
+  const { byJudge, judgeOrder: rawJudgeOrder } = rawPerJudge(scoreEvents);
+  const judgeSeats = match?.judgeSeats;
+  const judgeOrder = (judgeSeats && Object.keys(judgeSeats).length > 0)
+    ? (["1", "2", "3"] as const).map((s) => judgeSeats[s]?.uid).filter(Boolean) as string[]
+    : rawJudgeOrder;
 
   const ACTIONS = [
     { pts:  3, label: "+3",  sublabel: "Takedown / Sweep" },
@@ -448,23 +452,26 @@ export default function MoreDewanPage() {
                   </thead>
                   <tbody>
                     {judgeOrder.map((judgeId, i) => {
-                      const t = byJudge.get(judgeId)!;
+                      const t = byJudge.get(judgeId);
+                      const seatNum = (judgeSeats && Object.keys(judgeSeats).length > 0)
+                        ? Object.entries(judgeSeats).find(([, j]) => j.uid === judgeId)?.[0]
+                        : String(i + 1);
                       return (
                         <tr key={judgeId} className="border-b border-border last:border-b-0 hover:bg-elevated/50 transition-colors">
                           <td className="px-5 py-3">
                             <div className="flex items-center gap-2.5">
                               <div className="w-6 h-6 rounded-full bg-accent/10 border border-accent/30 flex items-center justify-center text-xs font-bold text-accent flex-shrink-0">
-                                {i + 1}
+                                {seatNum ?? i + 1}
                               </div>
                               <div className="flex flex-col min-w-0">
-                                <span className="text-sm font-medium text-primary truncate">{t.name || t.email || `Judge ${i + 1}`}</span>
-                                {t.name && t.email && <span className="text-xs text-muted truncate">{t.email}</span>}
+                                <span className="text-sm font-medium text-primary truncate">{t?.name || t?.email || `Judge ${seatNum ?? i + 1}`}</span>
+                                {t?.name && t?.email && <span className="text-xs text-muted truncate">{t.email}</span>}
                               </div>
                             </div>
                           </td>
-                          <td className="px-5 py-3 text-center"><span className="text-lg font-bold text-blue-400">{t.blue}</span></td>
-                          <td className="px-5 py-3 text-center"><span className="text-lg font-bold text-danger">{t.red}</span></td>
-                          <td className="px-5 py-3 text-right"><span className="text-sm font-semibold text-secondary">{t.red + t.blue}</span></td>
+                          <td className="px-5 py-3 text-center"><span className="text-lg font-bold text-blue-400">{t?.blue ?? "—"}</span></td>
+                          <td className="px-5 py-3 text-center"><span className="text-lg font-bold text-danger">{t?.red ?? "—"}</span></td>
+                          <td className="px-5 py-3 text-right"><span className="text-sm font-semibold text-secondary">{t ? t.red + t.blue : "—"}</span></td>
                         </tr>
                       );
                     })}
