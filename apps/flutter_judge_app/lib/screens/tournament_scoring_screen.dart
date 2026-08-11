@@ -242,7 +242,7 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
                   SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'You have been logged out by the dewan. Your taps are not being counted.',
+                      'You have been disabled by the dewan. Your taps are not being counted.',
                       style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
                     ),
                   ),

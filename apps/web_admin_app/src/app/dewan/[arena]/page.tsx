@@ -828,7 +828,7 @@ export default function DewanPage() {
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-primary truncate">{j.name || j.email}</p>
                             {j.name && <p className="text-xs text-muted truncate">{j.email}</p>}
-                            {isDisabled && <p className="text-xs text-danger font-semibold">Logged out — taps excluded</p>}
+                            {isDisabled && <p className="text-xs text-danger font-semibold">Disabled — taps excluded</p>}
                           </div>
                           <div className="flex gap-1.5 flex-shrink-0">
                             {(["1", "2", "3"] as const).map((s) => (
@@ -865,13 +865,13 @@ export default function DewanPage() {
                                   : "bg-danger/10 text-danger border-danger/40 hover:bg-danger/20"
                               }`}
                             >
-                              {isDisabled ? "Re-enable" : "Log out"}
+                              {isDisabled ? "Re-enable" : "Disable"}
                             </button>
                           </div>
                         </div>
                       );
                     })}
-                    <p className="text-xs text-muted pt-1">Tap a seat to assign. "Log out" removes a judge from scoring — their taps are ignored. A green dot means connected.</p>
+                    <p className="text-xs text-muted pt-1">Tap a seat to assign. "Disable" removes a judge from scoring — their taps are ignored. A green dot means connected.</p>
                   </div>
                 </>
               )}
