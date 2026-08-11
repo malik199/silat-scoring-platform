@@ -25,6 +25,8 @@ import {
   timerReset,
   advanceRound,
   endMatch,
+  assignJudgeSeat,
+  subscribeJudgePresence,
   startVerification,
   clearVerification,
   SERIOUS_VIOLATION_TYPES,
@@ -35,6 +37,7 @@ import {
   type VerificationResponse,
   type SeriousViolation,
   type SeriousViolationType,
+  type JudgePresence,
 } from "@/lib/matches";
 
 // ─── Raw per-judge tallies ────────────────────────────────────────────────────
@@ -180,6 +183,7 @@ export default function DewanPage() {
   const [remaining,              setRemaining]              = useState<number>(120);
   const [verificationResponses,  setVerificationResponses]  = useState<VerificationResponse[]>([]);
   const [seriousViolations,      setSeriousViolations]      = useState<SeriousViolation[]>([]);
+  const [judgePresence,          setJudgePresence]          = useState<JudgePresence[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -196,11 +200,12 @@ export default function DewanPage() {
   }, [tournamentId, arenaNumber]);
 
   useEffect(() => {
-    if (!match) { setScoreEvents([]); setAdminEvents([]); setSeriousViolations([]); return; }
-    const unsubScore   = subscribeScoreEvents(match.id, setScoreEvents);
-    const unsubAdmin   = subscribeAdminEvents(match.id, setAdminEvents);
-    const unsubSerious = subscribeSeriousViolations(match.id, setSeriousViolations);
-    return () => { unsubScore(); unsubAdmin(); unsubSerious(); };
+    if (!match) { setScoreEvents([]); setAdminEvents([]); setSeriousViolations([]); setJudgePresence([]); return; }
+    const unsubScore    = subscribeScoreEvents(match.id, setScoreEvents);
+    const unsubAdmin    = subscribeAdminEvents(match.id, setAdminEvents);
+    const unsubSerious  = subscribeSeriousViolations(match.id, setSeriousViolations);
+    const unsubPresence = subscribeJudgePresence(match.id, setJudgePresence);
+    return () => { unsubScore(); unsubAdmin(); unsubSerious(); unsubPresence(); };
   }, [match?.id]);
 
   // Subscribe to verification responses whenever the active verification changes
@@ -342,6 +347,7 @@ export default function DewanPage() {
   const [confirmNextRound, setConfirmNextRound] = useState(false);
   const [confirmEndEarly,  setConfirmEndEarly]  = useState(false);
   const [verificationOpen, setVerificationOpen] = useState(false);
+  const [judgeSeatsOpen,   setJudgeSeatsOpen]   = useState(false);
   const [overlayCopied,    setOverlayCopied]    = useState(false);
   const [moreLinkCopied,   setMoreLinkCopied]   = useState(false);
 
@@ -766,6 +772,88 @@ export default function DewanPage() {
                         </div>
                       </div>
                     )}
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* ── Judge Seat Assignment ── */}
+        {(() => {
+          const seats = match.judgeSeats ?? {};
+          const seatedUids = new Set(Object.values(seats).map((s) => s.uid));
+          // Merge presence list with any seated judges not yet in presence
+          const allJudges: { uid: string; name: string; email: string }[] = [...judgePresence];
+          for (const j of Object.values(seats)) {
+            if (!allJudges.some((p) => p.uid === j.uid)) allJudges.push(j);
+          }
+
+          const seatFor = (uid: string) =>
+            (Object.entries(seats).find(([, j]) => j.uid === uid)?.[0] ?? null) as "1" | "2" | "3" | null;
+
+          return (
+            <div className="bg-surface border border-border rounded-xl overflow-hidden mb-2">
+              <button
+                type="button"
+                onClick={() => setJudgeSeatsOpen((o) => !o)}
+                className="w-full flex items-center justify-between px-5 py-3 hover:opacity-80 transition-opacity text-left"
+              >
+                <div className="flex items-center gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-muted">Judge Seats</p>
+                  {judgePresence.length > 0 && (
+                    <span className="text-xs font-bold text-accent bg-accent/10 border border-accent/20 rounded-full px-2 py-0.5">
+                      {judgePresence.length} connected
+                    </span>
+                  )}
+                </div>
+                <span className="text-muted text-xs">{judgeSeatsOpen ? "▲" : "▼"}</span>
+              </button>
+              {judgeSeatsOpen && (
+                <>
+                  <div className="border-t border-border" />
+                  <div className="p-4 space-y-3">
+                    {allJudges.length === 0 && (
+                      <p className="text-sm text-muted">No judges connected yet. Judges appear here as soon as they enter the arena PIN.</p>
+                    )}
+                    {allJudges.map((j) => {
+                      const seat = seatFor(j.uid);
+                      const isPresent = judgePresence.some((p) => p.uid === j.uid);
+                      return (
+                        <div key={j.uid} className="flex items-center gap-3">
+                          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isPresent ? "bg-accent" : "bg-muted"}`} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-primary truncate">{j.name || j.email}</p>
+                            {j.name && <p className="text-xs text-muted truncate">{j.email}</p>}
+                          </div>
+                          <div className="flex gap-1.5 flex-shrink-0">
+                            {(["1", "2", "3"] as const).map((s) => (
+                              <button
+                                key={s}
+                                type="button"
+                                onClick={() => {
+                                  if (seat === s) {
+                                    assignJudgeSeat(match.id, s, null);
+                                  } else {
+                                    assignJudgeSeat(match.id, s, { uid: j.uid, name: j.name, email: j.email });
+                                  }
+                                }}
+                                className={`w-9 h-9 rounded-lg text-xs font-bold border transition-colors ${
+                                  seat === s
+                                    ? "bg-accent text-black border-accent"
+                                    : seats[s] && seats[s].uid !== j.uid
+                                      ? "border-border text-muted opacity-40"
+                                      : "border-border text-secondary hover:border-accent/60 hover:text-accent"
+                                }`}
+                              >
+                                J{s}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <p className="text-xs text-muted pt-1">Tap a seat to assign. Tap the active seat to unassign. A green dot means the judge is currently connected.</p>
                   </div>
                 </>
               )}

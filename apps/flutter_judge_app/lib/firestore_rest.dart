@@ -314,6 +314,33 @@ Future<void> advanceRound(String matchId, int nextRound) async {
   }, ['currentRound', 'timerRunning', 'timerStartedAt', 'timerElapsedSeconds']);
 }
 
+/// Writes/updates the judge's presence record for a match.
+/// Uses PATCH with the UID as the document ID so it is idempotent.
+Future<void> postJudgePresence(String matchId) async {
+  try {
+    final uid   = FirebaseAuth.instance.currentUser?.uid ?? judgeSessionId;
+    final name  = FirebaseAuth.instance.currentUser?.displayName ?? '';
+    final email = FirebaseAuth.instance.currentUser?.email ?? '';
+    final uri   = Uri.parse('$_base/matches/$matchId/judgePresence/$uid');
+    final headers = {
+      'Content-Type': 'application/json',
+      ...await _authHeaders(),
+    };
+    await http.patch(
+      uri,
+      headers: headers,
+      body: jsonEncode({
+        'fields': {
+          'uid':         {'stringValue': uid},
+          'name':        {'stringValue': name},
+          'email':       {'stringValue': email},
+          'connectedAt': {'timestampValue': DateTime.now().toUtc().toIso8601String()},
+        },
+      }),
+    );
+  } catch (_) {}
+}
+
 Future<void> _patchMatch(
     String matchId, Map<String, dynamic> fields, List<String> mask) async {
   try {

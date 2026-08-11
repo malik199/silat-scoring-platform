@@ -73,6 +73,7 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
           _handledVerificationId = null;
           _loadingMatch          = false;
         });
+        postJudgePresence(match.id);
       } else {
         setState(() { _match = match; _loadingMatch = false; });
       }
