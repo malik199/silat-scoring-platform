@@ -500,6 +500,11 @@ function MatchDetailModal({ match, redName, blueName, redSubtitle, blueSubtitle,
                   <p className={`text-lg font-black text-center px-2 ${winner === "red" ? "text-danger" : "text-blue-400"}`}>
                     {winner === "red" ? redName : blueName}
                   </p>
+                  {(winner === "red" ? redSubtitle : blueSubtitle) && (
+                    <p className="text-xs text-muted text-center px-2 mt-0.5">
+                      {winner === "red" ? redSubtitle : blueSubtitle}
+                    </p>
+                  )}
                 </>
               ) : (
                 <p className="text-sm font-bold text-muted">Draw</p>
