@@ -26,6 +26,7 @@ import {
   advanceRound,
   endMatch,
   assignJudgeSeat,
+  setJudgeDisabled,
   subscribeJudgePresence,
   startVerification,
   clearVerification,
@@ -250,8 +251,9 @@ export default function DewanPage() {
   // currentRound needed for penalty scoring — declared early to avoid TDZ
   const currentRound = match?.currentRound ?? 1;
 
+  const disabledJudgeSet = new Set(match?.disabledJudges ?? []);
   const { red: confirmedRed, blue: confirmedBlue, confirmedEventIds, redCounts, blueCounts } =
-    computeConfirmedScores(scoreEvents);
+    computeConfirmedScores(scoreEvents, disabledJudgeSet);
   // adminEvents now only carries +3 takedowns; penalties live in match.warnings
   const { red: adminRed, blue: adminBlue } = adminTotals(adminEvents.filter((e) => e.points > 0));
   const penaltyRed  = computePenaltyFlagPoints(match?.warnings, "red",  currentRound);
@@ -819,18 +821,21 @@ export default function DewanPage() {
                     {allJudges.map((j) => {
                       const seat = seatFor(j.uid);
                       const isPresent = judgePresence.some((p) => p.uid === j.uid);
+                      const isDisabled = (match.disabledJudges ?? []).includes(j.uid);
                       return (
-                        <div key={j.uid} className="flex items-center gap-3">
-                          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isPresent ? "bg-accent" : "bg-muted"}`} />
+                        <div key={j.uid} className={`flex items-center gap-3 ${isDisabled ? "opacity-50" : ""}`}>
+                          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isDisabled ? "bg-danger" : isPresent ? "bg-accent" : "bg-muted"}`} />
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-primary truncate">{j.name || j.email}</p>
                             {j.name && <p className="text-xs text-muted truncate">{j.email}</p>}
+                            {isDisabled && <p className="text-xs text-danger font-semibold">Logged out — taps excluded</p>}
                           </div>
                           <div className="flex gap-1.5 flex-shrink-0">
                             {(["1", "2", "3"] as const).map((s) => (
                               <button
                                 key={s}
                                 type="button"
+                                disabled={isDisabled}
                                 onClick={() => {
                                   if (seat === s) {
                                     assignJudgeSeat(match.id, s, null);
@@ -839,21 +844,34 @@ export default function DewanPage() {
                                   }
                                 }}
                                 className={`w-9 h-9 rounded-lg text-xs font-bold border transition-colors ${
-                                  seat === s
-                                    ? "bg-accent text-black border-accent"
-                                    : seats[s] && seats[s].uid !== j.uid
-                                      ? "border-border text-muted opacity-40"
-                                      : "border-border text-secondary hover:border-accent/60 hover:text-accent"
+                                  isDisabled
+                                    ? "border-border text-muted cursor-not-allowed"
+                                    : seat === s
+                                      ? "bg-accent text-black border-accent"
+                                      : seats[s] && seats[s].uid !== j.uid
+                                        ? "border-border text-muted opacity-40"
+                                        : "border-border text-secondary hover:border-accent/60 hover:text-accent"
                                 }`}
                               >
                                 J{s}
                               </button>
                             ))}
+                            <button
+                              type="button"
+                              onClick={() => setJudgeDisabled(match.id, j.uid, !isDisabled)}
+                              className={`px-2.5 h-9 rounded-lg text-xs font-bold border transition-colors ${
+                                isDisabled
+                                  ? "bg-accent/10 text-accent border-accent/40 hover:bg-accent/20"
+                                  : "bg-danger/10 text-danger border-danger/40 hover:bg-danger/20"
+                              }`}
+                            >
+                              {isDisabled ? "Re-enable" : "Log out"}
+                            </button>
                           </div>
                         </div>
                       );
                     })}
-                    <p className="text-xs text-muted pt-1">Tap a seat to assign. Tap the active seat to unassign. A green dot means the judge is currently connected.</p>
+                    <p className="text-xs text-muted pt-1">Tap a seat to assign. "Log out" removes a judge from scoring — their taps are ignored. A green dot means connected.</p>
                   </div>
                 </>
               )}

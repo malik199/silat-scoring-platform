@@ -73,6 +73,8 @@ export interface Match {
   warnings?: Record<string, boolean>;
   /** Dewan-assigned judge seats: key is "1" | "2" | "3" */
   judgeSeats?: Record<string, { uid: string; name: string; email: string }>;
+  /** UIDs of judges the dewan has logged out — their taps are excluded from scoring */
+  disabledJudges?: string[];
 }
 
 export interface JudgePresence {
@@ -267,11 +269,17 @@ function getEventSeconds(e: ScoreEvent): number {
  *  same judges (even within 5s) produces a separate confirmation rather than
  *  being absorbed into the first one and lost.
  */
-export function computeConfirmedScores(events: ScoreEvent[]): {
+export function computeConfirmedScores(
+  events: ScoreEvent[],
+  disabledJudgeIds?: Set<string>
+): {
   red: number; blue: number; confirmedEventIds: Set<string>;
   redCounts: Record<number, number>; blueCounts: Record<number, number>;
 } {
-  const sorted = [...events].sort((a, b) => getEventSeconds(a) - getEventSeconds(b));
+  const activeEvents = disabledJudgeIds?.size
+    ? events.filter((e) => !disabledJudgeIds.has(e.judgeId))
+    : events;
+  const sorted = [...activeEvents].sort((a, b) => getEventSeconds(a) - getEventSeconds(b));
   const used = new Set<string>();
   const confirmedEventIds = new Set<string>();
   let red = 0, blue = 0;
@@ -434,6 +442,17 @@ export function subscribeJudgePresence(
     (snap) => cb(snap.docs.map((d) => d.data() as JudgePresence)),
     () => cb([])
   );
+}
+
+export async function setJudgeDisabled(
+  matchId: string,
+  uid: string,
+  disabled: boolean
+): Promise<void> {
+  const { arrayUnion, arrayRemove } = await import("firebase/firestore");
+  await updateDoc(doc(db, COL, matchId), {
+    disabledJudges: disabled ? arrayUnion(uid) : arrayRemove(uid),
+  });
 }
 
 export async function assignJudgeSeat(

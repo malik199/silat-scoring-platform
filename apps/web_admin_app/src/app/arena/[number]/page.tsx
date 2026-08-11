@@ -483,7 +483,10 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
   // ── Active match ─────────────────────────────────────────────────────────
 
   const currentRound = runningMatch.currentRound ?? 1;
-  const { red: confirmedRed, blue: confirmedBlue, redCounts, blueCounts } = computeConfirmedScores(scoreEvents);
+  const { red: confirmedRed, blue: confirmedBlue, redCounts, blueCounts } = computeConfirmedScores(
+    scoreEvents,
+    new Set(runningMatch.disabledJudges ?? [])
+  );
   const adminRed  = adminEvents.filter((e) => e.side === "red"  && e.points > 0).reduce((s, e) => s + e.points, 0);
   const adminBlue = adminEvents.filter((e) => e.side === "blue" && e.points > 0).reduce((s, e) => s + e.points, 0);
   const totalRed  = confirmedRed  + adminRed  + computePenaltyFlagPoints(runningMatch.warnings, "red",  currentRound);

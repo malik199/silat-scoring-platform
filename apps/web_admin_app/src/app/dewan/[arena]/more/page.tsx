@@ -97,7 +97,10 @@ export default function MoreDewanPage() {
   const redComp  = match ? compMap.get(match.redCornerCompetitorId)  : undefined;
   const blueComp = match ? compMap.get(match.blueCornerCompetitorId) : undefined;
 
-  const { red: confirmedRed, blue: confirmedBlue } = computeConfirmedScores(scoreEvents);
+  const { red: confirmedRed, blue: confirmedBlue } = computeConfirmedScores(
+    scoreEvents,
+    new Set(match?.disabledJudges ?? [])
+  );
   const { red: adminRed, blue: adminBlue } = adminTotals(adminEvents);
   const totalRed  = confirmedRed + adminRed;
   const totalBlue = confirmedBlue + adminBlue;
