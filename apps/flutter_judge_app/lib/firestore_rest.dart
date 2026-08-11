@@ -83,6 +83,8 @@ class MatchDoc {
   final ActiveVerification?           activeVerification;
   /// Dewan-assigned seats: key "1"/"2"/"3" → uid
   final Map<String, String>           judgeSeats;
+  /// UIDs the dewan has logged out — their taps are excluded from scoring
+  final List<String>                  disabledJudges;
 
   const MatchDoc({
     required this.id,
@@ -96,6 +98,7 @@ class MatchDoc {
     required this.currentRound,
     this.activeVerification,
     this.judgeSeats = const {},
+    this.disabledJudges = const [],
   });
 }
 
@@ -158,10 +161,20 @@ Future<MatchDoc?> fetchActiveMatch(String tournamentId, int arenaNumber) async {
         currentRound:         _int(fields, 'currentRound',         fallback: 1),
         activeVerification:   activeVerification,
         judgeSeats:           _parseJudgeSeats(fields),
+        disabledJudges:       _parseStringArray(fields, 'disabledJudges'),
       );
     }
   }
   return null;
+}
+
+List<String> _parseStringArray(Map<String, dynamic> fields, String key) {
+  final arr = (fields[key] as Map?)?['arrayValue'] as Map?;
+  final values = arr?['values'] as List? ?? [];
+  return values
+      .map((v) => (v as Map?)?['stringValue'] as String? ?? '')
+      .where((s) => s.isNotEmpty)
+      .toList();
 }
 
 Map<String, String> _parseJudgeSeats(Map<String, dynamic> fields) {

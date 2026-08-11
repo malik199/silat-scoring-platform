@@ -29,6 +29,7 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
   bool            _loadingMatch = true;
   Timer?          _pollTimer;
   String?         _seatLabel;   // "J1", "J2", "J3", or null
+  bool            _isDisabled = false;
 
   // ── Verification state ───────────────────────────────────────────────────────
   String? _handledVerificationId;
@@ -88,11 +89,12 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
 
   Future<void> _updateSeatLabel(MatchDoc match) async {
     final myUid = FirebaseAuth.instance.currentUser?.uid ?? judgeSessionId;
+    final disabled = match.disabledJudges.contains(myUid);
 
     // Check dewan-assigned seats first
     for (final entry in match.judgeSeats.entries) {
       if (entry.value == myUid) {
-        if (mounted) setState(() => _seatLabel = 'J${entry.key}');
+        if (mounted) setState(() { _seatLabel = 'J${entry.key}'; _isDisabled = disabled; });
         return;
       }
     }
@@ -100,7 +102,7 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
     // Fall back to presence order
     final order = await fetchJudgePresenceOrder(match.id);
     final idx   = order.indexOf(myUid);
-    if (mounted) setState(() => _seatLabel = idx >= 0 ? 'J${idx + 1}' : null);
+    if (mounted) setState(() { _seatLabel = idx >= 0 ? 'J${idx + 1}' : null; _isDisabled = disabled; });
   }
 
   void _checkVerification(MatchDoc match) {
@@ -197,36 +199,65 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
-          if (_seatLabel != null)
-            Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _isDisabled
+                      ? Colors.red.withValues(alpha: 0.25)
+                      : Colors.white.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: _isDisabled
+                        ? Colors.red.withValues(alpha: 0.7)
+                        : Colors.white.withValues(alpha: 0.3),
                   ),
-                  child: Text(
-                    _seatLabel!,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1,
-                    ),
+                ),
+                child: Text(
+                  _isDisabled ? 'OFF DUTY' : (_seatLabel ?? ''),
+                  style: TextStyle(
+                    color: _isDisabled ? Colors.red[300] : Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1,
                   ),
                 ),
               ),
             ),
+          ),
         ],
       ),
-      body: _loadingMatch
-          ? const Center(child: CircularProgressIndicator(color: Colors.white54))
-          : _match == null
-              ? _buildWaiting()
-              : _buildScoring(),
+      body: Column(
+        children: [
+          if (_isDisabled)
+            Container(
+              width: double.infinity,
+              color: Colors.red[900],
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: const Row(
+                children: [
+                  Icon(Icons.block, color: Colors.white, size: 18),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'You have been logged out by the dewan. Your taps are not being counted.',
+                      style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          Expanded(
+            child: _loadingMatch
+                ? const Center(child: CircularProgressIndicator(color: Colors.white54))
+                : _match == null
+                    ? _buildWaiting()
+                    : _buildScoring(),
+          ),
+        ],
+      ),
     );
   }
 
