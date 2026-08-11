@@ -410,10 +410,12 @@ interface MatchDetailModalProps {
   match: Match;
   redName: string;
   blueName: string;
+  redSubtitle: string;
+  blueSubtitle: string;
   onClose: () => void;
 }
 
-function MatchDetailModal({ match, redName, blueName, onClose }: MatchDetailModalProps) {
+function MatchDetailModal({ match, redName, blueName, redSubtitle, blueSubtitle, onClose }: MatchDetailModalProps) {
   const [scoreEvents, setScoreEvents] = useState<ScoreEvent[]>([]);
   const [adminEvents, setAdminEvents] = useState<AdminEvent[]>([]);
 
@@ -484,16 +486,18 @@ function MatchDetailModal({ match, redName, blueName, onClose }: MatchDetailModa
 
           {/* ── Scores + Winner ── */}
           <div className="grid grid-cols-3 rounded-xl overflow-hidden border border-border">
-            <div className={`flex flex-col items-center justify-center py-6 ${winner === "red" ? "bg-danger/10" : "bg-elevated"}`}>
+            <div className={`flex flex-col items-center justify-center py-6 px-3 text-center ${winner === "red" ? "bg-danger/10" : "bg-elevated"}`}>
               <p className="text-xs font-semibold uppercase tracking-widest text-danger mb-1">Red</p>
               <p className="text-6xl font-black text-danger">{totalRed}</p>
-              {winner === "red" && <p className="text-xs font-bold text-danger mt-2 uppercase tracking-widest">Winner</p>}
+              <p className="text-xs font-medium text-primary mt-2 truncate max-w-full">{redName}</p>
+              {redSubtitle && <p className="text-xs text-muted truncate max-w-full">{redSubtitle}</p>}
+              {winner === "red" && <p className="text-xs font-bold text-danger mt-1.5 uppercase tracking-widest">Winner</p>}
             </div>
             <div className="flex flex-col items-center justify-center py-6 border-x border-border bg-surface">
               {winner ? (
                 <>
                   <p className="text-xs text-muted uppercase tracking-widest font-semibold mb-1">Winner</p>
-                  <p className={`text-lg font-black ${winner === "red" ? "text-danger" : "text-blue-400"}`}>
+                  <p className={`text-lg font-black text-center px-2 ${winner === "red" ? "text-danger" : "text-blue-400"}`}>
                     {winner === "red" ? redName : blueName}
                   </p>
                 </>
@@ -501,10 +505,12 @@ function MatchDetailModal({ match, redName, blueName, onClose }: MatchDetailModa
                 <p className="text-sm font-bold text-muted">Draw</p>
               )}
             </div>
-            <div className={`flex flex-col items-center justify-center py-6 ${winner === "blue" ? "bg-blue-500/10" : "bg-elevated"}`}>
+            <div className={`flex flex-col items-center justify-center py-6 px-3 text-center ${winner === "blue" ? "bg-blue-500/10" : "bg-elevated"}`}>
               <p className="text-xs font-semibold uppercase tracking-widest text-blue-400 mb-1">Blue</p>
               <p className="text-6xl font-black text-blue-400">{totalBlue}</p>
-              {winner === "blue" && <p className="text-xs font-bold text-blue-400 mt-2 uppercase tracking-widest">Winner</p>}
+              <p className="text-xs font-medium text-primary mt-2 truncate max-w-full">{blueName}</p>
+              {blueSubtitle && <p className="text-xs text-muted truncate max-w-full">{blueSubtitle}</p>}
+              {winner === "blue" && <p className="text-xs font-bold text-blue-400 mt-1.5 uppercase tracking-widest">Winner</p>}
             </div>
           </div>
 
@@ -593,6 +599,8 @@ interface MatchRowProps {
   matchNumber: number;
   redName: string;
   blueName: string;
+  redSubtitle: string;
+  blueSubtitle: string;
   arenaBlocked: boolean;
   onDelete:       () => void;
   onStart:        () => void;
@@ -603,7 +611,7 @@ interface MatchRowProps {
 }
 
 function MatchRow({
-  match, matchNumber, redName, blueName, arenaBlocked,
+  match, matchNumber, redName, blueName, redSubtitle, blueSubtitle, arenaBlocked,
   onDelete, onStart, onEndRequest, onDewan, onViewDetail, onSwap,
 }: MatchRowProps) {
   const isPending  = match.status === "pending";
@@ -668,7 +676,10 @@ function MatchRow({
       {/* Red */}
       <div className="flex items-center gap-2 min-w-0">
         <div className="w-2 h-2 rounded-full bg-danger flex-shrink-0" />
-        <span className="text-sm font-medium text-primary truncate">{redName}</span>
+        <div className="flex flex-col min-w-0">
+          <span className="text-sm font-medium text-primary truncate">{redName}</span>
+          {redSubtitle && <span className="text-xs text-muted truncate">{redSubtitle}</span>}
+        </div>
         {winner === "red" && <WinnerCheck />}
       </div>
 
@@ -689,7 +700,10 @@ function MatchRow({
       {/* Blue */}
       <div className="flex items-center gap-2 min-w-0">
         <div className="w-2 h-2 rounded-full bg-blue-400 flex-shrink-0" />
-        <span className="text-sm font-medium text-primary truncate">{blueName}</span>
+        <div className="flex flex-col min-w-0">
+          <span className="text-sm font-medium text-primary truncate">{blueName}</span>
+          {blueSubtitle && <span className="text-xs text-muted truncate">{blueSubtitle}</span>}
+        </div>
         {winner === "blue" && <WinnerCheck />}
       </div>
 
@@ -901,6 +915,8 @@ export default function MatchesPage() {
                       matchNumber={m.order}
                       redName={red  ? `${red.firstName} ${red.lastName}`   : "Unknown"}
                       blueName={blue ? `${blue.firstName} ${blue.lastName}` : "Unknown"}
+                      redSubtitle={red  ? [red.schoolName,  red.country ].filter(Boolean).join(" · ") : ""}
+                      blueSubtitle={blue ? [blue.schoolName, blue.country].filter(Boolean).join(" · ") : ""}
                       arenaBlocked={runningArenas.has(m.arenaNumber)}
                       onDelete={() => handleDelete(m)}
                       onStart={() => handleStart(m)}
@@ -966,6 +982,8 @@ export default function MatchesPage() {
             match={detailMatch}
             redName={red  ? `${red.firstName} ${red.lastName}`   : "Unknown"}
             blueName={blue ? `${blue.firstName} ${blue.lastName}` : "Unknown"}
+            redSubtitle={red  ? [red.schoolName,  red.country ].filter(Boolean).join(" · ") : ""}
+            blueSubtitle={blue ? [blue.schoolName, blue.country].filter(Boolean).join(" · ") : ""}
             onClose={() => setDetailMatch(null)}
           />
         );
