@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -66,6 +66,113 @@ const AGE_CATS = [
 
 function WinnerCheck() {
   return <img src="/greencheckmark.svg" alt="Winner" className="w-4 h-4 flex-shrink-0" />;
+}
+
+// ─── Searchable competitor picker ────────────────────────────────────────────
+
+interface CompetitorSearchProps {
+  label: string;
+  color: "red" | "blue";
+  competitors: Competitor[];
+  selectedId: string;
+  disabledId: string;
+  onChange: (id: string) => void;
+}
+
+function CompetitorSearch({ label, color, competitors, selectedId, disabledId, onChange }: CompetitorSearchProps) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen]   = useState(false);
+  const ref               = useRef<HTMLDivElement>(null);
+
+  const selected = competitors.find((c) => c.id === selectedId);
+
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const filtered = query.trim()
+    ? competitors.filter((c) => {
+        const q = query.toLowerCase();
+        return (
+          c.firstName.toLowerCase().includes(q) ||
+          c.lastName.toLowerCase().includes(q) ||
+          (c.schoolName ?? "").toLowerCase().includes(q)
+        );
+      })
+    : competitors;
+
+  const accent = color === "red" ? "text-danger border-danger/40 bg-danger/5" : "text-blue-400 border-blue-500/40 bg-blue-500/5";
+  const accentRing = color === "red" ? "focus:border-danger" : "focus:border-blue-400";
+  const selectedBg = color === "red" ? "bg-danger/5 border-danger/20" : "bg-blue-500/5 border-blue-500/20";
+  const selectedText = color === "red" ? "text-danger" : "text-blue-400";
+  const selectedAvatar = color === "red" ? "bg-danger/20 text-danger" : "bg-blue-500/20 text-blue-400";
+  const hoverBg = color === "red" ? "hover:bg-danger/5" : "hover:hover:bg-blue-500/5";
+
+  return (
+    <div>
+      <label className={`block text-xs font-semibold uppercase tracking-widest mb-1.5 ${selectedText}`}>{label}</label>
+      <div ref={ref} className="relative">
+        <input
+          type="text"
+          value={open ? query : (selected ? `${selected.firstName} ${selected.lastName}` : "")}
+          onFocus={() => { setQuery(""); setOpen(true); }}
+          onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+          placeholder="Search by name or school…"
+          className={`w-full bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-primary placeholder:text-muted focus:outline-none transition-colors ${accentRing}`}
+        />
+        {open && (
+          <div className="absolute z-50 mt-1 w-full bg-surface border border-border rounded-xl shadow-2xl max-h-52 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <p className="px-4 py-3 text-sm text-muted">No competitors match.</p>
+            ) : (
+              filtered.map((c) => {
+                const isDisabled = c.id === disabledId;
+                const isSelected = c.id === selectedId;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    disabled={isDisabled}
+                    onMouseDown={(e) => { e.preventDefault(); if (!isDisabled) { onChange(c.id); setOpen(false); setQuery(""); } }}
+                    className={`w-full text-left px-4 py-2.5 flex items-center gap-3 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                      isSelected ? `${accent}` : `text-primary ${hoverBg}`
+                    }`}
+                  >
+                    <div className={`w-7 h-7 rounded flex items-center justify-center text-xs font-bold flex-shrink-0 ${isSelected ? selectedAvatar : "bg-elevated text-secondary"}`}>
+                      {c.firstName[0]}{c.lastName[0]}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{c.firstName} {c.lastName}</p>
+                      <p className="text-xs text-muted truncate">{c.schoolName || c.country || "—"} · {c.gender === "male" ? "M" : "F"} · {c.weightKg}kg</p>
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        )}
+      </div>
+      {selected && (
+        <div className={`mt-1.5 flex items-center gap-2 px-3 py-2 border rounded-lg ${selectedBg}`}>
+          <div className={`w-5 h-5 rounded flex items-center justify-center text-xs font-bold flex-shrink-0 ${selectedAvatar}`}>
+            {selected.firstName[0]}{selected.lastName[0]}
+          </div>
+          <span className="text-xs text-secondary truncate">
+            {selected.schoolName || selected.country || "—"} · {selected.gender === "male" ? "Male" : "Female"} · {getAgeYears(selected.dateOfBirth)}y
+          </span>
+          <button
+            type="button"
+            onMouseDown={(e) => { e.preventDefault(); onChange(""); }}
+            className="ml-auto text-muted hover:text-danger text-xs flex-shrink-0"
+          >✕</button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ─── New Match Modal ──────────────────────────────────────────────────────────
@@ -150,7 +257,6 @@ function NewMatchModal({ tournament, competitors, currentCount, onClose }: NewMa
     }
   }
 
-  const sel = "w-full bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-primary focus:outline-none focus:border-accent transition-colors appearance-none [color-scheme:dark]";
   const filterBtn = (active: boolean) =>
     `px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
       active
@@ -173,7 +279,7 @@ function NewMatchModal({ tournament, competitors, currentCount, onClose }: NewMa
             {arenas.length > 1 && (
               <div>
                 <label className="block text-xs font-semibold text-secondary uppercase tracking-widest mb-1.5">Arena</label>
-                <select value={arenaNumber} onChange={(e) => handleArenaChange(Number(e.target.value))} className={sel}>
+                <select value={arenaNumber} onChange={(e) => handleArenaChange(Number(e.target.value))} className="w-full bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-primary focus:outline-none focus:border-accent transition-colors appearance-none [color-scheme:dark]">
                   {arenas.map((n) => <option key={n} value={n}>Arena {n}</option>)}
                 </select>
               </div>
@@ -218,50 +324,24 @@ function NewMatchModal({ tournament, competitors, currentCount, onClose }: NewMa
             ) : (
               <>
                 {/* Red corner */}
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-widest mb-1.5 text-danger">Red Corner</label>
-                  <select value={redId} onChange={(e) => { setRedId(e.target.value); setError(""); }} className={sel}>
-                    <option value="">Select competitor…</option>
-                    {filteredCompetitors.map((c) => (
-                      <option key={c.id} value={c.id} disabled={c.id === blueId}>
-                        {c.firstName} {c.lastName} ({c.gender === "male" ? "M" : "F"} · {c.weightKg}kg)
-                      </option>
-                    ))}
-                  </select>
-                  {redComp && (
-                    <div className="mt-1.5 flex items-center gap-2 px-3 py-2 bg-danger/5 border border-danger/20 rounded-lg">
-                      <div className="w-5 h-5 rounded bg-danger/20 flex items-center justify-center text-xs font-bold text-danger flex-shrink-0">
-                        {redComp.firstName[0]}{redComp.lastName[0]}
-                      </div>
-                      <span className="text-xs text-secondary truncate">
-                        {redComp.schoolName || redComp.country || "—"} · {redComp.gender === "male" ? "Male" : "Female"} · {getAgeYears(redComp.dateOfBirth)}y
-                      </span>
-                    </div>
-                  )}
-                </div>
+                <CompetitorSearch
+                  label="Red Corner"
+                  color="red"
+                  competitors={filteredCompetitors}
+                  selectedId={redId}
+                  disabledId={blueId}
+                  onChange={(id) => { setRedId(id); setError(""); }}
+                />
 
                 {/* Blue corner */}
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-widest mb-1.5 text-blue-400">Blue Corner</label>
-                  <select value={blueId} onChange={(e) => { setBlueId(e.target.value); setError(""); }} className={sel}>
-                    <option value="">Select competitor…</option>
-                    {filteredCompetitors.map((c) => (
-                      <option key={c.id} value={c.id} disabled={c.id === redId}>
-                        {c.firstName} {c.lastName} ({c.gender === "male" ? "M" : "F"} · {c.weightKg}kg)
-                      </option>
-                    ))}
-                  </select>
-                  {blueComp && (
-                    <div className="mt-1.5 flex items-center gap-2 px-3 py-2 bg-blue-500/5 border border-blue-500/20 rounded-lg">
-                      <div className="w-5 h-5 rounded bg-blue-500/20 flex items-center justify-center text-xs font-bold text-blue-400 flex-shrink-0">
-                        {blueComp.firstName[0]}{blueComp.lastName[0]}
-                      </div>
-                      <span className="text-xs text-secondary truncate">
-                        {blueComp.schoolName || blueComp.country || "—"} · {blueComp.gender === "male" ? "Male" : "Female"} · {getAgeYears(blueComp.dateOfBirth)}y
-                      </span>
-                    </div>
-                  )}
-                </div>
+                <CompetitorSearch
+                  label="Blue Corner"
+                  color="blue"
+                  competitors={filteredCompetitors}
+                  selectedId={blueId}
+                  disabledId={redId}
+                  onChange={(id) => { setBlueId(id); setError(""); }}
+                />
               </>
             )}
 
