@@ -25,7 +25,6 @@ import {
   timerReset,
   advanceRound,
   endMatch,
-  assignJudgeSeat,
   startVerification,
   clearVerification,
   SERIOUS_VIOLATION_TYPES,
@@ -343,7 +342,6 @@ export default function DewanPage() {
   const [confirmNextRound, setConfirmNextRound] = useState(false);
   const [confirmEndEarly,  setConfirmEndEarly]  = useState(false);
   const [verificationOpen, setVerificationOpen] = useState(false);
-  const [judgeSeatsOpen,   setJudgeSeatsOpen]   = useState(false);
   const [overlayCopied,    setOverlayCopied]    = useState(false);
   const [moreLinkCopied,   setMoreLinkCopied]   = useState(false);
 
@@ -768,93 +766,6 @@ export default function DewanPage() {
                         </div>
                       </div>
                     )}
-                  </div>
-                </>
-              )}
-            </div>
-          );
-        })()}
-
-        {/* ── Judge Seat Assignment ── */}
-        {(() => {
-          const { byJudge, judgeOrder } = rawPerJudge(scoreEvents);
-          const seats = match.judgeSeats ?? {};
-          const seatedUids = new Set(Object.values(seats).map((s) => s.uid));
-
-          // All known judges: seated ones first, then any unassigned who have scored
-          const allJudges: { uid: string; name: string; email: string }[] = [];
-          for (const s of ["1", "2", "3"] as const) {
-            if (seats[s]) allJudges.push(seats[s]);
-          }
-          for (const uid of judgeOrder) {
-            if (!seatedUids.has(uid)) {
-              const t = byJudge.get(uid)!;
-              allJudges.push({ uid, name: t.name, email: t.email });
-            }
-          }
-
-          const seatLabel = (uid: string) => {
-            for (const [s, j] of Object.entries(seats)) {
-              if (j.uid === uid) return `J${s}`;
-            }
-            return null;
-          };
-
-          return (
-            <div className="bg-surface border border-border rounded-xl overflow-hidden mb-2">
-              <button
-                type="button"
-                onClick={() => setJudgeSeatsOpen((o) => !o)}
-                className="w-full flex items-center justify-between px-5 py-3 hover:opacity-80 transition-opacity text-left"
-              >
-                <p className="text-xs font-semibold uppercase tracking-widest text-muted">Judge Seats</p>
-                <span className="text-muted text-xs">{judgeSeatsOpen ? "▲" : "▼"}</span>
-              </button>
-              {judgeSeatsOpen && (
-                <>
-                  <div className="border-t border-border" />
-                  <div className="p-4 space-y-3">
-                    {allJudges.length === 0 && (
-                      <p className="text-sm text-muted">No judges have scored yet. Judges appear here after their first tap.</p>
-                    )}
-                    {allJudges.map((j) => {
-                      const label = seatLabel(j.uid);
-                      return (
-                        <div key={j.uid} className="flex items-center gap-3">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-primary truncate">{j.name || j.email}</p>
-                            {j.name && <p className="text-xs text-muted truncate">{j.email}</p>}
-                          </div>
-                          <div className="flex gap-1.5 flex-shrink-0">
-                            {(["1", "2", "3"] as const).map((s) => (
-                              <button
-                                key={s}
-                                type="button"
-                                onClick={() => {
-                                  if (label === `J${s}`) {
-                                    assignJudgeSeat(match.id, s, null);
-                                  } else {
-                                    assignJudgeSeat(match.id, s, { uid: j.uid, name: j.name, email: j.email });
-                                  }
-                                }}
-                                className={`w-9 h-9 rounded-lg text-xs font-bold border transition-colors ${
-                                  label === `J${s}`
-                                    ? "bg-accent text-black border-accent"
-                                    : seats[s]?.uid === j.uid
-                                      ? "bg-accent text-black border-accent"
-                                      : seats[s]
-                                        ? "border-border text-muted opacity-50"
-                                        : "border-border text-secondary hover:border-accent/60 hover:text-accent"
-                                }`}
-                              >
-                                J{s}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                    <p className="text-xs text-muted pt-1">Tap a seat to assign. Tap again to unassign. Judges appear here after their first score.</p>
                   </div>
                 </>
               )}

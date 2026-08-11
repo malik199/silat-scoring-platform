@@ -442,19 +442,15 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
     return () => clearInterval(id);
   }, [runningMatch]);
 
-  // Judge order: use dewan-assigned seats when available, fall back to first-seen
+  // Stable judge order (first-seen)
   const judgeOrder = useMemo(() => {
-    const seats = runningMatch?.judgeSeats;
-    if (seats && Object.keys(seats).length > 0) {
-      return (["1", "2", "3"] as const).map((s) => seats[s]?.uid).filter(Boolean) as string[];
-    }
     const seen = new Set<string>();
     const order: string[] = [];
     for (const e of scoreEvents) {
       if (!seen.has(e.judgeId)) { seen.add(e.judgeId); order.push(e.judgeId); }
     }
     return order;
-  }, [scoreEvents, runningMatch?.judgeSeats]);
+  }, [scoreEvents]);
 
   // ── Loading / auth states ────────────────────────────────────────────────
 

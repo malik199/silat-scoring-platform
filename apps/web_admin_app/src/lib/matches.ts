@@ -71,8 +71,6 @@ export interface Match {
   winnerCorner?: "red" | "blue" | "draw" | null;
   /** Keyed as `r{round}_{side}_w1` / `r{round}_{side}_w2` */
   warnings?: Record<string, boolean>;
-  /** Dewan-assigned judge seats: key is "1" | "2" | "3" */
-  judgeSeats?: Record<string, { uid: string; name: string; email: string }>;
 }
 
 // ─── Timer helpers ────────────────────────────────────────────────────────────
@@ -416,19 +414,6 @@ export async function setWarning(
 /** Toggle any flag in match.warnings by its full key. */
 export async function setMatchFlag(matchId: string, key: string, active: boolean): Promise<void> {
   await updateDoc(doc(db, COL, matchId), { [`warnings.${key}`]: active });
-}
-
-export async function assignJudgeSeat(
-  matchId: string,
-  seat: "1" | "2" | "3",
-  judge: { uid: string; name: string; email: string } | null
-): Promise<void> {
-  if (judge) {
-    await updateDoc(doc(db, COL, matchId), { [`judgeSeats.${seat}`]: judge });
-  } else {
-    const { deleteField } = await import("firebase/firestore");
-    await updateDoc(doc(db, COL, matchId), { [`judgeSeats.${seat}`]: deleteField() });
-  }
 }
 
 /** Points from active per-round penalty flags, summed across rounds 1..upToRound. */
