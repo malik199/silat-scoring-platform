@@ -75,11 +75,12 @@ function adminTotals(events: AdminEvent[]): { red: number; blue: number } {
 // ─── Persistent penalty/warning indicators ────────────────────────────────────
 
 function IndicatorRow({
-  side, currentRound, warnings,
+  side, currentRound, warnings, takedownCount = 0,
 }: {
   side: "red" | "blue";
   currentRound: number;
   warnings?: Record<string, boolean>;
+  takedownCount?: number;
 }) {
   const w1  = warnings?.[`r${currentRound}_${side}_w1`]  === true;
   const w2  = warnings?.[`r${currentRound}_${side}_w2`]  === true;
@@ -89,7 +90,7 @@ function IndicatorRow({
   const m10 = warnings?.[`${side}_m10`] === true;
   const dq  = warnings?.[`${side}_dq`] === true;
 
-  const items = [
+  const penaltyItems = [
     { src: "/warning_1.svg",    active: w1,  label: "W1",  color: "warn"   },
     { src: "/warning_2.svg",    active: w2,  label: "W2",  color: "warn"   },
     { src: "/violation_1.svg",  active: m1,  label: "-1",  color: "warn"   },
@@ -99,11 +100,21 @@ function IndicatorRow({
     { src: "/violation_dq.svg", active: dq,  label: "DQ",  color: "danger" },
   ];
 
-  if (!items.some((i) => i.active)) return null;
+  if (takedownCount === 0 && !penaltyItems.some((i) => i.active)) return null;
 
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
-      {items.map(({ src, active, label, color }) =>
+      {Array.from({ length: takedownCount }).map((_, i) => (
+        <div
+          key={`td-${i}`}
+          className="flex items-center justify-center rounded-lg border bg-green-500/20 border-green-500/50"
+          style={{ width: 34, height: 34 }}
+          title="+3 Takedown/Sweep"
+        >
+          <span className="text-xs font-black text-green-400">+3</span>
+        </div>
+      ))}
+      {penaltyItems.map(({ src, active, label, color }) =>
         active ? (
           <div
             key={label}
@@ -574,7 +585,7 @@ export default function DewanPage() {
                 <span className="text-sm font-bold text-accent">+3 Takedown/Sweep</span>
               </div>
             )}
-            <IndicatorRow side="blue" currentRound={currentRound} warnings={match.warnings} />
+            <IndicatorRow side="blue" currentRound={currentRound} warnings={match.warnings} takedownCount={blueThreePt} />
             <div className="grid grid-cols-5 gap-2">
               {/* Row 1: +3 takedown */}
               <AdminBtn label="3" sublabel="Takedown / Sweep" onClick={() => apply("blue", 3)} variant="blue-positive" className="col-span-5" disabled={isRunning && !dirtyTime} />
@@ -615,7 +626,7 @@ export default function DewanPage() {
                 <span className="text-sm font-bold text-accent">+3 Takedown/Sweep</span>
               </div>
             )}
-            <IndicatorRow side="red" currentRound={currentRound} warnings={match.warnings} />
+            <IndicatorRow side="red" currentRound={currentRound} warnings={match.warnings} takedownCount={redThreePt} />
             <div className="grid grid-cols-5 gap-2">
               {/* Row 1: +3 takedown */}
               <AdminBtn label="3" sublabel="Takedown / Sweep" onClick={() => apply("red", 3)} variant="red-positive" className="col-span-5" disabled={isRunning && !dirtyTime} />
