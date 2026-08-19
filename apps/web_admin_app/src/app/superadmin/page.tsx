@@ -3,10 +3,9 @@
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { auth } from "@/lib/auth";
 import {
   listAllUsers, getCompetitorCount, getTournamentCount,
-  getUserTournaments, setUserTier, setUserSuperAdmin,
+  getUserTournaments, setUserTier, setUserSuperAdmin, deleteUserData,
   type UserProfile, type AdminTournament,
 } from "@/lib/admin";
 import { TIERS, type TierId } from "@/lib/tiers";
@@ -83,23 +82,16 @@ export default function SuperAdminPage() {
 
   async function handleDeleteUser(uid: string, email: string) {
     const confirmed = confirm(
-      `Delete account for ${email}?\n\nThis will permanently delete:\n• Their Firebase Auth account\n• All their competitors\n• All their tournaments\n\nThis cannot be undone.`
+      `Delete data for ${email}?\n\nThis will permanently delete:\n• All their competitors\n• All their tournaments\n• Their platform profile\n\nTheir email/login is kept. This cannot be undone.`
     );
     if (!confirmed) return;
 
-    const token = await auth.currentUser?.getIdToken();
-    const res = await fetch("/api/admin/delete-user", {
-      method: "DELETE",
-      headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ targetUid: uid }),
-    });
-
-    if (res.ok) {
+    try {
+      await deleteUserData(uid);
       setUsers((prev) => prev.filter((u) => u.uid !== uid));
       setExtra((prev) => { const next = { ...prev }; delete next[uid]; return next; });
-    } else {
-      const { error } = await res.json();
-      alert(`Failed to delete: ${error}`);
+    } catch (err: unknown) {
+      alert(`Failed to delete: ${err instanceof Error ? err.message : "Unknown error"}`);
     }
   }
 

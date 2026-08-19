@@ -44,3 +44,4 @@ logs/
 **/flutter_judge_app/.packages
 **/flutter_judge_app/build/
 **/flutter_judge_app/pubspec.lock
+tanding-scoring-firebase-adminsdk*.json
