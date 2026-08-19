@@ -5,9 +5,9 @@ import { getFirestore } from "firebase-admin/firestore";
 function initAdmin() {
   if (getApps().length > 0) return;
 
-  const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+  const serviceAccount = process.env.ADMIN_SERVICE_ACCOUNT_KEY;
   if (!serviceAccount) {
-    throw new Error("FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set.");
+    throw new Error("ADMIN_SERVICE_ACCOUNT_KEY environment variable is not set.");
   }
 
   initializeApp({
