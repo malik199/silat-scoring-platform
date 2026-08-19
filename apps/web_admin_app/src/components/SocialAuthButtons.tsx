@@ -63,7 +63,7 @@ export function SocialAuthButtons() {
                : signInWithApple;
       const { user } = await fn();
       // Always ensure profile exists (idempotent for returning users)
-      await ensureUserProfile(user.uid, user.email ?? "");
+      await ensureUserProfile(user.uid, user.email ?? "", user.displayName ?? "");
       router.replace("/dashboard");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Sign-in failed.";

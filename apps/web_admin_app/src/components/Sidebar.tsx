@@ -18,7 +18,7 @@ const NAV = [
 export function Sidebar() {
   const pathname = usePathname();
   const router   = useRouter();
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
 
   const [tournament, setTournament] = useState<Tournament | null | undefined>(undefined);
   const [brackets,   setBrackets]   = useState<Bracket[]>([]);
@@ -178,6 +178,25 @@ export function Sidebar() {
                 );
               })}
             </div>
+          </div>
+        )}
+        {/* Super Admin */}
+        {userProfile?.isSuperAdmin && (
+          <div className="pt-3">
+            <p className="px-3 mb-2 text-xs font-semibold uppercase tracking-widest text-muted">
+              System
+            </p>
+            <Link
+              href="/superadmin"
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                pathname === "/superadmin"
+                  ? "bg-accent text-black"
+                  : "text-secondary hover:bg-elevated hover:text-primary"
+              }`}
+            >
+              <span className="text-base leading-none">🛡</span>
+              Super Admin
+            </Link>
           </div>
         )}
       </nav>
