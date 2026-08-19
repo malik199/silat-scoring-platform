@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { auth } from "@/lib/auth";
 import {
   listAllUsers, getCompetitorCount, getTournamentCount,
   getUserTournaments, setUserTier, setUserSuperAdmin,
@@ -78,6 +79,28 @@ export default function SuperAdminPage() {
   async function handleTierChange(uid: string, tier: TierId) {
     await setUserTier(uid, tier);
     setUsers((prev) => prev.map((u) => u.uid === uid ? { ...u, tier } : u));
+  }
+
+  async function handleDeleteUser(uid: string, email: string) {
+    const confirmed = confirm(
+      `Delete account for ${email}?\n\nThis will permanently delete:\n• Their Firebase Auth account\n• All their competitors\n• All their tournaments\n\nThis cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    const token = await auth.currentUser?.getIdToken();
+    const res = await fetch("/api/admin/delete-user", {
+      method: "DELETE",
+      headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ targetUid: uid }),
+    });
+
+    if (res.ok) {
+      setUsers((prev) => prev.filter((u) => u.uid !== uid));
+      setExtra((prev) => { const next = { ...prev }; delete next[uid]; return next; });
+    } else {
+      const { error } = await res.json();
+      alert(`Failed to delete: ${error}`);
+    }
   }
 
   async function handleSuperAdminToggle(uid: string, current: boolean) {
@@ -159,12 +182,13 @@ export default function SuperAdminPage() {
                 <th className="px-4 py-3 text-xs font-semibold uppercase tracking-widest text-muted text-right">Tournaments</th>
                 <th className="px-4 py-3 text-xs font-semibold uppercase tracking-widest text-muted">Created</th>
                 <th className="px-4 py-3 text-xs font-semibold uppercase tracking-widest text-muted text-center">Super Admin</th>
+                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-muted text-sm">
+                  <td colSpan={7} className="px-4 py-8 text-center text-muted text-sm">
                     {search ? "No users match your search." : "No users found."}
                   </td>
                 </tr>
@@ -258,12 +282,31 @@ export default function SuperAdminPage() {
                           />
                         </button>
                       </td>
+
+                      {/* Delete */}
+                      <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                        {u.uid !== user?.uid && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteUser(u.uid, u.email)}
+                            className="p-1.5 rounded-lg text-muted hover:text-danger hover:bg-danger/10 transition-colors"
+                            title="Delete account"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="3 6 5 6 21 6"/>
+                              <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                              <path d="M10 11v6M14 11v6"/>
+                              <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+                            </svg>
+                          </button>
+                        )}
+                      </td>
                     </tr>
 
                     {/* Expanded tournament links */}
                     {isExpanded && (
                       <tr key={`${u.uid}-expanded`} className="bg-elevated">
-                        <td colSpan={6} className="px-6 py-4">
+                        <td colSpan={7} className="px-6 py-4">
                           <p className="text-xs font-semibold uppercase tracking-widest text-muted mb-3">
                             Tournaments
                           </p>
