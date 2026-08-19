@@ -45,6 +45,12 @@ export async function setUserTier(uid: string, tier: TierId): Promise<void> {
   await updateDoc(doc(db, "users", uid), { tier });
 }
 
+const BOOTSTRAP_SUPER_ADMIN_EMAIL = "visdevelopllc@gmail.com";
+
 export async function setUserSuperAdmin(uid: string, isSuperAdmin: boolean): Promise<void> {
+  // Fetch the profile to guard the bootstrap admin
+  const snap = await import("firebase/firestore").then(({ getDoc }) => getDoc(doc(db, "users", uid)));
+  const email = (snap.data() as { email?: string })?.email ?? "";
+  if (email === BOOTSTRAP_SUPER_ADMIN_EMAIL && !isSuperAdmin) return;
   await updateDoc(doc(db, "users", uid), { isSuperAdmin });
 }

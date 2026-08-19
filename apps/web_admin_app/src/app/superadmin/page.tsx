@@ -103,7 +103,10 @@ export default function SuperAdminPage() {
     }
   }
 
-  async function handleSuperAdminToggle(uid: string, current: boolean) {
+  const BOOTSTRAP_EMAIL = "visdevelopllc@gmail.com";
+
+  async function handleSuperAdminToggle(uid: string, current: boolean, email: string) {
+    if (email === BOOTSTRAP_EMAIL) return; // bootstrap admin is permanent
     if (uid === user?.uid && current) {
       if (!confirm("Remove your own super admin access? You will be locked out of this page.")) return;
     }
@@ -267,13 +270,14 @@ export default function SuperAdminPage() {
                       <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
                         <button
                           type="button"
-                          onClick={() => handleSuperAdminToggle(u.uid, u.isSuperAdmin)}
+                          onClick={() => handleSuperAdminToggle(u.uid, u.isSuperAdmin, u.email)}
+                          disabled={u.email === BOOTSTRAP_EMAIL}
                           className={`w-10 h-6 rounded-full border-2 transition-colors relative flex-shrink-0 ${
                             u.isSuperAdmin
                               ? "bg-accent border-accent"
                               : "bg-transparent border-border"
-                          }`}
-                          title={u.isSuperAdmin ? "Remove super admin" : "Grant super admin"}
+                          } ${u.email === BOOTSTRAP_EMAIL ? "opacity-40 cursor-not-allowed" : ""}`}
+                          title={u.email === BOOTSTRAP_EMAIL ? "Primary super admin cannot be removed" : u.isSuperAdmin ? "Remove super admin" : "Grant super admin"}
                         >
                           <span
                             className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
