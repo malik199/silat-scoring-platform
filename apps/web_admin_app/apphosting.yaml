@@ -19,3 +19,5 @@ env:
     value: silat.virginia@gmail.com
   - variable: GMAIL_PASS
     secret: GMAIL_PASS
+  - variable: FIREBASE_SERVICE_ACCOUNT_KEY
+    secret: FIREBASE_SERVICE_ACCOUNT_KEY
