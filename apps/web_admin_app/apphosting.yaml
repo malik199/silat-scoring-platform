@@ -19,5 +19,3 @@ env:
     value: silat.virginia@gmail.com
   - variable: GMAIL_PASS
     secret: GMAIL_PASS
-  - variable: ADMIN_SERVICE_ACCOUNT_KEY
-    secret: ADMIN_SERVICE_ACCOUNT_KEY
