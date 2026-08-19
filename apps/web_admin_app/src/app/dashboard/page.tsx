@@ -24,9 +24,10 @@ export default function DashboardPage() {
   }, [user]);
 
   useEffect(() => {
-    if (!tournament) { setMatches(tournament === null ? [] : null); return; }
+    if (tournament === undefined) return;
+    if (tournament === null) { setMatches([]); return; }
     return subscribeMatches(tournament.id, setMatches);
-  }, [tournament?.id]);
+  }, [tournament?.id, tournament === null]);
 
   const loading = tournament === undefined || competitorCount === null || matches === null;
 

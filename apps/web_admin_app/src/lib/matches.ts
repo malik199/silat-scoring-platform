@@ -449,10 +449,22 @@ export async function setJudgeDisabled(
   uid: string,
   disabled: boolean
 ): Promise<void> {
-  const { arrayUnion, arrayRemove } = await import("firebase/firestore");
-  await updateDoc(doc(db, COL, matchId), {
-    disabledJudges: disabled ? arrayUnion(uid) : arrayRemove(uid),
-  });
+  const { arrayUnion, arrayRemove, deleteField } = await import("firebase/firestore");
+  const matchRef = doc(db, COL, matchId);
+
+  if (disabled) {
+    // Find and clear the seat for this judge
+    const snap = await getDoc(matchRef);
+    const seats = (snap.data() as Match | undefined)?.judgeSeats ?? {};
+    const seatKey = Object.entries(seats).find(([, j]) => j.uid === uid)?.[0];
+    const update: Record<string, unknown> = { disabledJudges: arrayUnion(uid) };
+    if (seatKey) update[`judgeSeats.${seatKey}`] = deleteField();
+    await updateDoc(matchRef, update);
+    // Delete their presence so they vanish from the judge list
+    await deleteDoc(doc(db, COL, matchId, "judgePresence", uid));
+  } else {
+    await updateDoc(matchRef, { disabledJudges: arrayRemove(uid) });
+  }
 }
 
 export async function assignJudgeSeat(
