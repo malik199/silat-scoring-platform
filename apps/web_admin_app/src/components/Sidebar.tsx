@@ -15,7 +15,12 @@ const NAV = [
   { label: "Matches",     href: "/matches",     icon: "🤼" },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
   const router   = useRouter();
   const { user, userProfile } = useAuth();
@@ -44,8 +49,10 @@ export function Sidebar() {
     router.replace("/login");
   }
 
+  const close = () => onClose?.();
+
   return (
-    <aside className="flex flex-col w-64 min-h-screen bg-surface border-r border-border flex-shrink-0">
+    <aside className={`flex flex-col w-64 bg-surface border-r border-border flex-shrink-0 fixed inset-y-0 left-0 z-50 transition-transform duration-300 lg:relative lg:translate-x-0 lg:z-auto ${isOpen ? "translate-x-0" : "-translate-x-full"}`}>
       {/* Logo */}
       <div className="flex items-center justify-center px-5 py-4 border-b border-border">
         <img src="/logo.svg" alt="Silat Score" className="h-[168px] w-auto" />
@@ -79,6 +86,7 @@ export function Sidebar() {
             <div key={href}>
               <Link
                 href={href}
+                onClick={close}
                 className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   active
                     ? "bg-accent text-black"
@@ -92,6 +100,7 @@ export function Sidebar() {
                 <div className="ml-2 border-l border-border pl-2 mt-0.5">
                   <Link
                     href={`/tournaments/${tournament.id}`}
+                    onClick={close}
                     className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors truncate ${
                       subActive
                         ? "bg-accent text-black"
@@ -111,6 +120,7 @@ export function Sidebar() {
                       <Link
                         key={b.id}
                         href={`/brackets/${b.id}`}
+                        onClick={close}
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors truncate ${
                           bracketActive
                             ? "bg-accent text-black"
@@ -166,6 +176,7 @@ export function Sidebar() {
                   <Link
                     key={n}
                     href={`/dewan/${n}`}
+                    onClick={close}
                     className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                       active
                         ? "bg-accent text-black"
@@ -188,6 +199,7 @@ export function Sidebar() {
             </p>
             <Link
               href="/superadmin"
+              onClick={close}
               className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 pathname === "/superadmin"
                   ? "bg-accent text-black"
@@ -204,7 +216,7 @@ export function Sidebar() {
       {/* Sign out */}
       <div className="px-3 py-4 border-t border-border">
         <button
-          onClick={handleSignOut}
+          onClick={() => { close(); handleSignOut(); }}
           className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-secondary hover:bg-elevated hover:text-primary transition-colors"
         >
           <span className="text-base leading-none">→</span>
