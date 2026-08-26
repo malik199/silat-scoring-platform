@@ -285,6 +285,23 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── Video ── */}
+      <section className="max-w-4xl mx-auto px-6 pb-20">
+        <div className="text-center mb-8">
+          <h2 className="text-2xl sm:text-3xl font-black mb-2">See it in action</h2>
+          <p className="text-sm text-secondary">Watch a live Pencak Silat Tanding match scored with Silat Score.</p>
+        </div>
+        <div className="relative w-full rounded-2xl overflow-hidden border border-border shadow-2xl" style={{ paddingBottom: "56.25%" }}>
+          <iframe
+            src="https://www.youtube.com/embed/CmNySfGCJXY"
+            title="Silat Score in action"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            className="absolute inset-0 w-full h-full"
+          />
+        </div>
+      </section>
+
       {/* ── Features ── */}
       <section className="max-w-5xl mx-auto px-6 pb-20">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
