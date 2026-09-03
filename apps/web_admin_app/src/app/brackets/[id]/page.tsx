@@ -577,7 +577,7 @@ function CompCard({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onSwap(); }}
-            className="w-5 h-5 flex items-center justify-center rounded text-muted hover:text-warn hover:bg-border/50 transition-colors text-[11px] leading-none"
+            className="w-5 h-5 flex items-center justify-center rounded bg-warn/15 border border-warn/40 text-warn hover:bg-warn/30 transition-colors text-[11px] leading-none"
             title="Swap with another competitor"
           >
             ⇄
@@ -602,6 +602,7 @@ function MatchupBox({
   matchedCompetitorIds,
   onCreateMatch,
   onSwap,
+  onSwapCorners,
   onWhoWon,
 }: {
   matchup: BracketMatchup;
@@ -615,6 +616,7 @@ function MatchupBox({
   matchedCompetitorIds: Set<string>;
   onCreateMatch: (p1Id: string, p2Id: string) => void;
   onSwap: (targetId: string, opponentId: string | null) => void;
+  onSwapCorners: (p1Id: string, p2Id: string) => void;
   onWhoWon: (winnerKey: string, opt1: Competitor, opt2: Competitor) => void;
 }) {
   // Resolve a single slot: returns the effective competitor ID, the competitor
@@ -674,7 +676,18 @@ function MatchupBox({
         corner="red"
         isWinner={matchupWinnerId !== null && effectiveP1Id === matchupWinnerId}
       />
-      <div style={{ height: GAP }} />
+      <div style={{ height: GAP }} className="relative flex items-center justify-center">
+        {matchup.p1Id && matchup.p2Id && !hasMatch && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onSwapCorners(matchup.p1Id!, matchup.p2Id!); }}
+            className="absolute left-2 w-5 h-5 flex items-center justify-center rounded bg-accent/15 border border-accent/40 text-accent hover:bg-accent/30 transition-colors text-[11px] leading-none z-10"
+            title="Swap red/blue corners"
+          >
+            ⇅
+          </button>
+        )}
+      </div>
       <CompCard
         competitor={p2Slot.competitor}
         onWhoWon={p2Slot.whoWon}
@@ -882,6 +895,15 @@ export default function BracketViewPage() {
     setSwapDialog(null);
   }
 
+  async function handleSwapCorners(p1Id: string, p2Id: string) {
+    if (!bracket) return;
+    const newSeededIds = bracket.seededIds.map((id) =>
+      id === p1Id ? p2Id : id === p2Id ? p1Id : id
+    );
+    await updateBracketSeededIds(bracket.id, newSeededIds);
+    setBracket((b) => b ? { ...b, seededIds: newSeededIds } : b);
+  }
+
   async function handleSelectWinner(winnerKey: string, competitorId: string) {
     if (!bracket) return;
     await setMatchWinner(bracket.id, winnerKey, competitorId);
@@ -1076,6 +1098,7 @@ export default function BracketViewPage() {
                     matchedCompetitorIds={matchedCompetitorIds}
                     onCreateMatch={(p1Id, p2Id) => setMatchDialog({ p1Id, p2Id })}
                     onSwap={(targetId, opponentId) => setSwapDialog({ targetId, opponentId })}
+                    onSwapCorners={handleSwapCorners}
                     onWhoWon={(winnerKey, opt1, opt2) => setWinnerDialog({ winnerKey, opt1, opt2 })}
                   />
                 ))}
