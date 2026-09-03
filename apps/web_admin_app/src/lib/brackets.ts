@@ -4,6 +4,7 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  getDocs,
   onSnapshot,
   query,
   serverTimestamp,
@@ -178,6 +179,22 @@ export async function getBracket(id: string): Promise<Bracket | null> {
 
 export async function updateBracketSeededIds(id: string, seededIds: (string | null)[]): Promise<void> {
   await updateDoc(doc(db, COL, id), { seededIds });
+}
+
+/** Swap two competitor positions in any bracket within a tournament that contains both. */
+export async function swapBracketSeeds(tournamentId: string, idA: string, idB: string): Promise<void> {
+  const snap = await getDocs(query(collection(db, COL), where("tournamentId", "==", tournamentId)));
+  for (const d of snap.docs) {
+    const ids = (d.data().seededIds ?? []) as (string | null)[];
+    const posA = ids.indexOf(idA);
+    const posB = ids.indexOf(idB);
+    if (posA === -1 || posB === -1) continue;
+    const newIds = [...ids];
+    newIds[posA] = idB;
+    newIds[posB] = idA;
+    await updateDoc(d.ref, { seededIds: newIds });
+    break;
+  }
 }
 
 export async function setMatchWinner(

@@ -6,7 +6,7 @@ import { Shell } from "@/components/Shell";
 import { useAuth } from "@/context/AuthContext";
 import { subscribeCompetitors, type Competitor } from "@/lib/competitors";
 import { subscribeActiveTournament, type Tournament } from "@/lib/tournaments";
-import { createMatch, subscribeMatches, type Match } from "@/lib/matches";
+import { createMatch, subscribeMatches, swapMatchCorners, type Match } from "@/lib/matches";
 import {
   getBracket, renameBracket, deleteBracket, buildRounds, buildFeedMap,
   updateBracketSeededIds, setMatchWinner,
@@ -47,8 +47,10 @@ function getAgeYears(dob: string): number {
 
 const AGE_CATS = [
   { key: "all",       label: "All Ages",     min: 0,  max: 999 },
-  { key: "kids",      label: "Kids (U10)",   min: 0,  max: 9   },
-  { key: "prejunior", label: "Pre-Junior",   min: 10, max: 12  },
+  { key: "pratunas",  label: "Pra-Tunas (5–6)",  min: 5,  max: 6  },
+  { key: "tunas",     label: "Tunas (7–8)",      min: 7,  max: 8  },
+  { key: "pradini",   label: "Pra-Dini (9–10)",  min: 9,  max: 10 },
+  { key: "prejunior", label: "Pre-Junior",        min: 10, max: 12 },
   { key: "junior",    label: "Junior",       min: 13, max: 17  },
   { key: "senior",    label: "Senior (18+)", min: 18, max: 999 },
 ];
@@ -902,6 +904,13 @@ export default function BracketViewPage() {
     );
     await updateBracketSeededIds(bracket.id, newSeededIds);
     setBracket((b) => b ? { ...b, seededIds: newSeededIds } : b);
+    const existingMatch = matches.find((m) =>
+      (m.redCornerCompetitorId === p1Id && m.blueCornerCompetitorId === p2Id) ||
+      (m.redCornerCompetitorId === p2Id && m.blueCornerCompetitorId === p1Id)
+    );
+    if (existingMatch) {
+      await swapMatchCorners(existingMatch.id, existingMatch.redCornerCompetitorId, existingMatch.blueCornerCompetitorId);
+    }
   }
 
   async function handleSelectWinner(winnerKey: string, competitorId: string) {

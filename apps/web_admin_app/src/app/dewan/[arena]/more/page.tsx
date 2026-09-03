@@ -366,8 +366,15 @@ export default function MoreDewanPage() {
 
         {/* ── Score Breakdown ── */}
         {(() => {
-          const count = (side: "red" | "blue", pts: number) =>
-            adminEvents.filter((e) => e.side === side && e.points === pts).length;
+          const w = (match.warnings ?? {}) as Record<string, boolean>;
+          const count = (side: "red" | "blue", pts: number): number => {
+            if (pts === 3)   return adminEvents.filter((e) => e.side === side && e.points === 3).length;
+            if (pts === -1)  return [1, 2, 3].filter((r) => w[`r${r}_${side}_m1`]).length;
+            if (pts === -2)  return [1, 2, 3].filter((r) => w[`r${r}_${side}_m2`]).length;
+            if (pts === -5)  return w[`${side}_m5`]  ? 1 : 0;
+            if (pts === -10) return w[`${side}_m10`] ? 1 : 0;
+            return 0;
+          };
           const isTied = totalRed === totalBlue;
           return (
             <div className={`bg-surface border rounded-xl overflow-hidden mb-4 ${isTied ? "border-warn/50" : "border-border"}`}>

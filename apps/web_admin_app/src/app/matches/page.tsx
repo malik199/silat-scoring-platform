@@ -26,6 +26,7 @@ import { ActiveTournamentBanner } from "@/components/ActiveTournamentBanner";
 import { useAuth } from "@/context/AuthContext";
 import { subscribeActiveTournament, type Tournament } from "@/lib/tournaments";
 import { subscribeCompetitors, type Competitor } from "@/lib/competitors";
+import { swapBracketSeeds } from "@/lib/brackets";
 import {
   subscribeMatches,
   subscribeScoreEvents,
@@ -58,8 +59,10 @@ function getAgeYears(dob: string): number {
 
 const AGE_CATS = [
   { key: "all",       label: "All Ages",     min: 0,  max: 999 },
-  { key: "kids",      label: "Kids (U10)",   min: 0,  max: 9   },
-  { key: "prejunior", label: "Pre-Junior",   min: 10, max: 12  },
+  { key: "pratunas",  label: "Pra-Tunas (5–6)",  min: 5,  max: 6  },
+  { key: "tunas",     label: "Tunas (7–8)",      min: 7,  max: 8  },
+  { key: "pradini",   label: "Pra-Dini (9–10)",  min: 9,  max: 10 },
+  { key: "prejunior", label: "Pre-Junior",        min: 10, max: 12 },
   { key: "junior",    label: "Junior",       min: 13, max: 17  },
   { key: "senior",    label: "Senior (18+)", min: 18, max: 999 },
 ];
@@ -931,7 +934,10 @@ export default function MatchesPage() {
                       onEndRequest={() => setEndConfirmMatch(m)}
                       onDewan={() => router.push(`/dewan/${m.arenaNumber}`)}
                       onViewDetail={() => setDetailMatch(m)}
-                      onSwap={() => swapMatchCorners(m.id, m.redCornerCompetitorId, m.blueCornerCompetitorId)}
+                      onSwap={async () => {
+                        await swapMatchCorners(m.id, m.redCornerCompetitorId, m.blueCornerCompetitorId);
+                        if (tournament?.id) await swapBracketSeeds(tournament.id, m.redCornerCompetitorId, m.blueCornerCompetitorId);
+                      }}
                     />
                   );
                 })}

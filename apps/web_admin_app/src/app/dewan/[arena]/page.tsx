@@ -353,6 +353,12 @@ export default function DewanPage() {
       "dq":  match?.warnings?.[`red_dq`] === true,
     },
   };
+
+  // How many rounds (1–3) have m1 / m2 set for each side (max 2 allowed)
+  const penaltyRoundCount = (side: "red" | "blue", type: "m1" | "m2") =>
+    [1, 2, 3].filter((r) => match?.warnings?.[`r${r}_${side}_${type}`]).length;
+  const m1Capped = { blue: penaltyRoundCount("blue", "m1") >= 2, red: penaltyRoundCount("red", "m1") >= 2 };
+  const m2Capped = { blue: penaltyRoundCount("blue", "m2") >= 2, red: penaltyRoundCount("red", "m2") >= 2 };
   const isExpired = remaining <= 0;
 
   const router = useRouter();
@@ -592,8 +598,8 @@ export default function DewanPage() {
               {/* Row 2: W1 W2 -1 -2 -5 */}
               <AdminBtn label="W1" sublabel="Warning 1" onClick={() => handleWarning("blue", "w1")} variant={match.warnings?.[`r${currentRound}_blue_w1`] ? "warn-active" : "warn"} disabled={isRunning && !dirtyTime} />
               <AdminBtn label="W2" sublabel="Warning 2" onClick={() => handleWarning("blue", "w2")} variant={match.warnings?.[`r${currentRound}_blue_w2`] ? "warn-active" : "warn"} disabled={isRunning && !dirtyTime} />
-              <AdminBtn label="-1" sublabel="Penalty" onClick={() => handlePenalty("blue", "m1")} variant={penaltyActive.blue["-1"] ? "blue-penalty-active" : "blue-penalty"} disabled={isRunning && !dirtyTime} />
-              <AdminBtn label="-2" sublabel="Penalty" onClick={() => handlePenalty("blue", "m2")} variant={penaltyActive.blue["-2"] ? "blue-penalty-active" : "blue-penalty"} disabled={isRunning && !dirtyTime} />
+              <AdminBtn label="-1" sublabel="Penalty" onClick={() => handlePenalty("blue", "m1")} variant={penaltyActive.blue["-1"] ? "blue-penalty-active" : "blue-penalty"} disabled={(isRunning && !dirtyTime) || (!penaltyActive.blue["-1"] && m1Capped.blue)} />
+              <AdminBtn label="-2" sublabel="Penalty" onClick={() => handlePenalty("blue", "m2")} variant={penaltyActive.blue["-2"] ? "blue-penalty-active" : "blue-penalty"} disabled={(isRunning && !dirtyTime) || (!penaltyActive.blue["-2"] && m2Capped.blue)} />
               <AdminBtn label="-5" sublabel="Penalty" onClick={() => handlePenalty("blue", "m5")} variant={penaltyActive.blue["-5"] ? "blue-penalty-active" : "blue-penalty"} disabled={isRunning && !dirtyTime} />
               {/* Row 3: -10 | DQ */}
               <AdminBtn label="-10" sublabel="Penalty" onClick={() => handlePenalty("blue", "m10")} variant={penaltyActive.blue["-10"] ? "blue-penalty-active" : "blue-penalty"} className="col-span-2" disabled={isRunning && !dirtyTime} />
@@ -633,8 +639,8 @@ export default function DewanPage() {
               {/* Row 2: W1 W2 -1 -2 -5 */}
               <AdminBtn label="W1" sublabel="Warning 1" onClick={() => handleWarning("red", "w1")} variant={match.warnings?.[`r${currentRound}_red_w1`] ? "warn-active" : "warn"} disabled={isRunning && !dirtyTime} />
               <AdminBtn label="W2" sublabel="Warning 2" onClick={() => handleWarning("red", "w2")} variant={match.warnings?.[`r${currentRound}_red_w2`] ? "warn-active" : "warn"} disabled={isRunning && !dirtyTime} />
-              <AdminBtn label="-1" sublabel="Penalty" onClick={() => handlePenalty("red", "m1")} variant={penaltyActive.red["-1"] ? "red-penalty-active" : "red-penalty"} disabled={isRunning && !dirtyTime} />
-              <AdminBtn label="-2" sublabel="Penalty" onClick={() => handlePenalty("red", "m2")} variant={penaltyActive.red["-2"] ? "red-penalty-active" : "red-penalty"} disabled={isRunning && !dirtyTime} />
+              <AdminBtn label="-1" sublabel="Penalty" onClick={() => handlePenalty("red", "m1")} variant={penaltyActive.red["-1"] ? "red-penalty-active" : "red-penalty"} disabled={(isRunning && !dirtyTime) || (!penaltyActive.red["-1"] && m1Capped.red)} />
+              <AdminBtn label="-2" sublabel="Penalty" onClick={() => handlePenalty("red", "m2")} variant={penaltyActive.red["-2"] ? "red-penalty-active" : "red-penalty"} disabled={(isRunning && !dirtyTime) || (!penaltyActive.red["-2"] && m2Capped.red)} />
               <AdminBtn label="-5" sublabel="Penalty" onClick={() => handlePenalty("red", "m5")} variant={penaltyActive.red["-5"] ? "red-penalty-active" : "red-penalty"} disabled={isRunning && !dirtyTime} />
               {/* Row 3: -10 | DQ */}
               <AdminBtn label="-10" sublabel="Penalty" onClick={() => handlePenalty("red", "m10")} variant={penaltyActive.red["-10"] ? "red-penalty-active" : "red-penalty"} className="col-span-2" disabled={isRunning && !dirtyTime} />
