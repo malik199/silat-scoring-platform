@@ -114,11 +114,11 @@ export default function MoreDewanPage() {
     : rawJudgeOrder;
 
   const ACTIONS = [
-    { pts:  3, label: "+3",  sublabel: "Takedown / Sweep" },
-    { pts: -1, label: "−1",  sublabel: "Minor penalty"    },
-    { pts: -2, label: "−2",  sublabel: "Warning"          },
-    { pts: -5, label: "−5",  sublabel: "Major penalty"    },
-    { pts:-10, label: "−10", sublabel: "Disqualification" },
+    { pts:  3, label: "+3",  sublabel: "Takedown / Sweep / Jatoh"                              },
+    { pts: -1, label: "−1",  sublabel: "Light Violation / Pelanggaran Ringan / Teguran"        },
+    { pts: -2, label: "−2",  sublabel: "Moderate Violation / Pelanggaran Sedang / Peringatan"  },
+    { pts: -5, label: "−5",  sublabel: "Berat Violation / Pelanggaran Berat / Peringatan"      },
+    { pts:-10, label: "−10", sublabel: "Disqualification / Diskualifikasi"                      },
   ];
 
   return (
