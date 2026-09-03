@@ -179,7 +179,7 @@ export default function MoreDewanPage() {
                 className="w-full px-5 py-3 flex items-center justify-between hover:bg-elevated/50 transition-colors"
               >
                 <div className="flex items-center gap-2">
-                  <p className="text-xs font-semibold uppercase tracking-widest text-muted">Light Violations</p>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-muted">Reprimand / Teguran</p>
                   {lightViolations.filter((v) => v.round === currentRound).length > 0 && (
                     <span className="text-xs font-bold text-warn bg-warn/10 border border-warn/30 rounded-full px-2 py-0.5">
                       {lightViolations.filter((v) => v.round === currentRound).length} R{currentRound}
@@ -320,7 +320,7 @@ export default function MoreDewanPage() {
                 className="w-full px-5 py-3 flex items-center justify-between hover:bg-elevated/50 transition-colors"
               >
                 <div className="flex items-center gap-2">
-                  <p className="text-xs font-semibold uppercase tracking-widest text-muted">Serious Violations</p>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-muted">Warnings / Peringatan</p>
                   {totalThisRound > 0 && (
                     <span className="text-xs font-bold text-danger bg-danger/10 border border-danger/30 rounded-full px-2 py-0.5">
                       {totalThisRound} R{currentRound}
