@@ -35,15 +35,16 @@ function adminTotals(events: AdminEvent[]) {
 }
 
 function rawPerJudge(events: ScoreEvent[]) {
-  const byJudge = new Map<string, { red: number; blue: number; name: string; email: string }>();
+  const byJudge = new Map<string, { redPunches: number; redKicks: number; bluePunches: number; blueKicks: number; name: string; email: string }>();
   const judgeOrder: string[] = [];
   for (const e of events) {
     if (!byJudge.has(e.judgeId)) {
-      byJudge.set(e.judgeId, { red: 0, blue: 0, name: e.judgeName ?? "", email: e.judgeEmail ?? "" });
+      byJudge.set(e.judgeId, { redPunches: 0, redKicks: 0, bluePunches: 0, blueKicks: 0, name: e.judgeName ?? "", email: e.judgeEmail ?? "" });
       judgeOrder.push(e.judgeId);
     }
     const t = byJudge.get(e.judgeId)!;
-    if (e.side === "red") t.red += e.points; else t.blue += e.points;
+    if (e.side === "red") { if (e.points === 1) t.redPunches++; else if (e.points === 2) t.redKicks++; }
+    else                  { if (e.points === 1) t.bluePunches++; else if (e.points === 2) t.blueKicks++; }
   }
   return { byJudge, judgeOrder };
 }
@@ -447,10 +448,11 @@ export default function MoreDewanPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border">
-                      <th className="px-5 py-3 text-left   text-xs font-semibold uppercase tracking-widest text-muted">Judge</th>
-                      <th className="px-5 py-3 text-center text-xs font-semibold uppercase tracking-widest text-blue-400">Blue</th>
-                      <th className="px-5 py-3 text-center text-xs font-semibold uppercase tracking-widest text-danger">Red</th>
-                      <th className="px-5 py-3 text-right  text-xs font-semibold uppercase tracking-widest text-muted">Total</th>
+                      <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-widest text-muted">Judge</th>
+                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-widest text-blue-400">Blue 👊</th>
+                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-widest text-blue-400">Blue 🦵</th>
+                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-widest text-danger">Red 👊</th>
+                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-widest text-danger">Red 🦵</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -474,9 +476,10 @@ export default function MoreDewanPage() {
                               </div>
                             </div>
                           </td>
-                          <td className="px-5 py-3 text-center"><span className="text-lg font-bold text-blue-400">{t?.blue ?? "—"}</span></td>
-                          <td className="px-5 py-3 text-center"><span className="text-lg font-bold text-danger">{t?.red ?? "—"}</span></td>
-                          <td className="px-5 py-3 text-right"><span className="text-sm font-semibold text-secondary">{t ? t.red + t.blue : "—"}</span></td>
+                          <td className="px-3 py-3 text-center"><span className="text-base font-bold text-blue-400">{t?.bluePunches ?? "—"}</span></td>
+                          <td className="px-3 py-3 text-center"><span className="text-base font-bold text-blue-400">{t?.blueKicks ?? "—"}</span></td>
+                          <td className="px-3 py-3 text-center"><span className="text-base font-bold text-danger">{t?.redPunches ?? "—"}</span></td>
+                          <td className="px-3 py-3 text-center"><span className="text-base font-bold text-danger">{t?.redKicks ?? "—"}</span></td>
                         </tr>
                       );
                     })}

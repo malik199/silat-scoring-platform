@@ -436,14 +436,15 @@ function MatchDetailModal({ match, redName, blueName, redSubtitle, blueSubtitle,
 
   // Per-judge raw tallies
   const judgeOrder: string[] = [];
-  const byJudge = new Map<string, { name: string; email: string; red: number; blue: number }>();
+  const byJudge = new Map<string, { name: string; email: string; redPunches: number; redKicks: number; bluePunches: number; blueKicks: number }>();
   for (const e of scoreEvents) {
     if (!byJudge.has(e.judgeId)) {
-      byJudge.set(e.judgeId, { name: e.judgeName ?? "", email: e.judgeEmail ?? "", red: 0, blue: 0 });
+      byJudge.set(e.judgeId, { name: e.judgeName ?? "", email: e.judgeEmail ?? "", redPunches: 0, redKicks: 0, bluePunches: 0, blueKicks: 0 });
       judgeOrder.push(e.judgeId);
     }
     const t = byJudge.get(e.judgeId)!;
-    if (e.side === "red") t.red += e.points; else t.blue += e.points;
+    if (e.side === "red") { if (e.points === 1) t.redPunches++; else if (e.points === 2) t.redKicks++; }
+    else                  { if (e.points === 1) t.bluePunches++; else if (e.points === 2) t.blueKicks++; }
   }
 
   function cntFlags(side: "red" | "blue", type: string): number {
@@ -530,10 +531,11 @@ function MatchDetailModal({ match, redName, blueName, redSubtitle, blueSubtitle,
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border">
-                    <th className="px-4 py-2 text-left   text-xs font-semibold uppercase tracking-widest text-muted">Judge</th>
-                    <th className="px-4 py-2 text-center text-xs font-semibold uppercase tracking-widest text-danger">Red</th>
-                    <th className="px-4 py-2 text-center text-xs font-semibold uppercase tracking-widest text-blue-400">Blue</th>
-                    <th className="px-4 py-2 text-right  text-xs font-semibold uppercase tracking-widest text-muted">Total</th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-widest text-muted">Judge</th>
+                    <th className="px-3 py-2 text-center text-xs font-semibold uppercase tracking-widest text-danger">Red 👊</th>
+                    <th className="px-3 py-2 text-center text-xs font-semibold uppercase tracking-widest text-danger">Red 🦵</th>
+                    <th className="px-3 py-2 text-center text-xs font-semibold uppercase tracking-widest text-blue-400">Blue 👊</th>
+                    <th className="px-3 py-2 text-center text-xs font-semibold uppercase tracking-widest text-blue-400">Blue 🦵</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -546,9 +548,10 @@ function MatchDetailModal({ match, redName, blueName, redSubtitle, blueSubtitle,
                             {t.name || t.email || `Judge ${i + 1}`}
                           </span>
                         </td>
-                        <td className="px-4 py-2.5 text-center"><span className="text-base font-bold text-danger">{t.red}</span></td>
-                        <td className="px-4 py-2.5 text-center"><span className="text-base font-bold text-blue-400">{t.blue}</span></td>
-                        <td className="px-4 py-2.5 text-right"><span className="text-sm font-semibold text-secondary">{t.red + t.blue}</span></td>
+                        <td className="px-3 py-2.5 text-center"><span className="text-base font-bold text-danger">{t.redPunches}</span></td>
+                        <td className="px-3 py-2.5 text-center"><span className="text-base font-bold text-danger">{t.redKicks}</span></td>
+                        <td className="px-3 py-2.5 text-center"><span className="text-base font-bold text-blue-400">{t.bluePunches}</span></td>
+                        <td className="px-3 py-2.5 text-center"><span className="text-base font-bold text-blue-400">{t.blueKicks}</span></td>
                       </tr>
                     );
                   })}
