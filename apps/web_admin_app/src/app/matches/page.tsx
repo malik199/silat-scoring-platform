@@ -59,12 +59,14 @@ function getAgeYears(dob: string): number {
 
 const AGE_CATS = [
   { key: "all",       label: "All Ages",     min: 0,  max: 999 },
-  { key: "pratunas",  label: "Pra-Tunas (5–6)",  min: 5,  max: 6  },
-  { key: "tunas",     label: "Tunas (7–8)",      min: 7,  max: 8  },
-  { key: "pradini",   label: "Pra-Dini (9–10)",  min: 9,  max: 10 },
-  { key: "prejunior", label: "Pre-Junior",        min: 10, max: 12 },
-  { key: "junior",    label: "Junior",       min: 13, max: 17  },
-  { key: "senior",    label: "Senior (18+)", min: 18, max: 999 },
+  { key: "singa",     label: "Singa (3–6)",        min: 3,  max: 6   },
+  { key: "macan",     label: "Macan (7–9)",        min: 7,  max: 9   },
+  { key: "preteen",   label: "Pre-Teen (10–11)",   min: 10, max: 11  },
+  { key: "prejunior", label: "Pre-Junior (12–13)", min: 12, max: 13  },
+  { key: "junior",    label: "Junior (14–16)",     min: 14, max: 16  },
+  { key: "senior",    label: "Senior (17–45)",     min: 17, max: 45  },
+  { key: "mastera",   label: "Master A (46–60)",   min: 46, max: 60  },
+  { key: "masterb",   label: "Master B (61+)",     min: 61, max: 999 },
 ];
 
 function WinnerCheck() {
