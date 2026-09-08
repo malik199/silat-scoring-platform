@@ -500,7 +500,7 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
         {/* Arena / tournament name — left */}
         <div className="flex-1 flex flex-col justify-center">
           <p className="text-lg font-bold uppercase tracking-[0.3em] text-white/40">
-            Arena {arenaNumber}
+            Arena {arenaNumber} &nbsp;—&nbsp; Match #{runningMatch.order}
           </p>
           {tournament?.name && (
             <p className="text-5xl font-black text-white/80 leading-tight">
@@ -550,12 +550,7 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
         />
       </div>
 
-      {/* Footer */}
-      <div className="flex items-center justify-center py-2 border-t border-white/10" style={{ backgroundColor: "#0a0a0a" }}>
-        <p className="text-xs font-semibold uppercase tracking-widest text-white/20">
-          Match #{runningMatch.order}
-        </p>
-      </div>
+
     </div>
   );
 }
