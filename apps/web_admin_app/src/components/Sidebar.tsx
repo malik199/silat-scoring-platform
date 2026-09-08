@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { signOut } from "@/lib/auth";
@@ -154,6 +155,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const dc = desktopCollapsed;
 
   return (
+    <>
     <aside className={`
       flex flex-col bg-surface border-r border-border flex-shrink-0
       fixed inset-y-0 left-0 z-50 transition-all duration-300
@@ -366,9 +368,12 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         </button>
       </div>
 
-      {feedbackOpen && (
-        <FeedbackModal email={user?.email ?? ""} onClose={() => setFeedbackOpen(false)} />
-      )}
     </aside>
+
+      {feedbackOpen && createPortal(
+        <FeedbackModal email={user?.email ?? ""} onClose={() => setFeedbackOpen(false)} />,
+        document.body
+      )}
+    </>
   );
 }
