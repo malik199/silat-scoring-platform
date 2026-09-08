@@ -8,6 +8,92 @@ import { signOut } from "@/lib/auth";
 import { subscribeActiveTournament, type Tournament } from "@/lib/tournaments";
 import { subscribeBrackets, type Bracket } from "@/lib/brackets";
 
+// ─── Feedback modal ───────────────────────────────────────────────────────────
+
+const FEEDBACK_TYPES = ["Bug Report", "Question", "Feature Request", "General Feedback"];
+
+function FeedbackModal({ email, onClose }: { email: string; onClose: () => void }) {
+  const [type,       setType]       = useState(FEEDBACK_TYPES[0]);
+  const [message,    setMessage]    = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [sent,       setSent]       = useState(false);
+  const [error,      setError]      = useState("");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSubmitting(true);
+    setError("");
+    try {
+      const res = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, type, message }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      setSent(true);
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-md bg-surface border border-border rounded-2xl shadow-2xl">
+        <div className="px-6 pt-6 pb-4 border-b border-border flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-bold text-primary">Send Feedback</h2>
+            <p className="text-xs text-muted mt-0.5">Questions, bugs, or suggestions — we read everything.</p>
+          </div>
+          <button type="button" onClick={onClose} className="text-muted hover:text-primary transition-colors text-lg leading-none">✕</button>
+        </div>
+
+        {sent ? (
+          <div className="px-6 py-8 text-center">
+            <p className="text-3xl mb-3">✓</p>
+            <p className="text-sm font-semibold text-primary">Thanks! We&apos;ll be in touch.</p>
+            <p className="text-xs text-muted mt-1">Reply will come to {email}</p>
+            <button type="button" onClick={onClose} className="mt-5 px-4 py-2 rounded-lg bg-accent text-black text-sm font-bold hover:bg-accent/80 transition-colors">Done</button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-secondary uppercase tracking-widest mb-1.5">Type</label>
+              <select
+                value={type}
+                onChange={(e) => setType(e.target.value)}
+                className="w-full bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-primary focus:outline-none focus:border-accent"
+              >
+                {FEEDBACK_TYPES.map((t) => <option key={t}>{t}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-secondary uppercase tracking-widest mb-1.5">Message</label>
+              <textarea
+                required
+                rows={5}
+                placeholder="Describe the issue or feedback…"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                className="w-full bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-primary placeholder:text-muted focus:outline-none focus:border-accent resize-none"
+              />
+            </div>
+            {error && <p className="text-xs text-danger">{error}</p>}
+            <div className="flex gap-3 pt-1">
+              <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-primary transition-colors">Cancel</button>
+              <button type="submit" disabled={submitting || !message.trim()} className="flex-1 px-4 py-2.5 rounded-lg bg-accent text-black text-sm font-bold hover:bg-accent/80 transition-colors disabled:opacity-50">
+                {submitting ? "Sending…" : "Send"}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
 const NAV = [
   { label: "Tournament",  href: "/tournaments", icon: "🏆" },
   { label: "Competitors", href: "/competitors", icon: "👤" },
@@ -28,6 +114,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const [tournament,        setTournament]        = useState<Tournament | null | undefined>(undefined);
   const [brackets,          setBrackets]          = useState<Bracket[]>([]);
   const [desktopCollapsed,  setDesktopCollapsed]  = useState(false);
+  const [feedbackOpen,      setFeedbackOpen]      = useState(false);
 
   // Restore desktop collapse preference
   useEffect(() => {
@@ -258,8 +345,17 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         )}
       </nav>
 
-      {/* Sign out */}
-      <div className={`border-t border-border flex-shrink-0 ${dc ? "px-2 py-3" : "px-3 py-4"}`}>
+      {/* Feedback + Sign out */}
+      <div className={`border-t border-border flex-shrink-0 ${dc ? "px-2 py-3 space-y-1" : "px-3 py-4 space-y-1"}`}>
+        <button
+          type="button"
+          onClick={() => setFeedbackOpen(true)}
+          title={dc ? "Send Feedback" : undefined}
+          className={`w-full flex items-center rounded-lg text-sm font-medium text-secondary hover:bg-elevated hover:text-primary transition-colors ${dc ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2"}`}
+        >
+          <span className="text-base leading-none">💬</span>
+          {!dc && "Send Feedback"}
+        </button>
         <button
           onClick={() => { close(); handleSignOut(); }}
           title={dc ? "Sign out" : undefined}
@@ -269,6 +365,10 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           {!dc && "Sign out"}
         </button>
       </div>
+
+      {feedbackOpen && (
+        <FeedbackModal email={user?.email ?? ""} onClose={() => setFeedbackOpen(false)} />
+      )}
     </aside>
   );
 }
