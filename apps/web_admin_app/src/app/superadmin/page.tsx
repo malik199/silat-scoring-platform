@@ -299,28 +299,59 @@ export default function SuperAdminPage() {
                       </td>
                     </tr>
 
-                    {/* Expanded tournament links */}
+                    {/* Expanded tournament + match detail */}
                     {isExpanded && (
                       <tr key={`${u.uid}-expanded`} className="bg-elevated">
-                        <td colSpan={7} className="px-6 py-4">
-                          <p className="text-xs font-semibold uppercase tracking-widest text-muted mb-3">
-                            Tournaments
-                          </p>
+                        <td colSpan={7} className="px-6 py-4 space-y-5">
                           {ex?.tournaments.length === 0 ? (
                             <p className="text-sm text-muted">No tournaments found.</p>
                           ) : (
-                            <div className="flex flex-wrap gap-2">
-                              {ex?.tournaments.map((t) => (
-                                <a
-                                  key={t.id}
-                                  href={`/tournaments/${t.id}`}
-                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-sm text-primary hover:border-accent/60 hover:text-accent transition-colors"
-                                >
-                                  <span className="text-xs">🏆</span>
-                                  {t.name}
-                                </a>
-                              ))}
-                            </div>
+                            ex?.tournaments.map((t) => (
+                              <div key={t.id}>
+                                {/* Tournament header */}
+                                <div className="flex items-center gap-3 mb-2">
+                                  <p className="text-xs font-semibold uppercase tracking-widest text-muted">🏆 {t.name}</p>
+                                  <a
+                                    href={`/matches/public/${t.id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs px-2 py-0.5 rounded border border-accent/40 text-accent hover:bg-accent/10 transition-colors"
+                                  >
+                                    ↗ Public Results
+                                  </a>
+                                </div>
+
+                                {/* Matches */}
+                                {t.matches.length === 0 ? (
+                                  <p className="text-xs text-muted pl-1">No matches.</p>
+                                ) : (
+                                  <div className="space-y-1.5">
+                                    {t.matches.map((m) => (
+                                      <div key={m.id} className="flex items-center gap-3 pl-1">
+                                        <span className="text-xs text-muted w-5 text-right flex-shrink-0">#{m.order}</span>
+                                        <span className="text-xs font-semibold text-blue-400">{m.blueName}</span>
+                                        <span className="text-xs text-muted">vs</span>
+                                        <span className="text-xs font-semibold text-danger">{m.redName}</span>
+                                        <span className={`text-xs px-1.5 py-0.5 rounded border flex-shrink-0 ${
+                                          m.status === "in_progress" ? "bg-warn/10 text-warn border-warn/30" :
+                                          m.status === "completed"   ? "bg-accent/10 text-accent border-accent/30" :
+                                          "bg-muted/10 text-muted border-muted/20"
+                                        }`}>{m.status.replace("_", " ")}</span>
+                                        <a
+                                          href={`/dewan/${m.arenaNumber}`}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-xs text-secondary hover:text-primary transition-colors flex-shrink-0"
+                                          title={`Dewan ${m.arenaNumber}`}
+                                        >
+                                          ↗ Dewan {m.arenaNumber}
+                                        </a>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ))
                           )}
                         </td>
                       </tr>

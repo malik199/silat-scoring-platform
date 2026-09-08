@@ -29,16 +29,56 @@ export async function getTournamentCount(organiserId: string): Promise<number> {
   return snap.data().count;
 }
 
+export interface AdminMatchRow {
+  id: string;
+  redName: string;
+  blueName: string;
+  arenaNumber: number;
+  status: string;
+  order: number;
+}
+
 export interface AdminTournament {
   id: string;
   name: string;
+  matches: AdminMatchRow[];
 }
 
 export async function getUserTournaments(organiserId: string): Promise<AdminTournament[]> {
-  const snap = await getDocs(
-    query(collection(db, "tournaments"), where("organiserId", "==", organiserId), orderBy("createdAt", "desc"))
+  const [tourSnap, compSnap] = await Promise.all([
+    getDocs(query(collection(db, "tournaments"), where("organiserId", "==", organiserId), orderBy("createdAt", "desc"))),
+    getDocs(query(collection(db, "competitors"), where("organiserId", "==", organiserId))),
+  ]);
+
+  const tours = tourSnap.docs.map((d) => ({ id: d.id, name: (d.data().name as string) || "Untitled" }));
+  const compMap = new Map(tourSnap.docs.length === 0 ? [] : compSnap.docs.map((d) => {
+    const data = d.data() as { firstName: string; lastName: string };
+    return [d.id, `${data.firstName} ${data.lastName}`] as [string, string];
+  }));
+
+  if (tours.length === 0) return [];
+
+  const matchSnaps = await Promise.all(
+    tours.map((t) => getDocs(query(collection(db, "matches"), where("tournamentId", "==", t.id))))
   );
-  return snap.docs.map((d) => ({ id: d.id, name: (d.data().name as string) || "Untitled" }));
+
+  return tours.map((t, i) => ({
+    id: t.id,
+    name: t.name,
+    matches: matchSnaps[i].docs
+      .map((d) => {
+        const data = d.data() as { redCornerCompetitorId: string; blueCornerCompetitorId: string; arenaNumber: number; status: string; order: number };
+        return {
+          id: d.id,
+          redName: compMap.get(data.redCornerCompetitorId) ?? "Unknown",
+          blueName: compMap.get(data.blueCornerCompetitorId) ?? "Unknown",
+          arenaNumber: data.arenaNumber ?? 1,
+          status: data.status ?? "pending",
+          order: data.order ?? 0,
+        };
+      })
+      .sort((a, b) => a.order - b.order),
+  }));
 }
 
 export async function setUserTier(uid: string, tier: TierId): Promise<void> {
