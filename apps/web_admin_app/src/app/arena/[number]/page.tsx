@@ -499,7 +499,7 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
       <div className="flex items-center px-10 py-6 border-b border-white/10" style={{ backgroundColor: "#0a0a0a" }}>
         {/* Arena / tournament name — left */}
         <div className="flex-1 flex flex-col justify-center">
-          <p className="text-3xl font-bold uppercase tracking-[0.3em] text-white/40">
+          <p className="text-xl font-bold uppercase tracking-[0.3em] text-white/40">
             Arena {arenaNumber} &nbsp;—&nbsp; Match #{runningMatch.order}
           </p>
           {tournament?.name && (
