@@ -189,7 +189,7 @@ function CornerPanel({ corner, competitor, score, leading, judgeOrder, recentTap
   const activeIndicators = indicators.filter((i) => i.active);
 
   return (
-    <div className="flex-1 min-w-0 flex flex-col" style={{ backgroundColor: bgMain }}>
+    <div className="flex-1 min-w-0 flex flex-col" style={{ backgroundColor: bgMain, ...(leading ? { border: "30px solid white" } : {}) }}>
 
       {/* ── Top: Name + school only ── */}
       <div
@@ -214,14 +214,7 @@ function CornerPanel({ corner, competitor, score, leading, judgeOrder, recentTap
       <div className="flex-1 flex items-center justify-center">
         <p
           className="font-black text-white tabular-nums leading-none transition-all duration-300"
-          style={{
-            fontSize: "min(28vw, 46vh)",
-            ...(leading ? {
-              outline: "6px solid rgba(255,255,255,0.9)",
-              outlineOffset: "16px",
-              borderRadius: "12px",
-            } : {}),
-          }}
+          style={{ fontSize: "min(28vw, 46vh)" }}
         >
           {score}
         </p>
