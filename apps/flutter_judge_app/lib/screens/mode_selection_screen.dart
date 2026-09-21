@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import 'login_screen.dart';
 import 'pin_entry_screen.dart';
@@ -8,8 +9,23 @@ import 'scoring_landscape.dart';
 class ModeSelectionScreen extends StatelessWidget {
   const ModeSelectionScreen({super.key});
 
+  Future<void> _signOut(BuildContext context) async {
+    await GoogleSignIn().signOut();
+    await FirebaseAuth.instance.signOut();
+    // Rebuild happens automatically via StreamBuilder if used, or just setState via a StatefulWidget.
+    // Since this is StatelessWidget, force a navigation refresh by replacing self.
+    if (context.mounted) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const ModeSelectionScreen()),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    final isSignedIn = user != null && !user.isAnonymous;
+
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0A),
       body: Row(
@@ -38,6 +54,42 @@ class ModeSelectionScreen extends StatelessWidget {
                       'Scoring App',
                       style: TextStyle(fontSize: 13, color: Colors.white38),
                     ),
+                    if (isSignedIn) ...[
+                      const SizedBox(height: 28),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                        ),
+                        child: Column(
+                          children: [
+                            Text(
+                              user.displayName ?? user.email ?? 'Signed in',
+                              style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600),
+                            ),
+                            if (user.email != null && user.displayName != null)
+                              Text(
+                                user.email!,
+                                style: const TextStyle(color: Colors.white30, fontSize: 11),
+                              ),
+                            const SizedBox(height: 8),
+                            GestureDetector(
+                              onTap: () => _signOut(context),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.logout, color: Colors.white54, size: 14),
+                                  SizedBox(width: 4),
+                                  Text('Sign out', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -77,8 +129,6 @@ class ModeSelectionScreen extends StatelessWidget {
                       title: 'Tournament',
                       description: 'Select your tournament and enter your arena PIN. For official competitions.',
                       onTap: () {
-                        final user = FirebaseAuth.instance.currentUser;
-                        final isSignedIn = user != null && !user.isAnonymous;
                         Navigator.of(context).push(MaterialPageRoute(
                           builder: (_) => isSignedIn
                               ? const PinEntryScreen()

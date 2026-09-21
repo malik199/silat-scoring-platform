@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../firestore_rest.dart';
 import 'role_selection_screen.dart';
@@ -89,15 +90,16 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
                         const SizedBox(width: 24),
                         GestureDetector(
                           onTap: () async {
+                            await GoogleSignIn().signOut();
                             await FirebaseAuth.instance.signOut();
                             if (context.mounted) Navigator.of(context).pop();
                           },
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.logout, color: Colors.white24, size: 16),
+                              Icon(Icons.logout, color: Colors.white54, size: 16),
                               SizedBox(width: 4),
-                              Text('Sign out', style: TextStyle(color: Colors.white24, fontSize: 13)),
+                              Text('Sign out', style: TextStyle(color: Colors.white54, fontSize: 13)),
                             ],
                           ),
                         ),

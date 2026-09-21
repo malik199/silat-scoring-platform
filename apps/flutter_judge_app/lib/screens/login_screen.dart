@@ -23,6 +23,8 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _signInWithGoogle() async {
     setState(() { _loading = true; _error = null; });
     try {
+      // Sign out first to force account picker (prevents silent re-auth as previous user)
+      await GoogleSignIn().signOut();
       final googleUser = await GoogleSignIn().signIn();
       if (googleUser == null) {
         // User cancelled
