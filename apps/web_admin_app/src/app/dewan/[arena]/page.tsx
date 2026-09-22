@@ -20,6 +20,7 @@ import {
   computePenaltyFlagPoints,
   computeRemainingSeconds,
   formatTime,
+  startMatch,
   timerStart,
   timerStop,
   timerReset,
@@ -385,6 +386,7 @@ export default function DewanPage() {
 
   async function handleTimerStart() {
     if (!match || isRunning) return;
+    if (match.status === "pending") await startMatch(match.id);
     await timerStart(match.id);
   }
 
