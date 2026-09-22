@@ -120,50 +120,82 @@ class CompetitorDoc {
   String get fullName => '$firstName $lastName'.trim();
 }
 
-/// Fetches the in_progress match for a given tournament + arena, or null if none.
+/// Fetches the in_progress match for a given tournament + arena using a
+/// structured query so it works regardless of collection size.
 Future<MatchDoc?> fetchActiveMatch(String tournamentId, int arenaNumber) async {
-  final uri = Uri.parse('$_base/matches');
-  final response = await http.get(uri);
-  debugPrint('=== fetchActiveMatch status: ${response.statusCode}');
+  final queryUri = Uri.parse(
+    'https://firestore.googleapis.com/v1/projects/$_projectId/databases/(default)/documents:runQuery',
+  );
+  final body = jsonEncode({
+    'structuredQuery': {
+      'from': [{'collectionId': 'matches'}],
+      'where': {
+        'compositeFilter': {
+          'op': 'AND',
+          'filters': [
+            {
+              'fieldFilter': {
+                'field': {'fieldPath': 'tournamentId'},
+                'op': 'EQUAL',
+                'value': {'stringValue': tournamentId},
+              },
+            },
+            {
+              'fieldFilter': {
+                'field': {'fieldPath': 'arenaNumber'},
+                'op': 'EQUAL',
+                'value': {'integerValue': arenaNumber.toString()},
+              },
+            },
+            {
+              'fieldFilter': {
+                'field': {'fieldPath': 'status'},
+                'op': 'EQUAL',
+                'value': {'stringValue': 'in_progress'},
+              },
+            },
+          ],
+        },
+      },
+      'limit': 1,
+    },
+  });
+
+  final response = await http.post(
+    queryUri,
+    headers: {'Content-Type': 'application/json'},
+    body: body,
+  );
+  debugPrint('=== fetchActiveMatch query status: ${response.statusCode}');
   if (response.statusCode != 200) return null;
 
-  final body = jsonDecode(response.body) as Map<String, dynamic>;
-  final docs  = body['documents'] as List? ?? [];
-  debugPrint('=== matches count: ${docs.length}, looking for tournamentId=$tournamentId arena=$arenaNumber');
-
-  for (final doc in docs) {
+  final results = jsonDecode(response.body) as List? ?? [];
+  for (final result in results) {
+    final doc = (result as Map<String, dynamic>)['document'] as Map<String, dynamic>?;
+    if (doc == null) continue;
     final fields = doc['fields'] as Map<String, dynamic>? ?? {};
-    final tId    = _str(fields, 'tournamentId');
-    final arena  = int.tryParse((fields['arenaNumber'] as Map?)?['integerValue']?.toString() ?? '') ?? 0;
     final status = _str(fields, 'status');
-    debugPrint('  doc: tId=$tId arena=$arena status=$status');
-    if (tId == tournamentId && arena == arenaNumber && status == 'in_progress') {
-      final timerRunning    = (fields['timerRunning'] as Map?)?['booleanValue'] as bool? ?? false;
-      final tsRaw           = (fields['timerStartedAt'] as Map?)?['timestampValue'] as String?;
-      final timerStartedAt  = tsRaw != null ? DateTime.tryParse(tsRaw)?.toUtc() : null;
-      // Parse activeVerification if present
-      final avMap = ((fields['activeVerification'] as Map?)?['mapValue'] as Map?)?['fields'] as Map<String, dynamic>?;
-      final activeVerification = avMap != null
-          ? ActiveVerification(
-              id:   _str(avMap, 'id'),
-              type: _str(avMap, 'type'),
-            )
-          : null;
-      return MatchDoc(
-        id:                   (doc['name'] as String).split('/').last,
-        redCompetitorId:      _str(fields, 'redCornerCompetitorId'),
-        blueCompetitorId:     _str(fields, 'blueCornerCompetitorId'),
-        status:               status,
-        timerRunning:         timerRunning,
-        timerStartedAt:       timerStartedAt,
-        timerElapsedSeconds:  _dbl(fields, 'timerElapsedSeconds'),
-        roundDurationSeconds: _int(fields, 'roundDurationSeconds', fallback: 120),
-        currentRound:         _int(fields, 'currentRound',         fallback: 1),
-        activeVerification:   activeVerification,
-        judgeSeats:           _parseJudgeSeats(fields),
-        disabledJudges:       _parseStringArray(fields, 'disabledJudges'),
-      );
-    }
+    final timerRunning   = (fields['timerRunning'] as Map?)?['booleanValue'] as bool? ?? false;
+    final tsRaw          = (fields['timerStartedAt'] as Map?)?['timestampValue'] as String?;
+    final timerStartedAt = tsRaw != null ? DateTime.tryParse(tsRaw)?.toUtc() : null;
+    final avMap = ((fields['activeVerification'] as Map?)?['mapValue'] as Map?)?['fields'] as Map<String, dynamic>?;
+    final activeVerification = avMap != null
+        ? ActiveVerification(id: _str(avMap, 'id'), type: _str(avMap, 'type'))
+        : null;
+    return MatchDoc(
+      id:                   (doc['name'] as String).split('/').last,
+      redCompetitorId:      _str(fields, 'redCornerCompetitorId'),
+      blueCompetitorId:     _str(fields, 'blueCornerCompetitorId'),
+      status:               status,
+      timerRunning:         timerRunning,
+      timerStartedAt:       timerStartedAt,
+      timerElapsedSeconds:  _dbl(fields, 'timerElapsedSeconds'),
+      roundDurationSeconds: _int(fields, 'roundDurationSeconds', fallback: 120),
+      currentRound:         _int(fields, 'currentRound',         fallback: 1),
+      activeVerification:   activeVerification,
+      judgeSeats:           _parseJudgeSeats(fields),
+      disabledJudges:       _parseStringArray(fields, 'disabledJudges'),
+    );
   }
   return null;
 }
