@@ -527,7 +527,7 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
           corner="blue"
           competitor={blueComp}
           score={totalBlue}
-          leading={totalBlue > totalRed || tiebreaker?.winner === "blue"}
+          leading={(totalBlue > totalRed || tiebreaker?.winner === "blue") && (totalBlue > 0 || totalRed > 0)}
           judgeOrder={judgeOrder}
           recentTaps={recentTaps}
           adminEvents={adminEvents}
@@ -540,7 +540,7 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
           corner="red"
           competitor={redComp}
           score={totalRed}
-          leading={totalRed > totalBlue || tiebreaker?.winner === "red"}
+          leading={(totalRed > totalBlue || tiebreaker?.winner === "red") && (totalBlue > 0 || totalRed > 0)}
           judgeOrder={judgeOrder}
           recentTaps={recentTaps}
           adminEvents={adminEvents}
