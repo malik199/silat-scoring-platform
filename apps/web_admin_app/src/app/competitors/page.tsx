@@ -688,6 +688,10 @@ export default function CompetitorsPage() {
   const [sortDir,         setSortDir]         = useState<"asc" | "desc">("asc");
   const [migratingDates,  setMigratingDates]  = useState(false);
   const [migrateResult,   setMigrateResult]   = useState<number | null>(null);
+  const [selectedIds,     setSelectedIds]     = useState<Set<string>>(new Set());
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
+  const [bulkDeleting,    setBulkDeleting]    = useState(false);
+  const [userTierId,      setUserTierId]      = useState<string>("free");
 
   function handleSort(col: SortCol) {
     if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -710,6 +714,7 @@ export default function CompetitorsPage() {
       if (!profile) return;
       const tier = TIERS.find((t) => t.id === profile.tier);
       setTierLimit(tier?.maxCompetitors ?? Infinity);
+      setUserTierId(profile.tier ?? "free");
     });
   }, [user]);
 
@@ -815,6 +820,14 @@ export default function CompetitorsPage() {
 
           {/* Actions */}
           <div className="flex gap-2 flex-shrink-0">
+          {userTierId === "elite" && selectedIds.size > 0 && (
+            <button
+              onClick={() => setConfirmBulkDelete(true)}
+              className="px-4 py-2 rounded-lg border border-danger/40 bg-danger/10 text-danger text-sm font-semibold hover:bg-danger/20 transition-colors"
+            >
+              Delete {selectedIds.size} selected
+            </button>
+          )}
           {(() => {
             const badCount = competitors.filter((c) => c.dateOfBirth && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(c.dateOfBirth)).length;
             if (badCount === 0 && migrateResult === null) return null;
@@ -875,7 +888,19 @@ export default function CompetitorsPage() {
       {/* Table */}
       <div className="bg-surface border border-border rounded-xl overflow-hidden">
         {/* Column headers */}
-        <div className="grid grid-cols-[1fr_1fr_80px_80px_80px_1fr_1fr_1fr_40px] gap-4 px-5 py-3 border-b border-border">
+        <div className={`grid ${userTierId === "elite" ? "grid-cols-[32px_1fr_1fr_80px_80px_80px_1fr_1fr_1fr_40px]" : "grid-cols-[1fr_1fr_80px_80px_80px_1fr_1fr_1fr_40px]"} gap-4 px-5 py-3 border-b border-border`}>
+          {userTierId === "elite" && (
+            <input
+              type="checkbox"
+              className="w-4 h-4 accent-accent cursor-pointer"
+              checked={sorted.length > 0 && sorted.every((c) => selectedIds.has(c.id))}
+              onChange={(e) => {
+                if (e.target.checked) setSelectedIds(new Set(sorted.map((c) => c.id)));
+                else setSelectedIds(new Set());
+              }}
+              title="Select all"
+            />
+          )}
           {COLS.map(({ label, key }) =>
             key ? (
               <button
@@ -924,10 +949,24 @@ export default function CompetitorsPage() {
             {sorted.map((c, i) => (
               <li
                 key={c.id}
-                className={`grid grid-cols-[1fr_1fr_80px_80px_80px_1fr_1fr_1fr_40px] gap-4 px-5 py-3.5 items-center group ${
+                className={`grid ${userTierId === "elite" ? "grid-cols-[32px_1fr_1fr_80px_80px_80px_1fr_1fr_1fr_40px]" : "grid-cols-[1fr_1fr_80px_80px_80px_1fr_1fr_1fr_40px]"} gap-4 px-5 py-3.5 items-center group ${
                   i < sorted.length - 1 ? "border-b border-border" : ""
-                }`}
+                } ${selectedIds.has(c.id) ? "bg-danger/5" : ""}`}
               >
+                {userTierId === "elite" && (
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 accent-accent cursor-pointer"
+                    checked={selectedIds.has(c.id)}
+                    onChange={(e) => {
+                      const next = new Set(selectedIds);
+                      if (e.target.checked) next.add(c.id);
+                      else next.delete(c.id);
+                      setSelectedIds(next);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                )}
                 <span className="text-sm font-medium text-primary truncate">
                   {c.firstName} {c.lastName}
                 </span>
@@ -966,6 +1005,45 @@ export default function CompetitorsPage() {
           atLimit={false}
           onClose={() => setEditingCompetitor(null)}
         />
+      )}
+
+      {confirmBulkDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !bulkDeleting && setConfirmBulkDelete(false)} />
+          <div className="relative z-10 w-full max-w-sm bg-surface border border-border rounded-2xl shadow-2xl p-6 flex flex-col gap-4">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">⚠️</span>
+              <h2 className="text-base font-semibold text-primary">Delete competitors?</h2>
+            </div>
+            <p className="text-sm text-secondary leading-relaxed">
+              You are about to delete <span className="font-bold text-danger">{selectedIds.size} competitor{selectedIds.size !== 1 ? "s" : ""}</span>. This cannot be undone.
+            </p>
+            <div className="flex gap-3 mt-1">
+              <button
+                type="button"
+                disabled={bulkDeleting}
+                onClick={() => setConfirmBulkDelete(false)}
+                className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-primary hover:bg-elevated transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={bulkDeleting}
+                onClick={async () => {
+                  setBulkDeleting(true);
+                  await Promise.all([...selectedIds].map((id) => deleteCompetitor(id)));
+                  setSelectedIds(new Set());
+                  setBulkDeleting(false);
+                  setConfirmBulkDelete(false);
+                }}
+                className="flex-1 px-4 py-2.5 rounded-lg bg-danger text-white text-sm font-semibold hover:bg-danger/80 transition-colors disabled:opacity-50"
+              >
+                {bulkDeleting ? "Deleting…" : `Delete ${selectedIds.size}`}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </Shell>
   );
