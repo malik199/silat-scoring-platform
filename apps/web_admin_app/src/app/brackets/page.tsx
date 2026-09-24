@@ -164,7 +164,7 @@ function CreateMatchesModal({
                           : "bg-elevated text-secondary border-border hover:border-accent/50 hover:text-primary"
                       }`}
                     >
-                      {d}s
+                      {d === 60 ? "1:00" : d === 90 ? "1:30" : "2:00"}
                     </button>
                   ))}
                 </div>
@@ -213,7 +213,7 @@ function CreateMatchesModal({
               ))}
               <div className="mt-3 bg-surface border border-border rounded-lg px-4 py-3 text-xs text-secondary space-y-0.5">
                 <p>Arena <span className="text-primary font-semibold">{arena}</span></p>
-                <p>Duration <span className="text-primary font-semibold">{duration}s per round</span></p>
+                <p>Duration <span className="text-primary font-semibold">{duration === 60 ? "1:00" : duration === 90 ? "1:30" : "2:00"} per round</span></p>
                 <p>Timer <span className="text-primary font-semibold">{dirty ? "Dirty time" : "Clean time"}</span></p>
               </div>
             </div>
