@@ -725,8 +725,10 @@ function MatchRow({
 
       {/* Arena */}
       <div onClick={(e) => e.stopPropagation()}>
-        {isFinished ? (
-          <span className="text-sm text-secondary">Arena {match.arenaNumber}</span>
+        {isFinished || isRunning ? (
+          <span className="text-sm text-secondary" title={isRunning ? "Cannot change arena while match is in progress" : undefined}>
+            Arena {match.arenaNumber}
+          </span>
         ) : (
           <select
             value={match.arenaNumber}
