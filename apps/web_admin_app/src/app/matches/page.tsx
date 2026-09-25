@@ -37,6 +37,7 @@ import {
   startMatch,
   endMatch,
   swapMatchCorners,
+  updateMatchArena,
   computeConfirmedScores,
   computePenaltyFlagPoints,
   MATCH_STATUS_LABELS,
@@ -615,17 +616,19 @@ interface MatchRowProps {
   redSubtitle: string;
   blueSubtitle: string;
   arenaBlocked: boolean;
+  arenas:         number[];
   onDelete:       () => void;
   onStart:        () => void;
   onEndRequest:   () => void;
   onDewan:        () => void;
   onViewDetail:   () => void;
   onSwap:         () => void;
+  onChangeArena:  (arena: number) => void;
 }
 
 function MatchRow({
-  match, matchNumber, redName, blueName, redSubtitle, blueSubtitle, arenaBlocked,
-  onDelete, onStart, onEndRequest, onDewan, onViewDetail, onSwap,
+  match, matchNumber, redName, blueName, redSubtitle, blueSubtitle, arenaBlocked, arenas,
+  onDelete, onStart, onEndRequest, onDewan, onViewDetail, onSwap, onChangeArena,
 }: MatchRowProps) {
   const isPending  = match.status === "pending";
   const isRunning  = match.status === "in_progress";
@@ -721,7 +724,22 @@ function MatchRow({
       </div>
 
       {/* Arena */}
-      <span className="text-sm text-secondary">Arena {match.arenaNumber}</span>
+      <div onClick={(e) => e.stopPropagation()}>
+        {isFinished ? (
+          <span className="text-sm text-secondary">Arena {match.arenaNumber}</span>
+        ) : (
+          <select
+            value={match.arenaNumber}
+            onChange={(e) => onChangeArena(Number(e.target.value))}
+            title="Change arena"
+            className="bg-elevated border border-border rounded-md px-2 py-1 text-sm text-secondary focus:outline-none focus:border-accent transition-colors appearance-none [color-scheme:dark] cursor-pointer hover:border-accent/50"
+          >
+            {arenas.map((a) => (
+              <option key={a} value={a}>Arena {a}</option>
+            ))}
+          </select>
+        )}
+      </div>
 
       {/* Status */}
       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${MATCH_STATUS_COLOR[match.status]}`}>
@@ -810,6 +828,10 @@ export default function MatchesPage() {
   }, [tournament?.id]);
 
   const compMap = new Map(competitors.map((c) => [c.id, c]));
+
+  const pageArenas = tournament
+    ? Array.from({ length: tournament.arenaCount }, (_, i) => i + 1)
+    : [];
 
   const runningArenas = new Set(
     matches.filter((m) => m.status === "in_progress").map((m) => m.arenaNumber)
@@ -931,6 +953,7 @@ export default function MatchesPage() {
                       redSubtitle={red  ? [red.schoolName,  red.country ].filter(Boolean).join(" · ") : ""}
                       blueSubtitle={blue ? [blue.schoolName, blue.country].filter(Boolean).join(" · ") : ""}
                       arenaBlocked={runningArenas.has(m.arenaNumber)}
+                      arenas={pageArenas}
                       onDelete={() => handleDelete(m)}
                       onStart={() => handleStart(m)}
                       onEndRequest={() => setEndConfirmMatch(m)}
@@ -939,6 +962,9 @@ export default function MatchesPage() {
                       onSwap={async () => {
                         await swapMatchCorners(m.id, m.redCornerCompetitorId, m.blueCornerCompetitorId);
                         if (tournament?.id) await swapBracketSeeds(tournament.id, m.redCornerCompetitorId, m.blueCornerCompetitorId);
+                      }}
+                      onChangeArena={async (arena) => {
+                        await updateMatchArena(m.id, arena);
                       }}
                     />
                   );

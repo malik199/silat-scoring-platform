@@ -177,6 +177,10 @@ export async function swapMatchOrder(
   await batch.commit();
 }
 
+export async function updateMatchArena(id: string, arenaNumber: number): Promise<void> {
+  await updateDoc(doc(db, COL, id), { arenaNumber });
+}
+
 export async function swapMatchCorners(id: string, redId: string, blueId: string): Promise<void> {
   await updateDoc(doc(db, COL, id), {
     redCornerCompetitorId: blueId,
