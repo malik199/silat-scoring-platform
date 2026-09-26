@@ -42,26 +42,55 @@ class TournamentDoc {
 }
 
 Future<List<TournamentDoc>> fetchTournaments() async {
-  final uri = Uri.parse('$_base/tournaments');
-  final response = await http.get(uri);
+  final queryUri = Uri.parse(
+    'https://firestore.googleapis.com/v1/projects/$_projectId/databases/(default)/documents:runQuery',
+  );
+  final body = jsonEncode({
+    'structuredQuery': {
+      'from': [{'collectionId': 'tournaments'}],
+      'where': {
+        'fieldFilter': {
+          'field': {'fieldPath': 'status'},
+          'op': 'IN',
+          'value': {
+            'arrayValue': {
+              'values': [
+                {'stringValue': 'draft'},
+                {'stringValue': 'registration_open'},
+                {'stringValue': 'in_progress'},
+              ],
+            },
+          },
+        },
+      },
+    },
+  });
+
+  final response = await http.post(
+    queryUri,
+    headers: {'Content-Type': 'application/json'},
+    body: body,
+  );
 
   if (response.statusCode != 200) {
     throw Exception('Firestore REST error ${response.statusCode}: ${response.body}');
   }
 
-  final body = jsonDecode(response.body) as Map<String, dynamic>;
-  final docs  = body['documents'] as List? ?? [];
-
-  return docs.map((doc) {
+  final results = jsonDecode(response.body) as List? ?? [];
+  final docs = <TournamentDoc>[];
+  for (final result in results) {
+    final doc = (result as Map<String, dynamic>)['document'] as Map<String, dynamic>?;
+    if (doc == null) continue;
     final fields = doc['fields'] as Map<String, dynamic>? ?? {};
-    final id     = (doc['name'] as String).split('/').last;
-    return TournamentDoc(
+    final id = (doc['name'] as String).split('/').last;
+    docs.add(TournamentDoc(
       id:        id,
       name:      _str(fields, 'name'),
       status:    _str(fields, 'status'),
       arenaPins: _strMap(fields, 'arenaPins'),
-    );
-  }).toList();
+    ));
+  }
+  return docs;
 }
 
 class ActiveVerification {
