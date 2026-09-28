@@ -617,6 +617,7 @@ interface MatchRowProps {
   blueSubtitle: string;
   arenaBlocked: boolean;
   arenas:         number[];
+  dragDisabled:   boolean;
   onDelete:       () => void;
   onStart:        () => void;
   onEndRequest:   () => void;
@@ -628,7 +629,7 @@ interface MatchRowProps {
 
 function MatchRow({
   match, matchNumber, redName, blueName, redSubtitle, blueSubtitle, arenaBlocked, arenas,
-  onDelete, onStart, onEndRequest, onDewan, onViewDetail, onSwap, onChangeArena,
+  dragDisabled, onDelete, onStart, onEndRequest, onDewan, onViewDetail, onSwap, onChangeArena,
 }: MatchRowProps) {
   const isPending  = match.status === "pending";
   const isRunning  = match.status === "in_progress";
@@ -636,7 +637,7 @@ function MatchRow({
   const startBlocked = arenaBlocked && !isRunning;
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: match.id, disabled: !isPending });
+    useSortable({ id: match.id, disabled: !isPending || dragDisabled });
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -811,6 +812,7 @@ export default function MatchesPage() {
   const [endConfirmMatch, setEndConfirmMatch] = useState<Match | null>(null);
   const [busy,            setBusy]            = useState(false);
   const [shareCopied,     setShareCopied]     = useState(false);
+  const [listOrder,       setListOrder]       = useState<"asc" | "desc">("desc");
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -830,6 +832,8 @@ export default function MatchesPage() {
   }, [tournament?.id]);
 
   const compMap = new Map(competitors.map((c) => [c.id, c]));
+
+  const displayMatches = listOrder === "desc" ? [...matches].reverse() : matches;
 
   const pageArenas = tournament
     ? Array.from({ length: tournament.arenaCount }, (_, i) => i + 1)
@@ -900,6 +904,13 @@ export default function MatchesPage() {
             )}
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setListOrder((o) => o === "asc" ? "desc" : "asc")}
+              title={listOrder === "desc" ? "Showing newest first — click for oldest first" : "Showing oldest first — click for newest first"}
+              className="px-3 py-2 rounded-lg border border-border text-sm font-semibold text-secondary hover:text-primary hover:bg-elevated transition-colors flex items-center gap-1.5"
+            >
+              {listOrder === "desc" ? "↓ Newest" : "↑ Oldest"}
+            </button>
             {tournament && (
               <button
                 onClick={handleShareMatches}
@@ -940,9 +951,9 @@ export default function MatchesPage() {
           </div>
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={matches.map((m) => m.id)} strategy={verticalListSortingStrategy}>
+            <SortableContext items={displayMatches.map((m) => m.id)} strategy={verticalListSortingStrategy}>
               <ul>
-                {matches.map((m) => {
+                {displayMatches.map((m) => {
                   const red  = compMap.get(m.redCornerCompetitorId);
                   const blue = compMap.get(m.blueCornerCompetitorId);
                   return (
@@ -956,6 +967,7 @@ export default function MatchesPage() {
                       blueSubtitle={blue ? [blue.schoolName, blue.country].filter(Boolean).join(" · ") : ""}
                       arenaBlocked={runningArenas.has(m.arenaNumber)}
                       arenas={pageArenas}
+                      dragDisabled={listOrder === "desc"}
                       onDelete={() => handleDelete(m)}
                       onStart={() => handleStart(m)}
                       onEndRequest={() => setEndConfirmMatch(m)}
