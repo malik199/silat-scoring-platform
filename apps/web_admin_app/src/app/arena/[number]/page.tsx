@@ -351,10 +351,10 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
     return subscribeVerificationResponses(runningMatch.id, av.id, setVerificationResponses);
   }, [runningMatch?.id, runningMatch?.activeVerification?.id]);
 
-  // Auto-dismiss 10 s after all 3 judges have responded
-  const allVoted = verificationResponses.length >= 3;
+  // Auto-dismiss 10 s after Dewan accepts (reveals results)
+  const isAccepted = runningMatch?.activeVerification?.accepted === true;
   useEffect(() => {
-    if (!allVoted) return;
+    if (!isAccepted) return;
     setVerificationCountdown(10);
     const id = setInterval(() => {
       setVerificationCountdown((c) => {
@@ -367,7 +367,7 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
       });
     }, 1000);
     return () => clearInterval(id);
-  }, [allVoted]);
+  }, [isAccepted]);
 
   // Detect new score events by ID — immune to reordering from device-clock skew
   useEffect(() => {
@@ -589,8 +589,8 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
         />
       </div>
 
-      {/* ── Verification results popup ── */}
-      {runningMatch.activeVerification != null && verificationResponses.length > 0 && !verificationDismissed && (() => {
+      {/* ── Verification results popup — only shown after Dewan presses Reveal ── */}
+      {runningMatch.activeVerification?.accepted === true && !verificationDismissed && (() => {
         const av = runningMatch.activeVerification!;
         const seats = runningMatch.judgeSeats ?? {};
         const verdictColor = (v: string) =>
@@ -649,13 +649,11 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
               </div>
 
               {/* Countdown */}
-              <p className="mt-10 font-semibold" style={{ fontSize: "min(1.4vw, 16px)", color: "rgba(255,255,255,0.25)" }}>
-                {verificationCountdown !== null
-                  ? `Auto-closing in ${verificationCountdown}s`
-                  : verificationResponses.length < 3
-                  ? `${verificationResponses.length} / 3 judges responded…`
-                  : ""}
-              </p>
+              {verificationCountdown !== null && (
+                <p className="mt-10 font-semibold" style={{ fontSize: "min(1.4vw, 16px)", color: "rgba(255,255,255,0.25)" }}>
+                  Auto-closing in {verificationCountdown}s
+                </p>
+              )}
             </div>
           </div>
         );

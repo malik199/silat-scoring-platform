@@ -31,6 +31,7 @@ import {
   subscribeJudgePresence,
   startVerification,
   clearVerification,
+  acceptVerification,
   SERIOUS_VIOLATION_TYPES,
   computeTiebreaker,
   type Match,
@@ -768,8 +769,10 @@ export default function DewanPage() {
                         )}
                         <div className="px-4 py-3 border-t border-border bg-surface/50 flex items-center justify-between gap-3">
                           <p className="text-xs text-muted">
-                            {verificationResponses.length >= 3
-                              ? "All judges responded. Apply points then close."
+                            {av?.accepted
+                              ? "Results revealed on arena screen. Apply points then close."
+                              : verificationResponses.length >= 3
+                              ? "All judges responded. Reveal results when ready."
                               : `${verificationResponses.length}/3 judges responded.`}
                           </p>
                           <div className="flex items-center gap-2 flex-shrink-0">
@@ -778,15 +781,15 @@ export default function DewanPage() {
                               onClick={() => match && clearVerification(match.id)}
                               className="px-4 py-2 rounded-lg border border-danger/40 text-danger text-xs font-bold hover:bg-danger/10 transition-colors"
                             >
-                              Cancel Verification
+                              {av?.accepted ? "Close" : "Cancel"}
                             </button>
-                            {verificationResponses.length >= 3 && (
+                            {verificationResponses.length >= 3 && !av?.accepted && (
                               <button
                                 type="button"
-                                onClick={() => match && clearVerification(match.id)}
+                                onClick={() => match && acceptVerification(match.id)}
                                 className="px-4 py-2 rounded-lg bg-accent text-black text-xs font-bold hover:bg-accent-hover transition-colors"
                               >
-                                ✓ Approve &amp; Close
+                                ✓ Reveal Results
                               </button>
                             )}
                           </div>

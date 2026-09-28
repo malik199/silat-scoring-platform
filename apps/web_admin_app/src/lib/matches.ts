@@ -40,6 +40,8 @@ export interface ActiveVerification {
   /** Unique ID for this verification session — changes each time a new one is started */
   id: string;
   type: "drop_takedown" | "protest";
+  /** Set to true by the Dewan to reveal results on the arena screen */
+  accepted?: boolean;
 }
 
 export interface Match {
@@ -534,6 +536,10 @@ export async function startVerification(
 
 export async function clearVerification(matchId: string): Promise<void> {
   await updateDoc(doc(db, COL, matchId), { activeVerification: null });
+}
+
+export async function acceptVerification(matchId: string): Promise<void> {
+  await updateDoc(doc(db, COL, matchId), { "activeVerification.accepted": true });
 }
 
 export interface VerificationResponse {
