@@ -62,7 +62,10 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
         return;
       }
 
-      if (match.id != _match?.id) {
+      final competitorsChanged = match.redCompetitorId  != _match?.redCompetitorId ||
+                                 match.blueCompetitorId != _match?.blueCompetitorId;
+
+      if (match.id != _match?.id || competitorsChanged) {
         final red  = await fetchCompetitor(match.redCompetitorId);
         final blue = await fetchCompetitor(match.blueCompetitorId);
         if (!mounted) return;
@@ -70,12 +73,14 @@ class _TournamentScoringScreenState extends State<TournamentScoringScreen> {
           _match                 = match;
           _red                   = red;
           _blue                  = blue;
-          _redEvents             = [];
-          _blueEvents            = [];
-          _handledVerificationId = null;
+          if (match.id != _match?.id) {
+            _redEvents             = [];
+            _blueEvents            = [];
+            _handledVerificationId = null;
+          }
           _loadingMatch          = false;
         });
-        postJudgePresence(match.id);
+        if (match.id != _match?.id) postJudgePresence(match.id);
       } else {
         setState(() { _match = match; _loadingMatch = false; });
       }
