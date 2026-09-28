@@ -7,6 +7,7 @@ import {
   subscribeMatches,
   subscribeScoreEvents,
   subscribeAdminEvents,
+  subscribeVerificationResponses,
   computeConfirmedScores,
   computePenaltyFlagPoints,
   computeTiebreaker,
@@ -15,6 +16,7 @@ import {
   type Match,
   type ScoreEvent,
   type AdminEvent,
+  type VerificationResponse,
 } from "@/lib/matches";
 import { subscribeCompetitor, type Competitor } from "@/lib/competitors";
 
@@ -286,7 +288,12 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
   const [recentAdminRed,  setRecentAdminRed]  = useState<RecentAdminAction | null>(null);
   const [recentAdminBlue, setRecentAdminBlue] = useState<RecentAdminAction | null>(null);
 
-  // ── Timer display ────────────────────────────────────────────────────────
+  // ── Verification results popup ───────────────────────────────────────────
+  const [verificationResponses, setVerificationResponses] = useState<VerificationResponse[]>([]);
+  const [verificationDismissed, setVerificationDismissed] = useState(false);
+  const [verificationCountdown, setVerificationCountdown] = useState<number | null>(null);
+
+  // Timer display ─────────────────────────────────────────────────────────
   const [remaining, setRemaining] = useState<number>(120);
   // Track when we locally observed timerRunning become true.
   // The arena screen is a remote display — it only sees Firestore snapshots
@@ -329,6 +336,38 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
     const unsubAdmin  = subscribeAdminEvents(runningMatch.id, setAdminEvents);
     return () => { unsubRed(); unsubBlue(); unsubEvents(); unsubAdmin(); };
   }, [runningMatch?.id]);
+
+  // Subscribe to verification responses; reset dismissed flag on each new verification
+  useEffect(() => {
+    const av = runningMatch?.activeVerification;
+    if (!runningMatch || !av) {
+      setVerificationResponses([]);
+      setVerificationDismissed(false);
+      setVerificationCountdown(null);
+      return;
+    }
+    setVerificationDismissed(false);
+    setVerificationCountdown(null);
+    return subscribeVerificationResponses(runningMatch.id, av.id, setVerificationResponses);
+  }, [runningMatch?.id, runningMatch?.activeVerification?.id]);
+
+  // Auto-dismiss 10 s after all 3 judges have responded
+  const allVoted = verificationResponses.length >= 3;
+  useEffect(() => {
+    if (!allVoted) return;
+    setVerificationCountdown(10);
+    const id = setInterval(() => {
+      setVerificationCountdown((c) => {
+        if (c === null || c <= 1) {
+          clearInterval(id);
+          setVerificationDismissed(true);
+          return null;
+        }
+        return c - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [allVoted]);
 
   // Detect new score events by ID — immune to reordering from device-clock skew
   useEffect(() => {
@@ -550,6 +589,77 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
         />
       </div>
 
+      {/* ── Verification results popup ── */}
+      {runningMatch.activeVerification != null && verificationResponses.length > 0 && !verificationDismissed && (() => {
+        const av = runningMatch.activeVerification!;
+        const seats = runningMatch.judgeSeats ?? {};
+        const verdictColor = (v: string) =>
+          v === "red" ? "#f53a32" : v === "blue" ? "#008dee" : "rgba(255,255,255,0.35)";
+        const verdictLabel = (v: string) =>
+          v === "red" ? "Red" : v === "blue" ? "Blue" : "Invalid";
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
+            <div
+              className="flex flex-col items-center rounded-3xl px-16 py-12"
+              style={{ background: "#111", border: "1px solid rgba(255,255,255,0.12)", minWidth: "min(70vw, 800px)" }}
+            >
+              {/* Header */}
+              <p className="font-bold uppercase tracking-[0.35em] mb-1" style={{ fontSize: "min(1.4vw, 16px)", color: "rgba(255,255,255,0.35)" }}>
+                {av.type === "drop_takedown" ? "Drop / Takedown" : "Protest"} Verification
+              </p>
+              <p className="font-black text-white mb-10" style={{ fontSize: "min(4vw, 52px)" }}>Results</p>
+
+              {/* J1 / J2 / J3 */}
+              <div className="flex justify-center gap-10">
+                {[1, 2, 3].map((seat) => {
+                  const seatData = seats[seat.toString()];
+                  const response = seatData
+                    ? verificationResponses.find((r) => r.judgeId === seatData.uid)
+                    : undefined;
+                  return (
+                    <div key={seat} className="flex flex-col items-center gap-3">
+                      <p className="font-bold uppercase tracking-widest" style={{ fontSize: "min(1.6vw, 20px)", color: "rgba(255,255,255,0.35)" }}>
+                        J{seat}
+                      </p>
+                      <div
+                        className="flex items-center justify-center rounded-2xl"
+                        style={{
+                          width: "min(14vw, 180px)",
+                          height: "min(10vw, 130px)",
+                          background: response ? `${verdictColor(response.verdict)}22` : "rgba(255,255,255,0.04)",
+                          border: `3px solid ${response ? verdictColor(response.verdict) : "rgba(255,255,255,0.08)"}`,
+                          boxShadow: response ? `0 0 40px ${verdictColor(response.verdict)}44` : "none",
+                          transition: "all 0.3s ease",
+                        }}
+                      >
+                        <p
+                          className="font-black leading-none"
+                          style={{
+                            fontSize: "min(3.5vw, 44px)",
+                            color: response ? verdictColor(response.verdict) : "rgba(255,255,255,0.12)",
+                          }}
+                        >
+                          {response ? verdictLabel(response.verdict) : "—"}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Countdown */}
+              <p className="mt-10 font-semibold" style={{ fontSize: "min(1.4vw, 16px)", color: "rgba(255,255,255,0.25)" }}>
+                {verificationCountdown !== null
+                  ? `Auto-closing in ${verificationCountdown}s`
+                  : verificationResponses.length < 3
+                  ? `${verificationResponses.length} / 3 judges responded…`
+                  : ""}
+              </p>
+            </div>
+          </div>
+        );
+      })()}
 
     </div>
   );
