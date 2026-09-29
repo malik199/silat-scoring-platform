@@ -14,6 +14,7 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "./firebase";
+import { getPricingTier } from "./pricing";
 export type ArenaCount = 1 | 2 | 3 | 4;
 
 export type TournamentStatus =
@@ -22,6 +23,8 @@ export type TournamentStatus =
   | "in_progress"
   | "completed"
   | "cancelled";
+
+export type PaymentStatus = "free" | "pending_payment" | "paid";
 
 export interface Tournament {
   id: string;
@@ -40,6 +43,15 @@ export interface Tournament {
   arenaPins: Record<string, string>;
   createdAt: string;
   updatedAt: string;
+  // ── Capacity / billing ──────────────────────────────────────────────────
+  /** Pricing tier purchased for this tournament. null = legacy/grandfathered. */
+  capacityTierId: string | null;
+  /** Maximum competitors allowed. null = no limit (legacy tournaments). */
+  competitorCapacity: number | null;
+  /** Payment state. "free" = no charge needed; "pending_payment" = awaiting Stripe (Phase 3). */
+  paymentStatus: PaymentStatus;
+  /** Slots ever consumed — only increases, never decreases. */
+  slotsConsumed: number;
 }
 
 const COL = "tournaments";
@@ -57,6 +69,7 @@ export interface CreateTournamentInput {
   name: string;
   arenaCount: ArenaCount;
   organiserId: string;
+  capacityTierId: string;
 }
 
 // ─── Listeners ───────────────────────────────────────────────────────────────
@@ -111,6 +124,7 @@ export function subscribeTournament(
 // ─── Writes ──────────────────────────────────────────────────────────────────
 
 export async function createTournament(input: CreateTournamentInput): Promise<string> {
+  const tier     = getPricingTier(input.capacityTierId);
   const takenPins = await fetchActivePins();
   const ref = await addDoc(collection(db, COL), {
     name: input.name,
@@ -123,6 +137,10 @@ export async function createTournament(input: CreateTournamentInput): Promise<st
     location: "",
     startDate: "",
     endDate: "",
+    capacityTierId:      input.capacityTierId,
+    competitorCapacity:  tier?.maxCompetitors ?? null,
+    paymentStatus:       "free" satisfies PaymentStatus,
+    slotsConsumed:       0,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });

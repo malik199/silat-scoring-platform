@@ -110,6 +110,31 @@ export async function deleteUserData(uid: string): Promise<void> {
   await deleteDoc(doc(db, "users", uid));
 }
 
+/**
+ * One-time migration: stamps capacity fields on tournaments created before
+ * the pricing system existed. Sets competitorCapacity = null (no limit) so
+ * existing organisers are not disrupted. Safe to run multiple times.
+ */
+export async function grandfatherExistingTournaments(): Promise<number> {
+  const snap = await getDocs(collection(db, "tournaments"));
+  const toMigrate = snap.docs.filter((d) => d.data().capacityTierId === undefined);
+  if (toMigrate.length === 0) return 0;
+  const CHUNK = 500;
+  for (let i = 0; i < toMigrate.length; i += CHUNK) {
+    const batch = writeBatch(db);
+    for (const d of toMigrate.slice(i, i + CHUNK)) {
+      batch.update(d.ref, {
+        capacityTierId:     null,
+        competitorCapacity: null,
+        paymentStatus:      "free",
+        slotsConsumed:      0,
+      });
+    }
+    await batch.commit();
+  }
+  return toMigrate.length;
+}
+
 export async function setUserSuperAdmin(uid: string, isSuperAdmin: boolean): Promise<void> {
   // Fetch the profile to guard the bootstrap admin
   const snap = await import("firebase/firestore").then(({ getDoc }) => getDoc(doc(db, "users", uid)));

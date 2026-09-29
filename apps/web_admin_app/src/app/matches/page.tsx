@@ -26,6 +26,7 @@ import { ActiveTournamentBanner } from "@/components/ActiveTournamentBanner";
 import { useAuth } from "@/context/AuthContext";
 import { subscribeActiveTournament, type Tournament } from "@/lib/tournaments";
 import { subscribeCompetitors, type Competitor } from "@/lib/competitors";
+import { subscribeTournamentRoster, type TournamentEntry } from "@/lib/tournamentEntries";
 import { swapBracketSeeds } from "@/lib/brackets";
 import {
   subscribeMatches,
@@ -806,6 +807,7 @@ export default function MatchesPage() {
 
   const [tournament,      setTournament]      = useState<Tournament | null | undefined>(undefined);
   const [competitors,     setCompetitors]     = useState<Competitor[]>([]);
+  const [rosterEntries,   setRosterEntries]   = useState<TournamentEntry[]>([]);
   const [matches,         setMatches]         = useState<Match[]>([]);
   const [showModal,       setShowModal]       = useState(false);
   const [detailMatch,     setDetailMatch]     = useState<Match | null>(null);
@@ -831,7 +833,18 @@ export default function MatchesPage() {
     return subscribeMatches(tournament.id, setMatches);
   }, [tournament?.id]);
 
+  useEffect(() => {
+    if (!tournament?.id) { setRosterEntries([]); return; }
+    return subscribeTournamentRoster(tournament.id, setRosterEntries);
+  }, [tournament?.id]);
+
   const compMap = new Map(competitors.map((c) => [c.id, c]));
+
+  // Use roster-filtered list for match creation; fall back to all if no entries yet (legacy tournament)
+  const rosterIdSet = new Set(rosterEntries.map((e) => e.competitorId));
+  const matchCompetitors = rosterEntries.length > 0
+    ? competitors.filter((c) => rosterIdSet.has(c.id))
+    : competitors;
 
   const displayMatches = listOrder === "desc" ? [...matches].reverse() : matches;
 
@@ -992,7 +1005,7 @@ export default function MatchesPage() {
       {showModal && tournament && (
         <NewMatchModal
           tournament={tournament}
-          competitors={competitors}
+          competitors={matchCompetitors}
           currentCount={matches.length}
           onClose={() => setShowModal(false)}
         />

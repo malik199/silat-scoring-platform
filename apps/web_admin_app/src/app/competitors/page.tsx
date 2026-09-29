@@ -5,6 +5,8 @@ import { Shell } from "@/components/Shell";
 import { useAuth } from "@/context/AuthContext";
 import { getUserProfile } from "@/lib/users";
 import { TIERS } from "@/lib/tiers";
+import { subscribeActiveTournament, type Tournament } from "@/lib/tournaments";
+import { getPricingTier } from "@/lib/pricing";
 import { COUNTRIES } from "@/lib/countries";
 import {
   subscribeCompetitors,
@@ -21,6 +23,12 @@ import {
   type ExperienceLevel,
   type CsvParseResult,
 } from "@/lib/competitors";
+import {
+  subscribeTournamentRoster,
+  addToTournament,
+  removeFromTournament,
+  type TournamentEntry,
+} from "@/lib/tournamentEntries";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -63,10 +71,11 @@ interface ManualModalProps {
   existing?: Competitor;
   organiserId: string;
   atLimit: boolean;
+  tournamentId?: string;
   onClose: () => void;
 }
 
-function ManualModal({ existing, organiserId, atLimit, onClose }: ManualModalProps) {
+function ManualModal({ existing, organiserId, atLimit, tournamentId, onClose }: ManualModalProps) {
   const isEdit = Boolean(existing);
   const [form, setForm] = useState<FormData>(
     existing
@@ -132,7 +141,7 @@ function ManualModal({ existing, organiserId, atLimit, onClose }: ManualModalPro
       if (isEdit && existing) {
         await updateCompetitor(existing.id, payload);
       } else {
-        await addCompetitor(payload);
+        await addCompetitor(payload, tournamentId);
       }
       onClose();
     } catch {
@@ -159,9 +168,11 @@ function ManualModal({ existing, organiserId, atLimit, onClose }: ManualModalPro
         {!isEdit && atLimit && (
           <div className="px-6 py-8 flex flex-col items-center text-center gap-3">
             <span className="text-4xl">🔒</span>
-            <p className="text-sm font-bold text-primary">Free plan limit reached</p>
+            <p className="text-sm font-bold text-primary">Competitor limit reached</p>
             <p className="text-xs text-secondary leading-relaxed max-w-xs">
-              Your free plan includes up to 10 competitors. Upgrade to add more.
+              {tournamentId
+                ? "This tournament has reached its competitor capacity."
+                : "Your free plan includes up to 10 competitors. Upgrade to add more."}
             </p>
             <button
               type="button"
@@ -405,10 +416,11 @@ function ManualModal({ existing, organiserId, atLimit, onClose }: ManualModalPro
 interface CsvModalProps {
   organiserId: string;
   slotsRemaining: number;
+  tournamentId?: string;
   onClose: () => void;
 }
 
-function CsvModal({ organiserId, slotsRemaining, onClose }: CsvModalProps) {
+function CsvModal({ organiserId, slotsRemaining, tournamentId, onClose }: CsvModalProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [result, setResult] = useState<CsvParseResult | null>(null);
   const [fileName, setFileName] = useState("");
@@ -435,7 +447,7 @@ function CsvModal({ organiserId, slotsRemaining, onClose }: CsvModalProps) {
     if (importable.length === 0) return;
     setSaving(true);
     try {
-      await bulkAddCompetitors(importable.map((c) => ({ ...c, organiserId })));
+      await bulkAddCompetitors(importable.map((c) => ({ ...c, organiserId })), tournamentId);
       setDone(true);
     } catch {
       setSaving(false);
@@ -620,6 +632,176 @@ function CsvModal({ organiserId, slotsRemaining, onClose }: CsvModalProps) {
   );
 }
 
+// ─── Add Existing Competitor Modal ───────────────────────────────────────────
+
+interface AddExistingModalProps {
+  tournamentId: string;
+  organiserId: string;
+  /** IDs already in the roster — these are excluded from the picker */
+  rosterIds: Set<string>;
+  allCompetitors: Competitor[];
+  slotsRemaining: number;
+  onClose: () => void;
+}
+
+function AddExistingModal({
+  tournamentId,
+  organiserId,
+  rosterIds,
+  allCompetitors,
+  slotsRemaining,
+  onClose,
+}: AddExistingModalProps) {
+  const [search, setSearch] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const available = allCompetitors.filter(
+    (c) =>
+      !rosterIds.has(c.id) &&
+      (!search.trim() ||
+        `${c.firstName} ${c.lastName}`.toLowerCase().includes(search.toLowerCase()) ||
+        (c.schoolName ?? "").toLowerCase().includes(search.toLowerCase()))
+  );
+
+  const cappedSelection = Math.min(selectedIds.size, slotsRemaining);
+
+  function toggleId(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) { next.delete(id); return next; }
+      if (next.size >= slotsRemaining) return prev; // at capacity
+      next.add(id);
+      return next;
+    });
+  }
+
+  async function handleAdd() {
+    if (selectedIds.size === 0) return;
+    setSaving(true);
+    setError("");
+    try {
+      await Promise.all(
+        [...selectedIds].map((id) => addToTournament(tournamentId, id, organiserId))
+      );
+      onClose();
+    } catch {
+      setError("Failed to add some competitors. Please try again.");
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-lg bg-surface border border-border rounded-2xl shadow-2xl flex flex-col max-h-[85vh]">
+        {/* Header */}
+        <div className="px-6 pt-6 pb-4 border-b border-border flex-shrink-0">
+          <h2 className="text-base font-semibold text-primary">Add Existing to Participants</h2>
+          <p className="text-xs text-secondary mt-1">
+            Select competitors from your global list to add to this tournament&apos;s participants.
+          </p>
+        </div>
+
+        {/* Search */}
+        <div className="px-6 py-3 border-b border-border flex-shrink-0">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name or school…"
+            className="w-full bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-primary placeholder-muted focus:outline-none focus:border-accent transition-colors"
+            autoFocus
+          />
+          {slotsRemaining < Infinity && (
+            <p className="text-xs text-muted mt-2">
+              {slotsRemaining === 0
+                ? "Tournament capacity reached — no more slots available."
+                : `${slotsRemaining} slot${slotsRemaining !== 1 ? "s" : ""} remaining`}
+            </p>
+          )}
+        </div>
+
+        {/* List */}
+        <div className="flex-1 overflow-y-auto">
+          {available.length === 0 ? (
+            <div className="px-6 py-10 text-center text-sm text-muted">
+              {allCompetitors.length === rosterIds.size
+                ? "All competitors are already in this tournament."
+                : "No competitors match your search."}
+            </div>
+          ) : (
+            <ul className="divide-y divide-border">
+              {available.map((c) => {
+                const selected = selectedIds.has(c.id);
+                const disabled = !selected && slotsRemaining <= selectedIds.size;
+                return (
+                  <li key={c.id}>
+                    <button
+                      type="button"
+                      onClick={() => toggleId(c.id)}
+                      disabled={disabled}
+                      className={`w-full flex items-center gap-3 px-6 py-3 text-left transition-colors ${
+                        selected
+                          ? "bg-accent/8"
+                          : disabled
+                          ? "opacity-40 cursor-not-allowed"
+                          : "hover:bg-elevated"
+                      }`}
+                    >
+                      <div
+                        className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors ${
+                          selected ? "bg-accent border-accent" : "border-border"
+                        }`}
+                      >
+                        {selected && <span className="text-black text-[10px] font-black">✓</span>}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-primary">
+                          {c.firstName} {c.lastName}
+                        </p>
+                        <p className="text-xs text-muted truncate">
+                          {c.schoolName || c.country || "—"} · {c.weightKg}kg
+                        </p>
+                      </div>
+                      <ExperienceBadge level={c.experience} />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-border flex-shrink-0 flex gap-3">
+          {error && <p className="text-xs text-danger flex-1 self-center">{error}</p>}
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:bg-elevated transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleAdd}
+            disabled={selectedIds.size === 0 || saving}
+            className="flex-1 px-4 py-2.5 rounded-lg bg-accent text-black text-sm font-semibold hover:bg-accent-hover transition-colors disabled:opacity-40"
+          >
+            {saving
+              ? "Adding…"
+              : selectedIds.size > 0
+              ? `Add ${selectedIds.size} to Participants`
+              : "Add to Participants"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Helpers for sortable table ───────────────────────────────────────────────
 
 const AGE_CATS = [
@@ -679,7 +861,7 @@ export default function CompetitorsPage() {
   const [competitors,     setCompetitors]     = useState<Competitor[]>([]);
   const [loading,         setLoading]         = useState(true);
   const [tierLimit,       setTierLimit]       = useState<number>(Infinity);
-  const [modal,           setModal]           = useState<"manual" | "csv" | null>(null);
+  const [modal,           setModal]           = useState<"manual" | "csv" | "existing" | null>(null);
   const [editingCompetitor, setEditingCompetitor] = useState<Competitor | null>(null);
   const [search,          setSearch]          = useState("");
   const [genderFilter,    setGenderFilter]    = useState<"all" | "male" | "female">("all");
@@ -692,6 +874,9 @@ export default function CompetitorsPage() {
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
   const [bulkDeleting,    setBulkDeleting]    = useState(false);
   const [userTierId,      setUserTierId]      = useState<string>("free");
+  const [activeTournament, setActiveTournament] = useState<Tournament | null | undefined>(undefined);
+  const [activeTab,       setActiveTab]       = useState<"all" | "roster">("all");
+  const [rosterEntries,   setRosterEntries]   = useState<TournamentEntry[]>([]);
 
   function handleSort(col: SortCol) {
     if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -707,6 +892,20 @@ export default function CompetitorsPage() {
     return unsub;
   }, [user]);
 
+  useEffect(() => {
+    if (!user) return;
+    return subscribeActiveTournament(user.uid, (t) => {
+      setActiveTournament(t);
+      if (!t) setActiveTab("all");
+    });
+  }, [user?.uid]);
+
+  // Subscribe to tournament roster when an active tournament exists
+  useEffect(() => {
+    if (!activeTournament?.id) { setRosterEntries([]); return; }
+    return subscribeTournamentRoster(activeTournament.id, setRosterEntries);
+  }, [activeTournament?.id]);
+
   // Load tier to determine competitor cap
   useEffect(() => {
     if (!user) return;
@@ -718,12 +917,25 @@ export default function CompetitorsPage() {
     });
   }, [user]);
 
-  const slotsRemaining = Math.max(0, tierLimit - competitors.length);
-  const atLimit        = competitors.length >= tierLimit;
-  const isFreeTier     = tierLimit === 10;
+  // Use the active tournament's capacity if it has one, else fall back to account tier
+  const tournamentCapacity = activeTournament?.competitorCapacity ?? null;
+  const tournamentSlots    = activeTournament?.slotsConsumed ?? 0;
+  const hasTournamentLimit = tournamentCapacity !== null && activeTournament != null;
+  const effectiveLimit     = hasTournamentLimit ? tournamentCapacity! : tierLimit;
+  const effectiveUsed      = hasTournamentLimit ? tournamentSlots : competitors.length;
+  const slotsRemaining     = Math.max(0, effectiveLimit - effectiveUsed);
+  const atLimit            = effectiveUsed >= effectiveLimit;
+  const isFreeTier         = !hasTournamentLimit && tierLimit === 10;
+
+  // Roster: competitor IDs with active entries in the current tournament
+  const rosterIdSet = new Set(rosterEntries.map((e) => e.competitorId));
+  const rosterCompetitors = competitors.filter((c) => rosterIdSet.has(c.id));
+
+  // In roster tab, work on rosterCompetitors; otherwise all competitors
+  const baseList = activeTab === "roster" ? rosterCompetitors : competitors;
 
   const ageCatDef = AGE_CATS.find((a) => a.key === ageCat);
-  const filtered = competitors.filter((c) => {
+  const filtered = baseList.filter((c) => {
     if (genderFilter !== "all" && c.gender !== genderFilter) return false;
     if (ageCat !== "all" && ageCatDef) {
       const age = getAgeYears(c.dateOfBirth);
@@ -757,28 +969,55 @@ export default function CompetitorsPage() {
 
   return (
     <Shell title="Competitors">
-      {/* Free tier usage bar */}
-      {isFreeTier && !loading && (
-        <div className="mb-5 bg-surface border border-border rounded-xl px-5 py-4">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-semibold text-secondary">
-              Free plan — competitor slots
-            </p>
-            <p className={`text-xs font-bold ${atLimit ? "text-danger" : "text-secondary"}`}>
-              {competitors.length} / {tierLimit} used
-            </p>
+      {/* Capacity bar — tournament limit or free-tier fallback */}
+      {(hasTournamentLimit || isFreeTier) && !loading && (() => {
+        const label = hasTournamentLimit
+          ? `${getPricingTier(activeTournament!.capacityTierId ?? "")?.name ?? "Tournament"} — competitor slots`
+          : "Free plan — competitor slots";
+        const limitMsg = hasTournamentLimit
+          ? "Tournament capacity reached. Upgrade this tournament to add more competitors."
+          : "Limit reached. Upgrade your plan to add more competitors.";
+        const pct = effectiveLimit === Infinity ? 0 : Math.min(100, (effectiveUsed / effectiveLimit) * 100);
+        return (
+          <div className="mb-5 bg-surface border border-border rounded-xl px-5 py-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-semibold text-secondary">{label}</p>
+              <p className={`text-xs font-bold ${atLimit ? "text-danger" : "text-secondary"}`}>
+                {effectiveUsed} / {effectiveLimit} used
+              </p>
+            </div>
+            <div className="h-1.5 bg-elevated rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${atLimit ? "bg-danger" : "bg-accent"}`}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            {atLimit && (
+              <p className="text-xs text-danger mt-2">{limitMsg}</p>
+            )}
           </div>
-          <div className="h-1.5 bg-elevated rounded-full overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all ${atLimit ? "bg-danger" : "bg-accent"}`}
-              style={{ width: `${Math.min(100, (competitors.length / tierLimit) * 100)}%` }}
-            />
-          </div>
-          {atLimit && (
-            <p className="text-xs text-danger mt-2">
-              Limit reached. Upgrade your plan to add more competitors.
-            </p>
-          )}
+        );
+      })()}
+
+      {/* All / Roster tab toggle */}
+      {activeTournament && !loading && (
+        <div className="flex rounded-lg overflow-hidden border border-border text-sm font-semibold w-fit mb-5">
+          <button
+            type="button"
+            onClick={() => setActiveTab("all")}
+            className={`px-4 py-2 transition-colors ${activeTab === "all" ? "bg-accent text-black" : "bg-elevated text-secondary hover:text-primary"}`}
+          >
+            All Competitors
+            <span className="ml-2 text-xs opacity-70">{competitors.length}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("roster")}
+            className={`px-4 py-2 transition-colors ${activeTab === "roster" ? "bg-accent text-black" : "bg-elevated text-secondary hover:text-primary"}`}
+          >
+            &ldquo;{activeTournament.name}&rdquo; Participants
+            <span className="ml-2 text-xs opacity-70">{rosterCompetitors.length}</span>
+          </button>
         </div>
       )}
 
@@ -815,7 +1054,7 @@ export default function CompetitorsPage() {
 
           {/* Count */}
           <p className="text-xs text-muted hidden sm:block flex-shrink-0">
-            {loading ? "" : `${filtered.length}${filtered.length !== competitors.length ? ` of ${competitors.length}` : ""} competitor${competitors.length !== 1 ? "s" : ""}`}
+            {loading ? "" : `${filtered.length}${filtered.length !== baseList.length ? ` of ${baseList.length}` : ""} competitor${baseList.length !== 1 ? "s" : ""}`}
           </p>
 
           {/* Actions */}
@@ -857,10 +1096,20 @@ export default function CompetitorsPage() {
           >
             Upload CSV
           </button>
+          {activeTab === "roster" && activeTournament && (
+            <button
+              onClick={() => setModal("existing")}
+              disabled={atLimit || competitors.length <= rosterIdSet.size}
+              title={atLimit ? `Capacity reached (${effectiveUsed}/${effectiveLimit})` : undefined}
+              className="px-4 py-2 rounded-lg border border-accent text-accent text-sm font-semibold hover:bg-accent/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              + Add Existing
+            </button>
+          )}
           <button
             onClick={() => setModal("manual")}
             disabled={atLimit}
-            title={atLimit ? `Free plan limit reached (${tierLimit}/${tierLimit})` : undefined}
+            title={atLimit ? `Competitor limit reached (${effectiveUsed}/${effectiveLimit})` : undefined}
             className="px-4 py-2 rounded-lg bg-accent text-black text-sm font-semibold hover:bg-accent-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             + Add Manually
@@ -979,13 +1228,27 @@ export default function CompetitorsPage() {
                 <span className="text-sm text-secondary truncate">{c.country || "—"}</span>
                 <span className="text-sm text-secondary truncate">{c.schoolName || "—"}</span>
                 <ExperienceBadge level={c.experience} />
-                <button
-                  onClick={() => setEditingCompetitor(c)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity text-muted hover:text-warn text-xs px-1 py-1 rounded hover:bg-elevated"
-                  title="Edit"
-                >
-                  ✎
-                </button>
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {activeTab === "roster" && (() => {
+                    const entry = rosterEntries.find((e) => e.competitorId === c.id);
+                    return entry ? (
+                      <button
+                        onClick={async (ev) => { ev.stopPropagation(); await removeFromTournament(entry.id); }}
+                        className="text-muted hover:text-danger text-xs px-1 py-1 rounded hover:bg-elevated"
+                        title="Remove from participants"
+                      >
+                        ✕
+                      </button>
+                    ) : null;
+                  })()}
+                  <button
+                    onClick={() => setEditingCompetitor(c)}
+                    className="text-muted hover:text-warn text-xs px-1 py-1 rounded hover:bg-elevated"
+                    title="Edit"
+                  >
+                    ✎
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
@@ -993,10 +1256,20 @@ export default function CompetitorsPage() {
       </div>
 
       {modal === "manual" && user && (
-        <ManualModal organiserId={user.uid} atLimit={atLimit} onClose={() => setModal(null)} />
+        <ManualModal organiserId={user.uid} atLimit={atLimit} tournamentId={activeTournament?.id} onClose={() => setModal(null)} />
       )}
       {modal === "csv" && user && (
-        <CsvModal organiserId={user.uid} slotsRemaining={slotsRemaining} onClose={() => setModal(null)} />
+        <CsvModal organiserId={user.uid} slotsRemaining={slotsRemaining} tournamentId={activeTournament?.id} onClose={() => setModal(null)} />
+      )}
+      {modal === "existing" && user && activeTournament && (
+        <AddExistingModal
+          tournamentId={activeTournament.id}
+          organiserId={user.uid}
+          rosterIds={rosterIdSet}
+          allCompetitors={competitors}
+          slotsRemaining={slotsRemaining}
+          onClose={() => setModal(null)}
+        />
       )}
       {editingCompetitor && user && (
         <ManualModal

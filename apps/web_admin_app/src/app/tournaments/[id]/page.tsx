@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Shell } from "@/components/Shell";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -12,6 +12,7 @@ import {
   isActiveTournament,
   type Tournament,
 } from "@/lib/tournaments";
+import { getPricingTier } from "@/lib/pricing";
 import { subscribeCompetitors, type Competitor } from "@/lib/competitors";
 import {
   subscribeMatches,
@@ -253,7 +254,8 @@ const STATUS_COLOR: Record<string, string> = {
 
 export default function TournamentDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const router  = useRouter();
+  const router       = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
 
   const [tournament, setTournament] = useState<Tournament | null>(null);
@@ -264,6 +266,10 @@ export default function TournamentDetailPage() {
 
   // Archiving
   const [archiving, setArchiving] = useState(false);
+
+  // Payment
+  const [payingNow, setPayingNow] = useState(false);
+  const [payError,  setPayError]  = useState<string | null>(null);
 
   // Inline name edit
   const [editingName, setEditingName] = useState(false);
@@ -278,6 +284,28 @@ export default function TournamentDetailPage() {
     const unsubC = subscribeCompetitors(user.uid, setCompetitors);
     return () => { unsubT(); unsubC(); unsubM(); };
   }, [id, user]);
+
+  async function handlePayNow() {
+    if (!tournament || !user) return;
+    const tierId = tournament.capacityTierId;
+    if (!tierId) return;
+    setPayingNow(true);
+    setPayError(null);
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch("/api/create-checkout", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body:    JSON.stringify({ tournamentId: tournament.id, tierId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Checkout failed");
+      window.location.href = data.url;
+    } catch (err: unknown) {
+      setPayError(err instanceof Error ? err.message : "Something went wrong");
+      setPayingNow(false);
+    }
+  }
 
   async function handleArchive() {
     if (!tournament) return;
@@ -375,7 +403,84 @@ export default function TournamentDetailPage() {
           <p className="text-xs text-muted uppercase tracking-widest font-semibold mb-0.5">Matches</p>
           <p className="text-sm font-semibold text-primary">{matches.length}</p>
         </div>
+        {tournament.competitorCapacity != null && (() => {
+          const consumed  = tournament.slotsConsumed ?? 0;
+          const capacity  = tournament.competitorCapacity!;
+          const pct       = Math.min(100, (consumed / capacity) * 100);
+          const atLimit   = consumed >= capacity;
+          const tierName  = getPricingTier(tournament.capacityTierId ?? "")?.name ?? tournament.capacityTierId;
+          return (
+            <>
+              <div className="w-px h-8 bg-border" />
+              <div className="flex-1 min-w-[140px]">
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="text-xs text-muted uppercase tracking-widest font-semibold">
+                    Competitors · {tierName}
+                  </p>
+                  <p className={`text-xs font-bold ${atLimit ? "text-danger" : "text-secondary"}`}>
+                    {consumed} / {capacity}
+                  </p>
+                </div>
+                <div className="w-full h-1.5 bg-elevated rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${atLimit ? "bg-danger" : "bg-accent"}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                {atLimit && (
+                  <p className="text-[10px] text-danger font-semibold mt-1">Capacity reached — upgrade to add more</p>
+                )}
+              </div>
+            </>
+          );
+        })()}
       </div>
+
+      {/* Payment success / cancelled notification */}
+      {searchParams?.get("payment") === "success" && (
+        <div className="mb-6 flex items-center gap-3 bg-green-500/10 border border-green-500/30 rounded-xl px-5 py-4">
+          <span className="text-xl">✅</span>
+          <div>
+            <p className="text-sm font-semibold text-green-400">Payment successful</p>
+            <p className="text-xs text-secondary mt-0.5">Your tournament capacity has been upgraded.</p>
+          </div>
+        </div>
+      )}
+      {searchParams?.get("payment") === "cancelled" && (
+        <div className="mb-6 flex items-center gap-3 bg-elevated border border-border rounded-xl px-5 py-4">
+          <span className="text-xl">↩</span>
+          <p className="text-sm text-secondary">Payment cancelled — your tournament is unchanged.</p>
+        </div>
+      )}
+
+      {/* Payment banner */}
+      {tournament.paymentStatus === "pending_payment" && (() => {
+        const tier = getPricingTier(tournament.capacityTierId ?? "");
+        if (!tier) return null;
+        return (
+          <div className="mb-6 flex items-center justify-between gap-4 bg-accent/5 border border-accent/30 rounded-xl px-5 py-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="text-2xl flex-shrink-0">🔒</span>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-primary">
+                  Complete payment to activate <span className="text-accent">{tier.name}</span> capacity
+                </p>
+                <p className="text-xs text-secondary mt-0.5">
+                  Up to {tier.maxCompetitors} competitors · one-time ${tier.priceUsd}
+                </p>
+                {payError && <p className="text-xs text-danger mt-1">{payError}</p>}
+              </div>
+            </div>
+            <button
+              onClick={handlePayNow}
+              disabled={payingNow}
+              className="flex-shrink-0 px-4 py-2 rounded-lg bg-accent text-black text-sm font-bold hover:bg-accent/90 transition-colors disabled:opacity-60"
+            >
+              {payingNow ? "Redirecting…" : "Pay Now"}
+            </button>
+          </div>
+        );
+      })()}
 
       {/* Arena PINs */}
       <h2 className="text-sm font-semibold text-primary mb-4">Arena PINs</h2>
