@@ -40,12 +40,15 @@ export function subscribeTournamentRoster(
 ): Unsubscribe {
   const q = query(
     collection(db, COL),
-    where("tournamentId", "==", tournamentId),
-    where("deletedAt", "==", null)
+    where("tournamentId", "==", tournamentId)
   );
   return onSnapshot(
     q,
-    (snap) => cb(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<TournamentEntry, "id">) }))),
+    (snap) => cb(
+      snap.docs
+        .map((d) => ({ id: d.id, ...(d.data() as Omit<TournamentEntry, "id">) }))
+        .filter((e) => e.deletedAt === null)
+    ),
     () => cb([])
   );
 }
@@ -59,13 +62,12 @@ export async function getActiveEntry(
     query(
       collection(db, COL),
       where("tournamentId", "==", tournamentId),
-      where("competitorId", "==", competitorId),
-      where("deletedAt", "==", null)
+      where("competitorId", "==", competitorId)
     )
   );
-  if (snap.empty) return null;
-  const d = snap.docs[0];
-  return { id: d.id, ...(d.data() as Omit<TournamentEntry, "id">) };
+  const active = snap.docs.find((d) => d.data().deletedAt === null);
+  if (!active) return null;
+  return { id: active.id, ...(active.data() as Omit<TournamentEntry, "id">) };
 }
 
 // ─── Writes ──────────────────────────────────────────────────────────────────
@@ -108,13 +110,13 @@ export async function bulkAddToTournament(
 
   // Filter out already-entered competitors
   const existing = await getDocs(
-    query(
-      collection(db, COL),
-      where("tournamentId", "==", tournamentId),
-      where("deletedAt", "==", null)
-    )
+    query(collection(db, COL), where("tournamentId", "==", tournamentId))
   );
-  const enteredIds = new Set(existing.docs.map((d) => d.data().competitorId as string));
+  const enteredIds = new Set(
+    existing.docs
+      .filter((d) => d.data().deletedAt === null)
+      .map((d) => d.data().competitorId as string)
+  );
   const toAdd = competitorIds.filter((id) => !enteredIds.has(id));
   if (toAdd.length === 0) return;
 
