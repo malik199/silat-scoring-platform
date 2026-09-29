@@ -698,9 +698,9 @@ function AddExistingModal({
       <div className="relative z-10 w-full max-w-lg bg-surface border border-border rounded-2xl shadow-2xl flex flex-col max-h-[85vh]">
         {/* Header */}
         <div className="px-6 pt-6 pb-4 border-b border-border flex-shrink-0">
-          <h2 className="text-base font-semibold text-primary">Add Existing Competitor</h2>
+          <h2 className="text-base font-semibold text-primary">Add Existing to Participants</h2>
           <p className="text-xs text-secondary mt-1">
-            Select competitors from your global list to add to this tournament&apos;s roster.
+            Select competitors from your global list to add to this tournament&apos;s participants.
           </p>
         </div>
 
@@ -793,8 +793,8 @@ function AddExistingModal({
             {saving
               ? "Adding…"
               : selectedIds.size > 0
-              ? `Add ${selectedIds.size} to Roster`
-              : "Add to Roster"}
+              ? `Add ${selectedIds.size} to Participants`
+              : "Add to Participants"}
           </button>
         </div>
       </div>
@@ -1015,7 +1015,7 @@ export default function CompetitorsPage() {
             onClick={() => setActiveTab("roster")}
             className={`px-4 py-2 transition-colors ${activeTab === "roster" ? "bg-accent text-black" : "bg-elevated text-secondary hover:text-primary"}`}
           >
-            {activeTournament.name} Roster
+            {activeTournament.name} Participants
             <span className="ml-2 text-xs opacity-70">{rosterCompetitors.length}</span>
           </button>
         </div>
@@ -1235,7 +1235,7 @@ export default function CompetitorsPage() {
                       <button
                         onClick={async (ev) => { ev.stopPropagation(); await removeFromTournament(entry.id); }}
                         className="text-muted hover:text-danger text-xs px-1 py-1 rounded hover:bg-elevated"
-                        title="Remove from roster"
+                        title="Remove from participants"
                       >
                         ✕
                       </button>
