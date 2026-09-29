@@ -1119,6 +1119,33 @@ export default function BracketViewPage() {
         </div>
       </div>
 
+      {/* Champion banner */}
+      {(() => {
+        if (numRounds === 0) return null;
+        const finalWinnerId = winners[`r${numRounds - 1}_m0`] ?? null;
+        if (!finalWinnerId) return null;
+        const champion = cMap.get(finalWinnerId);
+        if (!champion) return null;
+        return (
+          <div className="mt-6 flex justify-center">
+            <div className="flex items-center gap-4 bg-accent/10 border border-accent/40 rounded-2xl px-8 py-5">
+              <span className="text-4xl">🏆</span>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest text-accent mb-0.5">
+                  Champion
+                </p>
+                <p className="text-xl font-bold text-primary">
+                  {champion.firstName} {champion.lastName}
+                </p>
+                {champion.schoolName && (
+                  <p className="text-sm text-secondary mt-0.5">{champion.schoolName}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Delete confirmation dialog */}
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
