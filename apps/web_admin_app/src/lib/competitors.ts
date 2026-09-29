@@ -14,10 +14,10 @@ import {
   orderBy,
   documentId,
   serverTimestamp,
-  increment,
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "./firebase";
+import { addToTournament, bulkAddToTournament } from "./tournamentEntries";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -224,7 +224,7 @@ export async function addCompetitor(input: CompetitorInput, tournamentId?: strin
     createdAt: serverTimestamp(),
   });
   if (tournamentId) {
-    await updateDoc(doc(db, "tournaments", tournamentId), { slotsConsumed: increment(1) });
+    await addToTournament(tournamentId, ref.id, input.organiserId);
   }
   return ref.id;
 }
@@ -244,16 +244,21 @@ export async function bulkAddCompetitors(
   inputs: CompetitorInput[],
   tournamentId?: string,
 ): Promise<void> {
+  if (inputs.length === 0) return;
+  const ids: string[] = [];
   const CHUNK = 500;
   for (let i = 0; i < inputs.length; i += CHUNK) {
     const batch = writeBatch(db);
-    for (const input of inputs.slice(i, i + CHUNK)) {
-      batch.set(doc(collection(db, COL)), { ...input, createdAt: serverTimestamp() });
-    }
+    const refs = inputs.slice(i, i + CHUNK).map((input) => {
+      const ref = doc(collection(db, COL));
+      batch.set(ref, { ...input, createdAt: serverTimestamp() });
+      return ref;
+    });
     await batch.commit();
+    ids.push(...refs.map((r) => r.id));
   }
-  if (tournamentId && inputs.length > 0) {
-    await updateDoc(doc(db, "tournaments", tournamentId), { slotsConsumed: increment(inputs.length) });
+  if (tournamentId && ids.length > 0) {
+    await bulkAddToTournament(tournamentId, ids, inputs[0].organiserId);
   }
 }
 

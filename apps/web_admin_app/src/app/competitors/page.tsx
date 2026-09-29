@@ -23,6 +23,12 @@ import {
   type ExperienceLevel,
   type CsvParseResult,
 } from "@/lib/competitors";
+import {
+  subscribeTournamentRoster,
+  addToTournament,
+  removeFromTournament,
+  type TournamentEntry,
+} from "@/lib/tournamentEntries";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -626,6 +632,176 @@ function CsvModal({ organiserId, slotsRemaining, tournamentId, onClose }: CsvMod
   );
 }
 
+// ─── Add Existing Competitor Modal ───────────────────────────────────────────
+
+interface AddExistingModalProps {
+  tournamentId: string;
+  organiserId: string;
+  /** IDs already in the roster — these are excluded from the picker */
+  rosterIds: Set<string>;
+  allCompetitors: Competitor[];
+  slotsRemaining: number;
+  onClose: () => void;
+}
+
+function AddExistingModal({
+  tournamentId,
+  organiserId,
+  rosterIds,
+  allCompetitors,
+  slotsRemaining,
+  onClose,
+}: AddExistingModalProps) {
+  const [search, setSearch] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const available = allCompetitors.filter(
+    (c) =>
+      !rosterIds.has(c.id) &&
+      (!search.trim() ||
+        `${c.firstName} ${c.lastName}`.toLowerCase().includes(search.toLowerCase()) ||
+        (c.schoolName ?? "").toLowerCase().includes(search.toLowerCase()))
+  );
+
+  const cappedSelection = Math.min(selectedIds.size, slotsRemaining);
+
+  function toggleId(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) { next.delete(id); return next; }
+      if (next.size >= slotsRemaining) return prev; // at capacity
+      next.add(id);
+      return next;
+    });
+  }
+
+  async function handleAdd() {
+    if (selectedIds.size === 0) return;
+    setSaving(true);
+    setError("");
+    try {
+      await Promise.all(
+        [...selectedIds].map((id) => addToTournament(tournamentId, id, organiserId))
+      );
+      onClose();
+    } catch {
+      setError("Failed to add some competitors. Please try again.");
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-lg bg-surface border border-border rounded-2xl shadow-2xl flex flex-col max-h-[85vh]">
+        {/* Header */}
+        <div className="px-6 pt-6 pb-4 border-b border-border flex-shrink-0">
+          <h2 className="text-base font-semibold text-primary">Add Existing Competitor</h2>
+          <p className="text-xs text-secondary mt-1">
+            Select competitors from your global list to add to this tournament&apos;s roster.
+          </p>
+        </div>
+
+        {/* Search */}
+        <div className="px-6 py-3 border-b border-border flex-shrink-0">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name or school…"
+            className="w-full bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-primary placeholder-muted focus:outline-none focus:border-accent transition-colors"
+            autoFocus
+          />
+          {slotsRemaining < Infinity && (
+            <p className="text-xs text-muted mt-2">
+              {slotsRemaining === 0
+                ? "Tournament capacity reached — no more slots available."
+                : `${slotsRemaining} slot${slotsRemaining !== 1 ? "s" : ""} remaining`}
+            </p>
+          )}
+        </div>
+
+        {/* List */}
+        <div className="flex-1 overflow-y-auto">
+          {available.length === 0 ? (
+            <div className="px-6 py-10 text-center text-sm text-muted">
+              {allCompetitors.length === rosterIds.size
+                ? "All competitors are already in this tournament."
+                : "No competitors match your search."}
+            </div>
+          ) : (
+            <ul className="divide-y divide-border">
+              {available.map((c) => {
+                const selected = selectedIds.has(c.id);
+                const disabled = !selected && slotsRemaining <= selectedIds.size;
+                return (
+                  <li key={c.id}>
+                    <button
+                      type="button"
+                      onClick={() => toggleId(c.id)}
+                      disabled={disabled}
+                      className={`w-full flex items-center gap-3 px-6 py-3 text-left transition-colors ${
+                        selected
+                          ? "bg-accent/8"
+                          : disabled
+                          ? "opacity-40 cursor-not-allowed"
+                          : "hover:bg-elevated"
+                      }`}
+                    >
+                      <div
+                        className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors ${
+                          selected ? "bg-accent border-accent" : "border-border"
+                        }`}
+                      >
+                        {selected && <span className="text-black text-[10px] font-black">✓</span>}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-primary">
+                          {c.firstName} {c.lastName}
+                        </p>
+                        <p className="text-xs text-muted truncate">
+                          {c.schoolName || c.country || "—"} · {c.weightKg}kg
+                        </p>
+                      </div>
+                      <ExperienceBadge level={c.experience} />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-border flex-shrink-0 flex gap-3">
+          {error && <p className="text-xs text-danger flex-1 self-center">{error}</p>}
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:bg-elevated transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleAdd}
+            disabled={selectedIds.size === 0 || saving}
+            className="flex-1 px-4 py-2.5 rounded-lg bg-accent text-black text-sm font-semibold hover:bg-accent-hover transition-colors disabled:opacity-40"
+          >
+            {saving
+              ? "Adding…"
+              : selectedIds.size > 0
+              ? `Add ${selectedIds.size} to Roster`
+              : "Add to Roster"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Helpers for sortable table ───────────────────────────────────────────────
 
 const AGE_CATS = [
@@ -685,7 +861,7 @@ export default function CompetitorsPage() {
   const [competitors,     setCompetitors]     = useState<Competitor[]>([]);
   const [loading,         setLoading]         = useState(true);
   const [tierLimit,       setTierLimit]       = useState<number>(Infinity);
-  const [modal,           setModal]           = useState<"manual" | "csv" | null>(null);
+  const [modal,           setModal]           = useState<"manual" | "csv" | "existing" | null>(null);
   const [editingCompetitor, setEditingCompetitor] = useState<Competitor | null>(null);
   const [search,          setSearch]          = useState("");
   const [genderFilter,    setGenderFilter]    = useState<"all" | "male" | "female">("all");
@@ -699,6 +875,8 @@ export default function CompetitorsPage() {
   const [bulkDeleting,    setBulkDeleting]    = useState(false);
   const [userTierId,      setUserTierId]      = useState<string>("free");
   const [activeTournament, setActiveTournament] = useState<Tournament | null | undefined>(undefined);
+  const [activeTab,       setActiveTab]       = useState<"all" | "roster">("all");
+  const [rosterEntries,   setRosterEntries]   = useState<TournamentEntry[]>([]);
 
   function handleSort(col: SortCol) {
     if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -716,8 +894,17 @@ export default function CompetitorsPage() {
 
   useEffect(() => {
     if (!user) return;
-    return subscribeActiveTournament(user.uid, setActiveTournament);
+    return subscribeActiveTournament(user.uid, (t) => {
+      setActiveTournament(t);
+      if (!t) setActiveTab("all");
+    });
   }, [user?.uid]);
+
+  // Subscribe to tournament roster when an active tournament exists
+  useEffect(() => {
+    if (!activeTournament?.id) { setRosterEntries([]); return; }
+    return subscribeTournamentRoster(activeTournament.id, setRosterEntries);
+  }, [activeTournament?.id]);
 
   // Load tier to determine competitor cap
   useEffect(() => {
@@ -740,8 +927,15 @@ export default function CompetitorsPage() {
   const atLimit            = effectiveUsed >= effectiveLimit;
   const isFreeTier         = !hasTournamentLimit && tierLimit === 10;
 
+  // Roster: competitor IDs with active entries in the current tournament
+  const rosterIdSet = new Set(rosterEntries.map((e) => e.competitorId));
+  const rosterCompetitors = competitors.filter((c) => rosterIdSet.has(c.id));
+
+  // In roster tab, work on rosterCompetitors; otherwise all competitors
+  const baseList = activeTab === "roster" ? rosterCompetitors : competitors;
+
   const ageCatDef = AGE_CATS.find((a) => a.key === ageCat);
-  const filtered = competitors.filter((c) => {
+  const filtered = baseList.filter((c) => {
     if (genderFilter !== "all" && c.gender !== genderFilter) return false;
     if (ageCat !== "all" && ageCatDef) {
       const age = getAgeYears(c.dateOfBirth);
@@ -805,6 +999,28 @@ export default function CompetitorsPage() {
         );
       })()}
 
+      {/* All / Roster tab toggle */}
+      {activeTournament && !loading && (
+        <div className="flex rounded-lg overflow-hidden border border-border text-sm font-semibold w-fit mb-5">
+          <button
+            type="button"
+            onClick={() => setActiveTab("all")}
+            className={`px-4 py-2 transition-colors ${activeTab === "all" ? "bg-accent text-black" : "bg-elevated text-secondary hover:text-primary"}`}
+          >
+            All Competitors
+            <span className="ml-2 text-xs opacity-70">{competitors.length}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("roster")}
+            className={`px-4 py-2 transition-colors ${activeTab === "roster" ? "bg-accent text-black" : "bg-elevated text-secondary hover:text-primary"}`}
+          >
+            {activeTournament.name} Roster
+            <span className="ml-2 text-xs opacity-70">{rosterCompetitors.length}</span>
+          </button>
+        </div>
+      )}
+
       {/* Toolbar */}
       <div className="flex flex-col gap-3 mb-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
@@ -838,7 +1054,7 @@ export default function CompetitorsPage() {
 
           {/* Count */}
           <p className="text-xs text-muted hidden sm:block flex-shrink-0">
-            {loading ? "" : `${filtered.length}${filtered.length !== competitors.length ? ` of ${competitors.length}` : ""} competitor${competitors.length !== 1 ? "s" : ""}`}
+            {loading ? "" : `${filtered.length}${filtered.length !== baseList.length ? ` of ${baseList.length}` : ""} competitor${baseList.length !== 1 ? "s" : ""}`}
           </p>
 
           {/* Actions */}
@@ -880,6 +1096,16 @@ export default function CompetitorsPage() {
           >
             Upload CSV
           </button>
+          {activeTab === "roster" && activeTournament && (
+            <button
+              onClick={() => setModal("existing")}
+              disabled={atLimit || competitors.length <= rosterIdSet.size}
+              title={atLimit ? `Capacity reached (${effectiveUsed}/${effectiveLimit})` : undefined}
+              className="px-4 py-2 rounded-lg border border-accent text-accent text-sm font-semibold hover:bg-accent/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              + Add Existing
+            </button>
+          )}
           <button
             onClick={() => setModal("manual")}
             disabled={atLimit}
@@ -1002,13 +1228,27 @@ export default function CompetitorsPage() {
                 <span className="text-sm text-secondary truncate">{c.country || "—"}</span>
                 <span className="text-sm text-secondary truncate">{c.schoolName || "—"}</span>
                 <ExperienceBadge level={c.experience} />
-                <button
-                  onClick={() => setEditingCompetitor(c)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity text-muted hover:text-warn text-xs px-1 py-1 rounded hover:bg-elevated"
-                  title="Edit"
-                >
-                  ✎
-                </button>
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {activeTab === "roster" && (() => {
+                    const entry = rosterEntries.find((e) => e.competitorId === c.id);
+                    return entry ? (
+                      <button
+                        onClick={async (ev) => { ev.stopPropagation(); await removeFromTournament(entry.id); }}
+                        className="text-muted hover:text-danger text-xs px-1 py-1 rounded hover:bg-elevated"
+                        title="Remove from roster"
+                      >
+                        ✕
+                      </button>
+                    ) : null;
+                  })()}
+                  <button
+                    onClick={() => setEditingCompetitor(c)}
+                    className="text-muted hover:text-warn text-xs px-1 py-1 rounded hover:bg-elevated"
+                    title="Edit"
+                  >
+                    ✎
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
@@ -1020,6 +1260,16 @@ export default function CompetitorsPage() {
       )}
       {modal === "csv" && user && (
         <CsvModal organiserId={user.uid} slotsRemaining={slotsRemaining} tournamentId={activeTournament?.id} onClose={() => setModal(null)} />
+      )}
+      {modal === "existing" && user && activeTournament && (
+        <AddExistingModal
+          tournamentId={activeTournament.id}
+          organiserId={user.uid}
+          rosterIds={rosterIdSet}
+          allCompetitors={competitors}
+          slotsRemaining={slotsRemaining}
+          onClose={() => setModal(null)}
+        />
       )}
       {editingCompetitor && user && (
         <ManualModal
