@@ -1015,7 +1015,7 @@ export default function CompetitorsPage() {
             onClick={() => setActiveTab("roster")}
             className={`px-4 py-2 transition-colors ${activeTab === "roster" ? "bg-accent text-black" : "bg-elevated text-secondary hover:text-primary"}`}
           >
-            {activeTournament.name} Participants
+            &ldquo;{activeTournament.name}&rdquo; Participants
             <span className="ml-2 text-xs opacity-70">{rosterCompetitors.length}</span>
           </button>
         </div>
