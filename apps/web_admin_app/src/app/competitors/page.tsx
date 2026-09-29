@@ -5,6 +5,8 @@ import { Shell } from "@/components/Shell";
 import { useAuth } from "@/context/AuthContext";
 import { getUserProfile } from "@/lib/users";
 import { TIERS } from "@/lib/tiers";
+import { subscribeActiveTournament, type Tournament } from "@/lib/tournaments";
+import { getPricingTier } from "@/lib/pricing";
 import { COUNTRIES } from "@/lib/countries";
 import {
   subscribeCompetitors,
@@ -63,10 +65,11 @@ interface ManualModalProps {
   existing?: Competitor;
   organiserId: string;
   atLimit: boolean;
+  tournamentId?: string;
   onClose: () => void;
 }
 
-function ManualModal({ existing, organiserId, atLimit, onClose }: ManualModalProps) {
+function ManualModal({ existing, organiserId, atLimit, tournamentId, onClose }: ManualModalProps) {
   const isEdit = Boolean(existing);
   const [form, setForm] = useState<FormData>(
     existing
@@ -132,7 +135,7 @@ function ManualModal({ existing, organiserId, atLimit, onClose }: ManualModalPro
       if (isEdit && existing) {
         await updateCompetitor(existing.id, payload);
       } else {
-        await addCompetitor(payload);
+        await addCompetitor(payload, tournamentId);
       }
       onClose();
     } catch {
@@ -159,9 +162,11 @@ function ManualModal({ existing, organiserId, atLimit, onClose }: ManualModalPro
         {!isEdit && atLimit && (
           <div className="px-6 py-8 flex flex-col items-center text-center gap-3">
             <span className="text-4xl">🔒</span>
-            <p className="text-sm font-bold text-primary">Free plan limit reached</p>
+            <p className="text-sm font-bold text-primary">Competitor limit reached</p>
             <p className="text-xs text-secondary leading-relaxed max-w-xs">
-              Your free plan includes up to 10 competitors. Upgrade to add more.
+              {tournamentId
+                ? "This tournament has reached its competitor capacity."
+                : "Your free plan includes up to 10 competitors. Upgrade to add more."}
             </p>
             <button
               type="button"
@@ -405,10 +410,11 @@ function ManualModal({ existing, organiserId, atLimit, onClose }: ManualModalPro
 interface CsvModalProps {
   organiserId: string;
   slotsRemaining: number;
+  tournamentId?: string;
   onClose: () => void;
 }
 
-function CsvModal({ organiserId, slotsRemaining, onClose }: CsvModalProps) {
+function CsvModal({ organiserId, slotsRemaining, tournamentId, onClose }: CsvModalProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [result, setResult] = useState<CsvParseResult | null>(null);
   const [fileName, setFileName] = useState("");
@@ -435,7 +441,7 @@ function CsvModal({ organiserId, slotsRemaining, onClose }: CsvModalProps) {
     if (importable.length === 0) return;
     setSaving(true);
     try {
-      await bulkAddCompetitors(importable.map((c) => ({ ...c, organiserId })));
+      await bulkAddCompetitors(importable.map((c) => ({ ...c, organiserId })), tournamentId);
       setDone(true);
     } catch {
       setSaving(false);
@@ -692,6 +698,7 @@ export default function CompetitorsPage() {
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
   const [bulkDeleting,    setBulkDeleting]    = useState(false);
   const [userTierId,      setUserTierId]      = useState<string>("free");
+  const [activeTournament, setActiveTournament] = useState<Tournament | null | undefined>(undefined);
 
   function handleSort(col: SortCol) {
     if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -707,6 +714,11 @@ export default function CompetitorsPage() {
     return unsub;
   }, [user]);
 
+  useEffect(() => {
+    if (!user) return;
+    return subscribeActiveTournament(user.uid, setActiveTournament);
+  }, [user?.uid]);
+
   // Load tier to determine competitor cap
   useEffect(() => {
     if (!user) return;
@@ -718,9 +730,15 @@ export default function CompetitorsPage() {
     });
   }, [user]);
 
-  const slotsRemaining = Math.max(0, tierLimit - competitors.length);
-  const atLimit        = competitors.length >= tierLimit;
-  const isFreeTier     = tierLimit === 10;
+  // Use the active tournament's capacity if it has one, else fall back to account tier
+  const tournamentCapacity = activeTournament?.competitorCapacity ?? null;
+  const tournamentSlots    = activeTournament?.slotsConsumed ?? 0;
+  const hasTournamentLimit = tournamentCapacity !== null && activeTournament != null;
+  const effectiveLimit     = hasTournamentLimit ? tournamentCapacity! : tierLimit;
+  const effectiveUsed      = hasTournamentLimit ? tournamentSlots : competitors.length;
+  const slotsRemaining     = Math.max(0, effectiveLimit - effectiveUsed);
+  const atLimit            = effectiveUsed >= effectiveLimit;
+  const isFreeTier         = !hasTournamentLimit && tierLimit === 10;
 
   const ageCatDef = AGE_CATS.find((a) => a.key === ageCat);
   const filtered = competitors.filter((c) => {
@@ -757,30 +775,35 @@ export default function CompetitorsPage() {
 
   return (
     <Shell title="Competitors">
-      {/* Free tier usage bar */}
-      {isFreeTier && !loading && (
-        <div className="mb-5 bg-surface border border-border rounded-xl px-5 py-4">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-semibold text-secondary">
-              Free plan — competitor slots
-            </p>
-            <p className={`text-xs font-bold ${atLimit ? "text-danger" : "text-secondary"}`}>
-              {competitors.length} / {tierLimit} used
-            </p>
+      {/* Capacity bar — tournament limit or free-tier fallback */}
+      {(hasTournamentLimit || isFreeTier) && !loading && (() => {
+        const label = hasTournamentLimit
+          ? `${getPricingTier(activeTournament!.capacityTierId ?? "")?.name ?? "Tournament"} — competitor slots`
+          : "Free plan — competitor slots";
+        const limitMsg = hasTournamentLimit
+          ? "Tournament capacity reached. Upgrade this tournament to add more competitors."
+          : "Limit reached. Upgrade your plan to add more competitors.";
+        const pct = effectiveLimit === Infinity ? 0 : Math.min(100, (effectiveUsed / effectiveLimit) * 100);
+        return (
+          <div className="mb-5 bg-surface border border-border rounded-xl px-5 py-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-semibold text-secondary">{label}</p>
+              <p className={`text-xs font-bold ${atLimit ? "text-danger" : "text-secondary"}`}>
+                {effectiveUsed} / {effectiveLimit} used
+              </p>
+            </div>
+            <div className="h-1.5 bg-elevated rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${atLimit ? "bg-danger" : "bg-accent"}`}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            {atLimit && (
+              <p className="text-xs text-danger mt-2">{limitMsg}</p>
+            )}
           </div>
-          <div className="h-1.5 bg-elevated rounded-full overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all ${atLimit ? "bg-danger" : "bg-accent"}`}
-              style={{ width: `${Math.min(100, (competitors.length / tierLimit) * 100)}%` }}
-            />
-          </div>
-          {atLimit && (
-            <p className="text-xs text-danger mt-2">
-              Limit reached. Upgrade your plan to add more competitors.
-            </p>
-          )}
-        </div>
-      )}
+        );
+      })()}
 
       {/* Toolbar */}
       <div className="flex flex-col gap-3 mb-6">
@@ -860,7 +883,7 @@ export default function CompetitorsPage() {
           <button
             onClick={() => setModal("manual")}
             disabled={atLimit}
-            title={atLimit ? `Free plan limit reached (${tierLimit}/${tierLimit})` : undefined}
+            title={atLimit ? `Competitor limit reached (${effectiveUsed}/${effectiveLimit})` : undefined}
             className="px-4 py-2 rounded-lg bg-accent text-black text-sm font-semibold hover:bg-accent-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             + Add Manually
@@ -993,10 +1016,10 @@ export default function CompetitorsPage() {
       </div>
 
       {modal === "manual" && user && (
-        <ManualModal organiserId={user.uid} atLimit={atLimit} onClose={() => setModal(null)} />
+        <ManualModal organiserId={user.uid} atLimit={atLimit} tournamentId={activeTournament?.id} onClose={() => setModal(null)} />
       )}
       {modal === "csv" && user && (
-        <CsvModal organiserId={user.uid} slotsRemaining={slotsRemaining} onClose={() => setModal(null)} />
+        <CsvModal organiserId={user.uid} slotsRemaining={slotsRemaining} tournamentId={activeTournament?.id} onClose={() => setModal(null)} />
       )}
       {editingCompetitor && user && (
         <ManualModal

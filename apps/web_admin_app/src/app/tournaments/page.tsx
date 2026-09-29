@@ -11,6 +11,7 @@ import {
   type Tournament,
   type ArenaCount,
 } from "@/lib/tournaments";
+import { PRICING_TIERS, formatTierPrice, type PricingTier } from "@/lib/pricing";
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
@@ -69,6 +70,45 @@ function ArenaSelector({
   );
 }
 
+// ─── Tier selector card ───────────────────────────────────────────────────────
+
+function TierCard({
+  tier,
+  selected,
+  onSelect,
+}: {
+  tier: PricingTier;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`relative w-full text-left rounded-xl border px-4 py-3.5 transition-all ${
+        selected
+          ? "border-accent bg-accent/8"
+          : "border-border bg-elevated hover:border-accent/40"
+      }`}
+    >
+      {tier.popular && (
+        <span className="absolute -top-2 right-3 bg-accent text-black text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">
+          Popular
+        </span>
+      )}
+      <div className="flex items-center justify-between mb-0.5">
+        <p className={`text-sm font-bold ${selected ? "text-accent" : "text-primary"}`}>
+          {tier.name}
+        </p>
+        <p className={`text-sm font-black ${selected ? "text-accent" : "text-primary"}`}>
+          {formatTierPrice(tier.priceUsd)}
+        </p>
+      </div>
+      <p className="text-xs text-muted">Up to {tier.maxCompetitors} competitors · {tier.description}</p>
+    </button>
+  );
+}
+
 // ─── New Tournament Modal ─────────────────────────────────────────────────────
 
 interface NewTournamentModalProps {
@@ -78,18 +118,25 @@ interface NewTournamentModalProps {
 
 function NewTournamentModal({ onClose, organiserId }: NewTournamentModalProps) {
   const router = useRouter();
+  const [step, setStep] = useState<1 | 2>(1);
   const [name, setName] = useState("");
   const [arenaCount, setArenaCount] = useState<ArenaCount>(1);
+  const [capacityTierId, setCapacityTierId] = useState<string>("free");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  async function handleCreate(e: React.FormEvent) {
+  function handleNextStep(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) { setError("Tournament name is required."); return; }
+    setError("");
+    setStep(2);
+  }
+
+  async function handleCreate() {
     setSaving(true);
     setError("");
     try {
-      const id = await createTournament({ name: name.trim(), arenaCount, organiserId });
+      const id = await createTournament({ name: name.trim(), arenaCount, organiserId, capacityTierId });
       router.push(`/tournaments/${id}`);
     } catch {
       setError("Failed to create tournament. Please try again.");
@@ -97,72 +144,123 @@ function NewTournamentModal({ onClose, organiserId }: NewTournamentModalProps) {
     }
   }
 
+  const selectedTier = PRICING_TIERS.find((t) => t.id === capacityTierId)!;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Panel */}
-      <div className="relative z-10 w-full max-w-md bg-surface border border-border rounded-2xl p-6 shadow-2xl">
-        <h2 className="text-base font-semibold text-primary mb-1">New Tournament</h2>
-        <p className="text-xs text-secondary mb-6">
-          Set a name and choose how many arenas (gelanggang) will run simultaneously.
-        </p>
+      <div className="relative z-10 w-full max-w-lg bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden">
+        {/* Step indicator */}
+        <div className="flex border-b border-border">
+          {(["Details", "Capacity"] as const).map((label, i) => (
+            <div
+              key={label}
+              className={`flex-1 px-5 py-3 text-xs font-semibold uppercase tracking-widest text-center transition-colors ${
+                step === i + 1 ? "text-accent border-b-2 border-accent" : "text-muted"
+              }`}
+            >
+              {i + 1}. {label}
+            </div>
+          ))}
+        </div>
 
-        <form onSubmit={handleCreate} className="space-y-5">
-          {/* Name */}
-          <div>
-            <label className="block text-xs font-semibold text-secondary uppercase tracking-widest mb-2">
-              Tournament Name
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Kejuaraan Nasional 2026"
-              className="w-full bg-elevated border border-border rounded-lg px-4 py-2.5 text-sm text-primary placeholder-muted focus:outline-none focus:border-accent transition-colors"
-              autoFocus
-            />
-          </div>
+        <div className="p-6">
+          {step === 1 && (
+            <form onSubmit={handleNextStep} className="space-y-5">
+              <div>
+                <h2 className="text-base font-semibold text-primary mb-1">New Tournament</h2>
+                <p className="text-xs text-secondary">Set a name and choose how many arenas will run simultaneously.</p>
+              </div>
 
-          {/* Arena count */}
-          <div>
-            <label className="block text-xs font-semibold text-secondary uppercase tracking-widest mb-3">
-              Number of Arenas
-            </label>
-            <ArenaSelector value={arenaCount} onChange={setArenaCount} />
-            <p className="mt-2 text-xs text-muted">
-              {arenaCount === 1
-                ? "1 arena — matches run one at a time."
-                : `${arenaCount} arenas — up to ${arenaCount} matches run simultaneously.`}
-            </p>
-          </div>
+              <div>
+                <label className="block text-xs font-semibold text-secondary uppercase tracking-widest mb-2">
+                  Tournament Name
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => { setName(e.target.value); setError(""); }}
+                  placeholder="e.g. Kejuaraan Nasional 2026"
+                  className="w-full bg-elevated border border-border rounded-lg px-4 py-2.5 text-sm text-primary placeholder-muted focus:outline-none focus:border-accent transition-colors"
+                  autoFocus
+                />
+              </div>
 
-          {error && (
-            <p className="text-xs text-danger">{error}</p>
+              <div>
+                <label className="block text-xs font-semibold text-secondary uppercase tracking-widest mb-3">
+                  Number of Arenas
+                </label>
+                <ArenaSelector value={arenaCount} onChange={setArenaCount} />
+                <p className="mt-2 text-xs text-muted">
+                  {arenaCount === 1
+                    ? "1 arena — matches run one at a time."
+                    : `${arenaCount} arenas — up to ${arenaCount} matches simultaneously.`}
+                </p>
+              </div>
+
+              {error && <p className="text-xs text-danger">{error}</p>}
+
+              <div className="flex gap-3 pt-1">
+                <button type="button" onClick={onClose}
+                  className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:bg-elevated transition-colors">
+                  Cancel
+                </button>
+                <button type="submit"
+                  className="flex-1 px-4 py-2.5 rounded-lg bg-accent text-black text-sm font-semibold hover:bg-accent-hover transition-colors">
+                  Next →
+                </button>
+              </div>
+            </form>
           )}
 
-          {/* Actions */}
-          <div className="flex gap-3 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-warn hover:bg-elevated transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex-1 px-4 py-2.5 rounded-lg bg-accent text-black text-sm font-semibold hover:bg-accent-hover transition-colors disabled:opacity-50"
-            >
-              {saving ? "Creating…" : "Create Tournament"}
-            </button>
-          </div>
-        </form>
+          {step === 2 && (
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-base font-semibold text-primary mb-1">Competitor Capacity</h2>
+                <p className="text-xs text-secondary">
+                  Choose how many competitors this tournament will accommodate. Capacity is per-tournament.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                {PRICING_TIERS.map((tier) => (
+                  <TierCard
+                    key={tier.id}
+                    tier={tier}
+                    selected={capacityTierId === tier.id}
+                    onSelect={() => setCapacityTierId(tier.id)}
+                  />
+                ))}
+              </div>
+
+              <p className="text-xs text-muted pt-1">
+                Paid tiers are coming soon — all tiers are currently free during the launch period.
+              </p>
+
+              {error && <p className="text-xs text-danger">{error}</p>}
+
+              <div className="flex gap-3 pt-1">
+                <button type="button" onClick={() => setStep(1)}
+                  className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:bg-elevated transition-colors">
+                  ← Back
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCreate}
+                  disabled={saving}
+                  className="flex-1 px-4 py-2.5 rounded-lg bg-accent text-black text-sm font-semibold hover:bg-accent-hover transition-colors disabled:opacity-50"
+                >
+                  {saving
+                    ? "Creating…"
+                    : selectedTier.priceUsd === 0
+                    ? "Create Tournament"
+                    : `Create — ${formatTierPrice(selectedTier.priceUsd)}`}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

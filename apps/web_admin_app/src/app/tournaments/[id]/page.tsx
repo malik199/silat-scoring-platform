@@ -12,6 +12,7 @@ import {
   isActiveTournament,
   type Tournament,
 } from "@/lib/tournaments";
+import { getPricingTier } from "@/lib/pricing";
 import { subscribeCompetitors, type Competitor } from "@/lib/competitors";
 import {
   subscribeMatches,
@@ -375,6 +376,37 @@ export default function TournamentDetailPage() {
           <p className="text-xs text-muted uppercase tracking-widest font-semibold mb-0.5">Matches</p>
           <p className="text-sm font-semibold text-primary">{matches.length}</p>
         </div>
+        {tournament.competitorCapacity != null && (() => {
+          const consumed  = tournament.slotsConsumed ?? 0;
+          const capacity  = tournament.competitorCapacity!;
+          const pct       = Math.min(100, (consumed / capacity) * 100);
+          const atLimit   = consumed >= capacity;
+          const tierName  = getPricingTier(tournament.capacityTierId ?? "")?.name ?? tournament.capacityTierId;
+          return (
+            <>
+              <div className="w-px h-8 bg-border" />
+              <div className="flex-1 min-w-[140px]">
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="text-xs text-muted uppercase tracking-widest font-semibold">
+                    Competitors · {tierName}
+                  </p>
+                  <p className={`text-xs font-bold ${atLimit ? "text-danger" : "text-secondary"}`}>
+                    {consumed} / {capacity}
+                  </p>
+                </div>
+                <div className="w-full h-1.5 bg-elevated rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${atLimit ? "bg-danger" : "bg-accent"}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                {atLimit && (
+                  <p className="text-[10px] text-danger font-semibold mt-1">Capacity reached — upgrade to add more</p>
+                )}
+              </div>
+            </>
+          );
+        })()}
       </div>
 
       {/* Arena PINs */}

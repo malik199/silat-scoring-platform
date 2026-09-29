@@ -14,6 +14,7 @@ import {
   orderBy,
   documentId,
   serverTimestamp,
+  increment,
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "./firebase";
@@ -217,11 +218,14 @@ export function subscribeCompetitor(
   }, () => cb(null));
 }
 
-export async function addCompetitor(input: CompetitorInput): Promise<string> {
+export async function addCompetitor(input: CompetitorInput, tournamentId?: string): Promise<string> {
   const ref = await addDoc(collection(db, COL), {
     ...input,
     createdAt: serverTimestamp(),
   });
+  if (tournamentId) {
+    await updateDoc(doc(db, "tournaments", tournamentId), { slotsConsumed: increment(1) });
+  }
   return ref.id;
 }
 
@@ -238,6 +242,7 @@ export async function getCompetitorsByIds(ids: string[]): Promise<Competitor[]> 
 
 export async function bulkAddCompetitors(
   inputs: CompetitorInput[],
+  tournamentId?: string,
 ): Promise<void> {
   const CHUNK = 500;
   for (let i = 0; i < inputs.length; i += CHUNK) {
@@ -246,6 +251,9 @@ export async function bulkAddCompetitors(
       batch.set(doc(collection(db, COL)), { ...input, createdAt: serverTimestamp() });
     }
     await batch.commit();
+  }
+  if (tournamentId && inputs.length > 0) {
+    await updateDoc(doc(db, "tournaments", tournamentId), { slotsConsumed: increment(inputs.length) });
   }
 }
 
