@@ -691,6 +691,18 @@ function MatchupBox({
             ⇅
           </button>
         )}
+        {hasMatch && matchupWinnerId === null && p1Slot.competitor && p2Slot.competitor && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onWhoWon(`r${roundIdx}_m${matchupIdx}`, p1Slot.competitor!, p2Slot.competitor!);
+            }}
+            className="text-[10px] font-semibold text-accent bg-accent/10 border border-accent/30 rounded px-2 py-0.5 hover:bg-accent/20 transition-colors z-10"
+          >
+            Who Won?
+          </button>
+        )}
       </div>
       <CompCard
         competitor={p2Slot.competitor}
