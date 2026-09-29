@@ -351,10 +351,11 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
     return subscribeVerificationResponses(runningMatch.id, av.id, setVerificationResponses);
   }, [runningMatch?.id, runningMatch?.activeVerification?.id]);
 
-  // Auto-dismiss 10 s after Dewan accepts (reveals results)
-  const isAccepted = runningMatch?.activeVerification?.accepted === true;
+  // Re-show and restart 10 s countdown each time Dewan reveals (or re-reveals)
+  const revealCount = runningMatch?.activeVerification?.revealCount ?? 0;
   useEffect(() => {
-    if (!isAccepted) return;
+    if (revealCount === 0) return;
+    setVerificationDismissed(false);
     setVerificationCountdown(10);
     const id = setInterval(() => {
       setVerificationCountdown((c) => {
@@ -367,7 +368,7 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
       });
     }, 1000);
     return () => clearInterval(id);
-  }, [isAccepted]);
+  }, [revealCount]);
 
   // Detect new score events by ID — immune to reordering from device-clock skew
   useEffect(() => {
@@ -590,7 +591,7 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
       </div>
 
       {/* ── Verification results popup — only shown after Dewan presses Reveal ── */}
-      {runningMatch.activeVerification?.accepted === true && !verificationDismissed && (() => {
+      {(runningMatch.activeVerification?.revealCount ?? 0) > 0 && !verificationDismissed && (() => {
         const av = runningMatch.activeVerification!;
         const seats = runningMatch.judgeSeats ?? {};
         const verdictColor = (v: string) =>

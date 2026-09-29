@@ -14,6 +14,7 @@ import {
   query,
   where,
   serverTimestamp,
+  increment,
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "./firebase";
@@ -40,8 +41,8 @@ export interface ActiveVerification {
   /** Unique ID for this verification session — changes each time a new one is started */
   id: string;
   type: "drop_takedown" | "protest";
-  /** Set to true by the Dewan to reveal results on the arena screen */
-  accepted?: boolean;
+  /** Incremented each time Dewan reveals results; arena screen re-shows on each increment */
+  revealCount?: number;
 }
 
 export interface Match {
@@ -539,7 +540,7 @@ export async function clearVerification(matchId: string): Promise<void> {
 }
 
 export async function acceptVerification(matchId: string): Promise<void> {
-  await updateDoc(doc(db, COL, matchId), { "activeVerification.accepted": true });
+  await updateDoc(doc(db, COL, matchId), { "activeVerification.revealCount": increment(1) });
 }
 
 export interface VerificationResponse {

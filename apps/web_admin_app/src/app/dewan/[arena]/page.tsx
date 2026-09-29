@@ -769,8 +769,8 @@ export default function DewanPage() {
                         )}
                         <div className="px-4 py-3 border-t border-border bg-surface/50 flex items-center justify-between gap-3">
                           <p className="text-xs text-muted">
-                            {av?.accepted
-                              ? "Results revealed on arena screen. Apply points then close."
+                            {(av?.revealCount ?? 0) > 0
+                              ? "Results revealed. Apply points then close."
                               : verificationResponses.length >= 3
                               ? "All judges responded. Reveal results when ready."
                               : `${verificationResponses.length}/3 judges responded.`}
@@ -781,15 +781,24 @@ export default function DewanPage() {
                               onClick={() => match && clearVerification(match.id)}
                               className="px-4 py-2 rounded-lg border border-danger/40 text-danger text-xs font-bold hover:bg-danger/10 transition-colors"
                             >
-                              {av?.accepted ? "Close" : "Cancel"}
+                              {(av?.revealCount ?? 0) > 0 ? "Close" : "Cancel"}
                             </button>
-                            {verificationResponses.length >= 3 && !av?.accepted && (
+                            {verificationResponses.length >= 3 && (av?.revealCount ?? 0) === 0 && (
                               <button
                                 type="button"
                                 onClick={() => match && acceptVerification(match.id)}
                                 className="px-4 py-2 rounded-lg bg-accent text-black text-xs font-bold hover:bg-accent-hover transition-colors"
                               >
                                 ✓ Reveal Results
+                              </button>
+                            )}
+                            {(av?.revealCount ?? 0) > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => match && acceptVerification(match.id)}
+                                className="px-4 py-2 rounded-lg border border-accent/50 text-accent text-xs font-bold hover:bg-accent/10 transition-colors"
+                              >
+                                ↺ Reveal Again
                               </button>
                             )}
                           </div>
