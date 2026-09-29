@@ -27,7 +27,7 @@ export const PRICING_TIERS: readonly PricingTier[] = [
     maxCompetitors: 50,
     priceUsd:       49,
     description:    "For inter-club and regional events.",
-    stripePriceId:  null,
+    stripePriceId:  "price_1UL5UN2D2WtSzc466UIbfeAq",
   },
   {
     id:             "tier_100",
@@ -35,7 +35,7 @@ export const PRICING_TIERS: readonly PricingTier[] = [
     maxCompetitors: 100,
     priceUsd:       125,
     description:    "For state-level tournaments.",
-    stripePriceId:  null,
+    stripePriceId:  "price_1UL5V62D2WtSzc46ewjzQaYC",
     popular:        true,
   },
   {
@@ -44,7 +44,7 @@ export const PRICING_TIERS: readonly PricingTier[] = [
     maxCompetitors: 250,
     priceUsd:       250,
     description:    "For large regional championships.",
-    stripePriceId:  null,
+    stripePriceId:  "price_1UL5VY2D2WtSzc46TjEbsCqR",
   },
   {
     id:             "tier_500",
@@ -52,7 +52,7 @@ export const PRICING_TIERS: readonly PricingTier[] = [
     maxCompetitors: 500,
     priceUsd:       450,
     description:    "For national federations and major events.",
-    stripePriceId:  null,
+    stripePriceId:  "price_1UL5WN2D2WtSzc46K8FhMeo8",
   },
 ] as const;
 
