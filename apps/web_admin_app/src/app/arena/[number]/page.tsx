@@ -593,7 +593,6 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
       {/* ── Verification results popup — only shown after Dewan presses Reveal ── */}
       {(runningMatch.activeVerification?.revealCount ?? 0) > 0 && !verificationDismissed && (() => {
         const av = runningMatch.activeVerification!;
-        const seats = runningMatch.judgeSeats ?? {};
         const verdictColor = (v: string) =>
           v === "red" ? "#f53a32" : v === "blue" ? "#008dee" : "rgba(255,255,255,0.35)";
         const verdictLabel = (v: string) =>
@@ -614,10 +613,12 @@ export default function ArenaScreenPage({ params }: { params: { number: string }
               {/* J1 / J2 / J3 */}
               <div className="flex justify-center gap-10">
                 {[1, 2, 3].map((seat) => {
-                  const seatData = seats[seat.toString()];
-                  const response = seatData
-                    ? verificationResponses.find((r) => r.judgeId === seatData.uid)
-                    : undefined;
+                  // Use the same judgeOrder as the tap indicators (seats → first-seen fallback).
+                  // If judgeOrder has no entry yet, fall back to positional index.
+                  const judgeId = judgeOrder[seat - 1];
+                  const response = judgeId
+                    ? verificationResponses.find((r) => r.judgeId === judgeId)
+                    : verificationResponses[seat - 1];
                   return (
                     <div key={seat} className="flex flex-col items-center gap-3">
                       <p className="font-bold uppercase tracking-widest" style={{ fontSize: "min(1.6vw, 20px)", color: "rgba(255,255,255,0.35)" }}>
