@@ -19,3 +19,11 @@ env:
     value: silat.virginia@gmail.com
   - variable: GMAIL_PASS
     secret: GMAIL_PASS
+  - variable: NEXT_PUBLIC_APP_URL
+    value: https://silat-scoring-platform--tanding-scoring.us-central1.hosted.app
+  - variable: STRIPE_SECRET_KEY
+    secret: STRIPE_SECRET_KEY
+  - variable: STRIPE_WEBHOOK_SECRET
+    secret: STRIPE_WEBHOOK_SECRET
+  - variable: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+    secret: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
