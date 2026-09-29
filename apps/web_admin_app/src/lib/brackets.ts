@@ -2,6 +2,7 @@ import {
   addDoc,
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -203,6 +204,13 @@ export async function setMatchWinner(
   competitorId: string
 ): Promise<void> {
   await updateDoc(doc(db, COL, bracketId), { [`winners.${winnerKey}`]: competitorId });
+}
+
+export async function clearMatchWinner(
+  bracketId: string,
+  winnerKey: string
+): Promise<void> {
+  await updateDoc(doc(db, COL, bracketId), { [`winners.${winnerKey}`]: deleteField() });
 }
 
 export function buildFeedMap(

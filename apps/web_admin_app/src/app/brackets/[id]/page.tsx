@@ -9,7 +9,7 @@ import { subscribeActiveTournament, type Tournament } from "@/lib/tournaments";
 import { createMatch, subscribeMatches, swapMatchCorners, type Match } from "@/lib/matches";
 import {
   getBracket, renameBracket, deleteBracket, buildRounds, buildFeedMap,
-  updateBracketSeededIds, setMatchWinner,
+  updateBracketSeededIds, setMatchWinner, clearMatchWinner,
   type Bracket, type BracketMatchup, type FeedSource,
 } from "@/lib/brackets";
 
@@ -934,6 +934,27 @@ export default function BracketViewPage() {
     setWinnerDialog(null);
   }
 
+  async function handleUndoLastWinner() {
+    if (!bracket) return;
+    const entries = Object.keys(bracket.winners ?? {});
+    if (entries.length === 0) return;
+    // Pick the key with the highest round; break ties by highest matchup index
+    const lastKey = entries.sort((a, b) => {
+      const [rA, mA] = a.match(/r(\d+)_m(\d+)/)!.slice(1).map(Number);
+      const [rB, mB] = b.match(/r(\d+)_m(\d+)/)!.slice(1).map(Number);
+      return rA !== rB ? rA - rB : mA - mB;
+    }).pop()!;
+    const winnerName = cMap.get(bracket.winners![lastKey])?.firstName ?? "that result";
+    if (!confirm(`Undo the result for match ${lastKey}? This will remove "${winnerName}" as winner and may clear later rounds that depended on it.`)) return;
+    await clearMatchWinner(bracket.id, lastKey);
+    setBracket((b) => {
+      if (!b) return b;
+      const next = { ...(b.winners ?? {}) };
+      delete next[lastKey];
+      return { ...b, winners: next };
+    });
+  }
+
   const svgLines = useMemo(() => {
     if (!rounds.length) return null;
     const els: React.ReactNode[] = [];
@@ -1069,6 +1090,12 @@ export default function BracketViewPage() {
               className="px-3 py-1.5 rounded-lg border border-danger/40 text-xs font-semibold text-danger hover:bg-danger/10 transition-colors">
               − Remove Competitor
             </button>
+            {Object.keys(winners).length > 0 && (
+              <button type="button" onClick={handleUndoLastWinner}
+                className="px-3 py-1.5 rounded-lg border border-warn/40 text-xs font-semibold text-warn hover:bg-warn/10 transition-colors">
+                ↩ Undo Last Result
+              </button>
+            )}
             <button type="button" onClick={() => setConfirmDelete(true)}
               className="px-3 py-1.5 rounded-lg border border-danger/40 text-xs font-semibold text-danger hover:bg-danger/10 transition-colors">
               Delete Bracket
