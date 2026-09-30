@@ -9,6 +9,9 @@ export async function POST(req: NextRequest) {
   try {
     const stripeKey = process.env.STRIPE_SECRET_KEY;
     if (!stripeKey) return NextResponse.json({ error: "Stripe not configured" }, { status: 500 });
+    if (!stripeKey.startsWith("sk_live_") && !stripeKey.startsWith("sk_test_")) {
+      return NextResponse.json({ error: `Bad key format: ${stripeKey.slice(0, 10)}...${stripeKey.slice(-4)}` }, { status: 500 });
+    }
     const stripe = new Stripe(stripeKey, { httpClient: Stripe.createNodeHttpClient() });
     // Verify caller is authenticated
     const token = req.headers.get("Authorization")?.replace("Bearer ", "");
