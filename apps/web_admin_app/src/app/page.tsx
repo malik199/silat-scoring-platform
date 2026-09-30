@@ -56,6 +56,7 @@ const PHOTOS = [
   "PXL_20260926_193454366.jpg",
   "PXL_20260926_193457831.jpg",
   "PXL_20260926_210841335.jpg",
+  "PXL_20260926_174329946.jpg",
   "WhatsApp Image 2026-08-08 at 09.32.37.jpeg",
   "WhatsApp Image 2026-08-08 at 09.32.52.jpeg",
   "WhatsApp Image 2026-08-08 at 09.32.54.jpeg",
