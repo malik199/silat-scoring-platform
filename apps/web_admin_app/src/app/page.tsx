@@ -3,6 +3,7 @@
 import { useState, FormEvent } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { PRICING_TIERS } from "@/lib/pricing";
 
 const FEATURES = [
   {
@@ -331,71 +332,80 @@ export default function LandingPage() {
       </section>
 
       {/* ── Pricing ── */}
-      <section className="max-w-5xl mx-auto px-6 pb-28">
+      <section className="max-w-6xl mx-auto px-6 pb-28">
         <div className="text-center mb-14">
           <h2 className="text-3xl sm:text-4xl font-black mb-3">Simple, transparent pricing</h2>
-          <p className="text-secondary text-sm">Start free. Scale when you grow.</p>
+          <p className="text-secondary text-sm">One-time payment per tournament. No subscriptions.</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-stretch">
-
-          {/* Free tier */}
-          <div className="relative bg-surface rounded-2xl p-8 border border-accent/50 ring-1 ring-accent/10 flex flex-col">
-            <div className="absolute -top-3.5 left-8 px-3 py-1 rounded-full bg-accent text-black text-xs font-black">
-              Start here
-            </div>
-            <div className="mb-5 pt-1">
-              <p className="text-xl font-black text-primary">Free</p>
-              <p className="text-xs text-muted mt-0.5">Up to 10 competitors</p>
-            </div>
-            <div className="mb-6">
-              <span className="text-5xl font-black text-accent">$0</span>
+        {/* Free tier — full-width compact banner */}
+        <div className="relative bg-surface border border-accent/50 ring-1 ring-accent/10 rounded-2xl px-8 py-6 mb-6 flex flex-col sm:flex-row sm:items-center gap-5">
+          <div className="absolute -top-3.5 left-8 px-3 py-1 rounded-full bg-accent text-black text-xs font-black">
+            Start here
+          </div>
+          <div className="flex-1 pt-1">
+            <p className="text-xl font-black text-primary mb-0.5">Free</p>
+            <p className="text-sm text-secondary">Up to 10 competitors · All features included · No credit card required</p>
+          </div>
+          <div className="flex items-center gap-6 flex-shrink-0">
+            <div>
+              <span className="text-4xl font-black text-accent">$0</span>
               <span className="text-xs text-muted ml-1">/ forever</span>
             </div>
-            <ul className="space-y-2 mb-8 flex-1">
-              {INCLUDED.map((item) => (
-                <li key={item} className="flex items-center gap-2 text-sm text-secondary">
-                  <span className="text-accent font-bold text-xs">✓</span>
-                  {item}
-                </li>
-              ))}
-            </ul>
             <Link
               href="/register"
-              className="block w-full text-center py-3 rounded-xl bg-accent text-black text-sm font-bold hover:bg-accent-hover transition-colors"
+              className="px-6 py-2.5 rounded-xl bg-accent text-black text-sm font-bold hover:bg-accent-hover transition-colors whitespace-nowrap"
             >
               Get started free
             </Link>
           </div>
-
-          {/* Contact for pricing */}
-          <div className="bg-surface rounded-2xl p-8 border border-border flex flex-col justify-between">
-            <div>
-              <div className="w-12 h-12 rounded-xl bg-elevated border border-border flex items-center justify-center text-2xl mb-5">
-                🏆
-              </div>
-              <p className="text-xl font-black text-primary mb-2">More than 10 competitors?</p>
-              <p className="text-sm text-secondary leading-relaxed mb-6">
-                We offer custom plans for clubs, regional federations, and national championships.
-                Tell us about your event and we&apos;ll find the right fit.
-              </p>
-              <ul className="space-y-2 mb-8">
-                {["Unlimited competitors", "Priority support", "Custom setup assistance", "Volume pricing"].map((item) => (
-                  <li key={item} className="flex items-center gap-2 text-sm text-secondary">
-                    <span className="text-accent font-bold text-xs">✓</span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <button
-              onClick={() => setContactOpen(true)}
-              className="w-full py-3 rounded-xl border border-accent text-accent text-sm font-bold hover:bg-accent/5 transition-colors"
-            >
-              Contact for Pricing →
-            </button>
-          </div>
         </div>
+
+        {/* Paid tiers */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {PRICING_TIERS.filter((t) => t.priceUsd > 0).map((tier) => (
+            <div
+              key={tier.id}
+              className={`relative bg-surface rounded-2xl p-6 border flex flex-col ${
+                tier.popular
+                  ? "border-accent/50 ring-1 ring-accent/10"
+                  : "border-border"
+              }`}
+            >
+              {tier.popular && (
+                <div className="absolute -top-3 left-5 px-2.5 py-1 rounded-full bg-accent text-black text-xs font-black">
+                  Most popular
+                </div>
+              )}
+              <div className="mb-4 pt-1">
+                <p className="font-black text-primary text-base">{tier.name}</p>
+                <p className="text-xs text-muted mt-0.5">Up to {tier.maxCompetitors} competitors</p>
+              </div>
+              <div className="mb-3">
+                <span className="text-3xl font-black text-primary">${tier.priceUsd}</span>
+                <span className="text-xs text-muted ml-1">/ tournament</span>
+              </div>
+              <p className="text-xs text-secondary leading-relaxed mb-6 flex-1">{tier.description}</p>
+              <Link
+                href="/register"
+                className={`block text-center py-2.5 rounded-xl text-sm font-bold transition-colors ${
+                  tier.popular
+                    ? "bg-accent text-black hover:bg-accent-hover"
+                    : "border border-border text-secondary hover:text-primary hover:border-primary/40"
+                }`}
+              >
+                Get started
+              </Link>
+            </div>
+          ))}
+        </div>
+
+        <p className="text-center text-xs text-muted mt-6">
+          Need a custom plan for a national federation or recurring events?{" "}
+          <button onClick={() => setContactOpen(true)} className="text-accent hover:underline">
+            Contact us →
+          </button>
+        </p>
       </section>
 
       {/* Contact modal */}
