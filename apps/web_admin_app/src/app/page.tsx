@@ -244,13 +244,19 @@ export default function LandingPage() {
   const [lightboxIdx,  setLightboxIdx]  = useState<number | null>(null);
 
   return (
-    <div className="min-h-screen bg-base text-primary">
+    <div className="min-h-screen bg-base text-primary" style={{ scrollBehavior: "smooth" }}>
 
       {/* ── Nav ── */}
       <nav className="sticky top-0 z-50 border-b border-border/60 bg-base/80 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <img src="/SilatScore.svg" alt="Silat Score" className="h-8 w-auto" />
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-6">
+            <div className="hidden sm:flex items-center gap-5">
+              <a href="#about"   className="text-sm text-secondary hover:text-primary transition-colors">About</a>
+              <a href="#gallery" className="text-sm text-secondary hover:text-primary transition-colors">Gallery</a>
+              <a href="#pricing" className="text-sm text-secondary hover:text-primary transition-colors">Pricing</a>
+            </div>
+            <div className="flex items-center gap-3">
             {!loading && user ? (
               <Link
                 href="/dashboard"
@@ -271,6 +277,7 @@ export default function LandingPage() {
                 </Link>
               </>
             )}
+            </div>
           </div>
         </div>
       </nav>
@@ -360,7 +367,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── Video ── */}
-      <section className="max-w-4xl mx-auto px-6 pb-20">
+      <section id="about" className="max-w-4xl mx-auto px-6 pb-20">
         <div className="text-center mb-8">
           <h2 className="text-2xl sm:text-3xl font-black mb-3">Modern tournaments. Made simple.</h2>
           <p className="text-secondary max-w-2xl mx-auto leading-relaxed text-sm">
@@ -405,7 +412,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── Photo Gallery ── */}
-      <section className="max-w-6xl mx-auto px-6 pb-20">
+      <section id="gallery" className="max-w-6xl mx-auto px-6 pb-20">
         <div className="text-center mb-10">
           <h2 className="text-2xl sm:text-3xl font-black mb-2">See it in action</h2>
           <p className="text-secondary text-sm">Real tournaments powered by Silat Score</p>
@@ -430,7 +437,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── Pricing ── */}
-      <section className="max-w-6xl mx-auto px-6 pb-28">
+      <section id="pricing" className="max-w-6xl mx-auto px-6 pb-28">
         <div className="text-center mb-14">
           <h2 className="text-3xl sm:text-4xl font-black mb-3">Simple, transparent pricing</h2>
           <p className="text-secondary text-sm">One-time payment per tournament. No subscriptions.</p>
