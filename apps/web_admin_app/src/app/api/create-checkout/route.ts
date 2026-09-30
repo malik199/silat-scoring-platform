@@ -50,11 +50,14 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ url: session.url });
-  } catch (e) {
-    console.error("create-checkout error:", e);
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Internal server error" },
-      { status: 500 }
-    );
+  } catch (e: unknown) {
+    const stripeErr = e as { message?: string; type?: string; code?: string; cause?: { code?: string; message?: string } };
+    const detail = {
+      message: stripeErr?.message ?? "Internal server error",
+      type:    stripeErr?.type,
+      code:    stripeErr?.code ?? (stripeErr?.cause as { code?: string } | undefined)?.code,
+    };
+    console.error("create-checkout error:", detail);
+    return NextResponse.json({ error: `${detail.message} [${detail.type ?? "?"} / ${detail.code ?? "?"}]` }, { status: 500 });
   }
 }
