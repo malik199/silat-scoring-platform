@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, useEffect, useCallback, FormEvent } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { PRICING_TIERS } from "@/lib/pricing";
@@ -34,6 +34,77 @@ const INCLUDED = [
   "Verification system",
   "Violation tracking",
 ];
+
+const PHOTOS = [
+  "PXL_20260725_165817652.jpg",
+  "PXL_20260725_165822480.jpg",
+  "PXL_20260725_174959272.jpg",
+  "PXL_20260725_213201410.jpg",
+  "PXL_20260725_213208259.jpg",
+  "PXL_20260926_174009149.jpg",
+  "PXL_20260926_174016730.jpg",
+  "PXL_20260926_174047061.jpg",
+  "PXL_20260926_174050199.jpg",
+  "PXL_20260926_174052961.jpg",
+  "PXL_20260926_174104971.jpg",
+  "PXL_20260926_174111373.jpg",
+  "PXL_20260926_180525747.jpg",
+  "PXL_20260926_181606659.jpg",
+  "PXL_20260926_181617669.jpg",
+  "PXL_20260926_183855325.jpg",
+  "PXL_20260926_190606014.jpg",
+  "PXL_20260926_193454366.jpg",
+  "PXL_20260926_193457831.jpg",
+  "PXL_20260926_210841335.jpg",
+  "WhatsApp Image 2026-08-08 at 09.32.37.jpeg",
+  "WhatsApp Image 2026-08-08 at 09.32.52.jpeg",
+  "WhatsApp Image 2026-08-08 at 09.32.54.jpeg",
+];
+
+// ─── Lightbox ─────────────────────────────────────────────────────────────────
+
+function Lightbox({ photos, index, onClose }: { photos: string[]; index: number; onClose: () => void }) {
+  const [current, setCurrent] = useState(index);
+
+  const prev = useCallback(() => setCurrent((i) => (i - 1 + photos.length) % photos.length), [photos.length]);
+  const next = useCallback(() => setCurrent((i) => (i + 1) % photos.length), [photos.length]);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "ArrowLeft")  prev();
+      if (e.key === "ArrowRight") next();
+      if (e.key === "Escape")     onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [prev, next, onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm" onClick={onClose}>
+      <button onClick={(e) => { e.stopPropagation(); prev(); }}
+        className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white text-xl transition-colors">
+        ‹
+      </button>
+      <img
+        src={`/photos/${encodeURIComponent(photos[current])}`}
+        alt=""
+        onClick={(e) => e.stopPropagation()}
+        className="max-h-[85vh] max-w-[90vw] rounded-xl object-contain shadow-2xl"
+      />
+      <button onClick={(e) => { e.stopPropagation(); next(); }}
+        className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white text-xl transition-colors">
+        ›
+      </button>
+      <button onClick={onClose}
+        className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white text-sm transition-colors">
+        ✕
+      </button>
+      <p className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs text-white/50">
+        {current + 1} / {photos.length}
+      </p>
+    </div>
+  );
+}
 
 // ─── Contact modal ────────────────────────────────────────────────────────────
 
@@ -168,7 +239,8 @@ function ContactModal({ onClose }: { onClose: () => void }) {
 
 export default function LandingPage() {
   const { user, loading } = useAuth();
-  const [contactOpen, setContactOpen] = useState(false);
+  const [contactOpen,  setContactOpen]  = useState(false);
+  const [lightboxIdx,  setLightboxIdx]  = useState<number | null>(null);
 
   return (
     <div className="min-h-screen bg-base text-primary">
@@ -331,6 +403,31 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── Photo Gallery ── */}
+      <section className="max-w-6xl mx-auto px-6 pb-20">
+        <div className="text-center mb-10">
+          <h2 className="text-2xl sm:text-3xl font-black mb-2">See it in action</h2>
+          <p className="text-secondary text-sm">Real tournaments powered by Silat Score</p>
+        </div>
+        <div className="columns-2 sm:columns-3 lg:columns-4 gap-3">
+          {PHOTOS.map((photo, i) => (
+            <div
+              key={photo}
+              className="mb-3 break-inside-avoid cursor-pointer group relative overflow-hidden rounded-xl"
+              onClick={() => setLightboxIdx(i)}
+            >
+              <img
+                src={`/photos/${encodeURIComponent(photo)}`}
+                alt="Tournament photo"
+                loading="lazy"
+                className="w-full object-cover rounded-xl group-hover:scale-105 transition-transform duration-300"
+              />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-xl" />
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* ── Pricing ── */}
       <section className="max-w-6xl mx-auto px-6 pb-28">
         <div className="text-center mb-14">
@@ -410,6 +507,11 @@ export default function LandingPage() {
 
       {/* Contact modal */}
       {contactOpen && <ContactModal onClose={() => setContactOpen(false)} />}
+
+      {/* Lightbox */}
+      {lightboxIdx !== null && (
+        <Lightbox photos={PHOTOS} index={lightboxIdx} onClose={() => setLightboxIdx(null)} />
+      )}
 
       {/* ── Footer ── */}
       <footer className="border-t border-border py-8 text-center text-xs text-muted">
