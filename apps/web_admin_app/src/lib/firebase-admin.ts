@@ -6,13 +6,13 @@ function initAdmin() {
   if (getApps().length > 0) return;
 
   const serviceAccount = process.env.ADMIN_SERVICE_ACCOUNT_KEY;
-  if (!serviceAccount) {
-    throw new Error("ADMIN_SERVICE_ACCOUNT_KEY environment variable is not set.");
+  if (serviceAccount) {
+    // Local dev: explicit service account JSON from .env.local
+    initializeApp({ credential: cert(JSON.parse(serviceAccount)) });
+  } else {
+    // Firebase App Hosting: use Application Default Credentials automatically
+    initializeApp();
   }
-
-  initializeApp({
-    credential: cert(JSON.parse(serviceAccount)),
-  });
 }
 
 export function adminAuth() {
