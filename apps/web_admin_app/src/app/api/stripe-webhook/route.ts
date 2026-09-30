@@ -5,8 +5,6 @@ import { getPricingTier } from "@/lib/pricing";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
-// Required by Next.js to read the raw body for Stripe signature verification
-export const config = { api: { bodyParser: false } };
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
