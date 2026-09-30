@@ -246,6 +246,14 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-base text-primary" style={{ scrollBehavior: "smooth" }}>
 
+      {/* ── Tutorial banner ── */}
+      <div className="w-full bg-accent/10 border-b border-accent/20 py-2 px-4 text-center">
+        <span className="inline-flex items-center gap-2 text-xs font-medium text-accent">
+          <span>🎬</span>
+          <span>Coming soon — video tutorial of the system</span>
+        </span>
+      </div>
+
       {/* ── Nav ── */}
       <nav className="sticky top-0 z-50 border-b border-border/60 bg-base/80 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
