@@ -9,6 +9,7 @@ import {
   type UserProfile, type AdminTournament,
 } from "@/lib/admin";
 import { TIERS, type TierId } from "@/lib/tiers";
+import { getPricingTier } from "@/lib/pricing";
 
 // ─── Tier badge ───────────────────────────────────────────────────────────────
 
@@ -121,6 +122,12 @@ export default function SuperAdminPage() {
   const paidUsers   = users.filter((u) => u.tier !== "free").length;
   const tierCounts  = TIERS.reduce((acc, t) => ({ ...acc, [t.id]: users.filter((u) => u.tier === t.id).length }), {} as Record<TierId, number>);
 
+  // Revenue from paid tournaments across all expanded users
+  const totalRevenue = Object.values(extra).flatMap((ex) => ex.tournaments).reduce((sum, t) => {
+    if (t.paymentStatus !== "paid" || !t.capacityTierId) return sum;
+    return sum + (getPricingTier(t.capacityTierId)?.priceUsd ?? 0);
+  }, 0);
+
   function formatDate(createdAt: unknown): string {
     if (!createdAt) return "—";
     const ts = createdAt as { seconds?: number };
@@ -157,9 +164,10 @@ export default function SuperAdminPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
         <StatCard label="Total Users" value={totalUsers} />
-        <StatCard label="Paid" value={paidUsers} accent />
+        <StatCard label="Paid Users" value={paidUsers} accent />
+        <StatCard label="Revenue" value={`$${totalRevenue}`} accent />
         {TIERS.map((t) => (
           <StatCard key={t.id} label={t.name} value={tierCounts[t.id] ?? 0} />
         ))}
@@ -309,8 +317,19 @@ export default function SuperAdminPage() {
                             ex?.tournaments.map((t) => (
                               <div key={t.id}>
                                 {/* Tournament header */}
-                                <div className="flex items-center gap-3 mb-2">
+                                <div className="flex items-center gap-3 mb-2 flex-wrap">
                                   <p className="text-xs font-semibold uppercase tracking-widest text-muted">🏆 {t.name}</p>
+                                  {/* Payment badge */}
+                                  {t.paymentStatus === "paid" && (
+                                    <span className="text-xs px-2 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/30 font-semibold">
+                                      ✓ Paid · {getPricingTier(t.capacityTierId ?? "")?.name} · ${getPricingTier(t.capacityTierId ?? "")?.priceUsd}
+                                    </span>
+                                  )}
+                                  {t.paymentStatus === "pending_payment" && (
+                                    <span className="text-xs px-2 py-0.5 rounded-full bg-warn/10 text-warn border border-warn/30 font-semibold">
+                                      ⏳ Pending payment · {getPricingTier(t.capacityTierId ?? "")?.name}
+                                    </span>
+                                  )}
                                   <a
                                     href={`/matches/public/${t.id}`}
                                     target="_blank"
@@ -369,7 +388,7 @@ export default function SuperAdminPage() {
 
 // ─── Stat card ────────────────────────────────────────────────────────────────
 
-function StatCard({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
+function StatCard({ label, value, accent }: { label: string; value: number | string; accent?: boolean }) {
   return (
     <div className="bg-surface border border-border rounded-xl px-4 py-3">
       <p className="text-xs font-semibold uppercase tracking-widest text-muted">{label}</p>

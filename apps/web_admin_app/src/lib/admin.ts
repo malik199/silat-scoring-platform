@@ -41,6 +41,9 @@ export interface AdminMatchRow {
 export interface AdminTournament {
   id: string;
   name: string;
+  paymentStatus: string;
+  capacityTierId: string | null;
+  paidAt: string | null;
   matches: AdminMatchRow[];
 }
 
@@ -50,7 +53,16 @@ export async function getUserTournaments(organiserId: string): Promise<AdminTour
     getDocs(query(collection(db, "competitors"), where("organiserId", "==", organiserId))),
   ]);
 
-  const tours = tourSnap.docs.map((d) => ({ id: d.id, name: (d.data().name as string) || "Untitled" }));
+  const tours = tourSnap.docs.map((d) => {
+    const data = d.data();
+    return {
+      id: d.id,
+      name: (data.name as string) || "Untitled",
+      paymentStatus: (data.paymentStatus as string) ?? "free",
+      capacityTierId: (data.capacityTierId as string | null) ?? null,
+      paidAt: (data.paidAt as string | null) ?? null,
+    };
+  });
   const compMap = new Map(tourSnap.docs.length === 0 ? [] : compSnap.docs.map((d) => {
     const data = d.data() as { firstName: string; lastName: string };
     return [d.id, `${data.firstName} ${data.lastName}`] as [string, string];
@@ -65,6 +77,9 @@ export async function getUserTournaments(organiserId: string): Promise<AdminTour
   return tours.map((t, i) => ({
     id: t.id,
     name: t.name,
+    paymentStatus: t.paymentStatus,
+    capacityTierId: t.capacityTierId,
+    paidAt: t.paidAt,
     matches: matchSnaps[i].docs
       .map((d) => {
         const data = d.data() as { redCornerCompetitorId: string; blueCornerCompetitorId: string; arenaNumber: number; status: string; order: number };

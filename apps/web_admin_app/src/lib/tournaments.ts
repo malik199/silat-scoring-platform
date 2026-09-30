@@ -139,7 +139,7 @@ export async function createTournament(input: CreateTournamentInput): Promise<st
     endDate: "",
     capacityTierId:      input.capacityTierId,
     competitorCapacity:  tier?.maxCompetitors ?? null,
-    paymentStatus:       "free" satisfies PaymentStatus,
+    paymentStatus:       (tier && tier.priceUsd > 0 ? "pending_payment" : "free") satisfies PaymentStatus,
     slotsConsumed:       0,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
