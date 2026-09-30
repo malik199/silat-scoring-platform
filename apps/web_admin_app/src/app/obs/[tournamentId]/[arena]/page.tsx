@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { collection, doc, getDoc, onSnapshot, query, where } from "firebase/firestore";
-import { Teko, Inter } from "next/font/google";
 import { db } from "@/lib/firebase";
 import {
   subscribeScoreEvents,
@@ -18,8 +17,8 @@ import {
 } from "@/lib/matches";
 import { subscribeCompetitor, type Competitor } from "@/lib/competitors";
 
-const teko  = Teko ({ subsets: ["latin"], weight: ["400", "500", "600", "700"], display: "swap" });
-const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600"],       display: "swap" });
+const tekoFamily  = "'Teko', sans-serif";
+const interFamily = "'Inter', system-ui, sans-serif";
 
 export default function OBSPage() {
   const { tournamentId, arena } = useParams<{ tournamentId: string; arena: string }>();
@@ -40,6 +39,14 @@ export default function OBSPage() {
       document.body.style.background = "";
       document.documentElement.style.background = "";
     };
+  }, []);
+
+  useEffect(() => {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "https://fonts.googleapis.com/css2?family=Teko:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap";
+    document.head.appendChild(link);
+    return () => { document.head.removeChild(link); };
   }, []);
 
   useEffect(() => {
@@ -104,8 +111,8 @@ export default function OBSPage() {
 
   return (
     <div
-      className={`w-screen h-screen ${teko.className}`}
-      style={{ background: "transparent", userSelect: "none" }}
+      className="w-screen h-screen"
+      style={{ background: "transparent", userSelect: "none", fontFamily: tekoFamily }}
     >
       {/* Outer padding — bar floats off all screen edges */}
       <div style={{
@@ -158,7 +165,7 @@ export default function OBSPage() {
               color: "rgba(255,255,255,0.52)", fontWeight: 500, fontSize: "0.75vw",
               textTransform: "uppercase", letterSpacing: "0.1em",
               overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-              lineHeight: 1, fontFamily: inter.style.fontFamily,
+              lineHeight: 1, fontFamily: interFamily,
             }}>
               {redSub}
             </div>
@@ -251,7 +258,7 @@ export default function OBSPage() {
               color: "rgba(255,255,255,0.52)", fontWeight: 500, fontSize: "0.75vw",
               textTransform: "uppercase", letterSpacing: "0.1em",
               overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-              lineHeight: 1, fontFamily: inter.style.fontFamily, width: "100%", textAlign: "right",
+              lineHeight: 1, fontFamily: interFamily, width: "100%", textAlign: "right",
             }}>
               {blueSub}
             </div>
