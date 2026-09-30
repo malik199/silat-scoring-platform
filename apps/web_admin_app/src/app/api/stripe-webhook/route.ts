@@ -3,7 +3,9 @@ import Stripe from "stripe";
 import { adminDb } from "@/lib/firebase-admin";
 import { getPricingTier } from "@/lib/pricing";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+export const runtime = "nodejs";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "");
 
 
 export async function POST(req: NextRequest) {
