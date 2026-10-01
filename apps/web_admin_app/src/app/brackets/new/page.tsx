@@ -11,6 +11,7 @@ import {
   type Competitor,
   type ExperienceLevel,
 } from "@/lib/competitors";
+import { subscribeTournamentRoster } from "@/lib/tournamentEntries";
 import { shuffleArray, padToPowerOfTwo, createBracket, subscribeBrackets, type Bracket } from "@/lib/brackets";
 
 // ─── Experience badge ─────────────────────────────────────────────────────────
@@ -112,9 +113,10 @@ const COLS = "grid-cols-[40px_1fr_120px_70px_70px_80px_1fr_1fr_110px]";
 export default function NewBracketPage() {
   const { user } = useAuth();
   const router = useRouter();
-  const [tournament,  setTournament]  = useState<Tournament | null | undefined>(undefined);
-  const [competitors, setCompetitors] = useState<Competitor[]>([]);
-  const [brackets,    setBrackets]    = useState<Bracket[]>([]);
+  const [tournament,    setTournament]    = useState<Tournament | null | undefined>(undefined);
+  const [competitors,   setCompetitors]   = useState<Competitor[]>([]);
+  const [rosterIds,     setRosterIds]     = useState<Set<string> | null>(null);
+  const [brackets,      setBrackets]      = useState<Bracket[]>([]);
   const [loading,     setLoading]     = useState(true);
   const [selected,    setSelected]    = useState<Set<string>>(new Set());
   const [sortKey,     setSortKey]     = useState<SortKey>("name");
@@ -141,8 +143,12 @@ export default function NewBracketPage() {
   }, [user]);
 
   useEffect(() => {
-    if (!tournament?.id) { setBrackets([]); return; }
-    return subscribeBrackets(tournament.id, setBrackets);
+    if (!tournament?.id) { setRosterIds(null); setBrackets([]); return; }
+    const unsubRoster = subscribeTournamentRoster(tournament.id, (entries) => {
+      setRosterIds(new Set(entries.map((e) => e.competitorId)));
+    });
+    const unsubBrackets = subscribeBrackets(tournament.id, setBrackets);
+    return () => { unsubRoster(); unsubBrackets(); };
   }, [tournament?.id]);
 
   function handleSort(key: SortKey) {
@@ -154,10 +160,16 @@ export default function NewBracketPage() {
     }
   }
 
+  // Only show competitors enrolled in the active tournament
+  const tournamentCompetitors = useMemo(
+    () => rosterIds ? competitors.filter((c) => rosterIds.has(c.id)) : [],
+    [competitors, rosterIds]
+  );
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     const cat = AGE_CATS.find((a) => a.key === ageCat);
-    return competitors.filter((c) => {
+    return tournamentCompetitors.filter((c) => {
       if (genderFilter !== "all" && c.gender !== genderFilter) return false;
       if (cat && ageCat !== "all") {
         const age = getAgeYears(c.dateOfBirth);
@@ -167,7 +179,7 @@ export default function NewBracketPage() {
           !c.country.toLowerCase().includes(q) && !c.schoolName.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [competitors, search, genderFilter, ageCat]);
+  }, [tournamentCompetitors, search, genderFilter, ageCat]);
 
   const sorted = useMemo(
     () => sortCompetitors(filtered, sortKey, sortDir),
@@ -248,7 +260,7 @@ export default function NewBracketPage() {
             ))}
           </div>
           <p className="text-xs text-muted hidden sm:block">
-            {loading ? "" : `${filtered.length} of ${competitors.length} competitor${competitors.length !== 1 ? "s" : ""}`}
+            {loading ? "" : `${filtered.length} of ${tournamentCompetitors.length} competitor${tournamentCompetitors.length !== 1 ? "s" : ""} in this tournament`}
           </p>
         </div>
         <div className="flex rounded-lg overflow-hidden border border-border text-sm font-semibold w-fit">
