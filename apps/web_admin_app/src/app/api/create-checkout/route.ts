@@ -53,6 +53,9 @@ export async function POST(req: NextRequest) {
       "metadata[tournamentId]": tournamentId,
       "metadata[tierId]":       tierId,
       "metadata[organiserId]":  organiserId,
+      "payment_intent_data[description]": `Silat Score – ${tier.name} Package (up to ${tier.maxCompetitors} competitors)`,
+      "payment_intent_data[metadata][tournamentId]": tournamentId,
+      "payment_intent_data[metadata][tierId]":       tierId,
     });
 
     const stripeRes = await fetch("https://api.stripe.com/v1/checkout/sessions", {
