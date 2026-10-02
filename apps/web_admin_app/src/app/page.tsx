@@ -269,6 +269,7 @@ export default function LandingPage() {
               <a href="#about"   className="text-sm text-secondary hover:text-primary transition-colors">About</a>
               <a href="#gallery" className="text-sm text-secondary hover:text-primary transition-colors">Gallery</a>
               <a href="#pricing" className="text-sm text-secondary hover:text-primary transition-colors">Pricing</a>
+              <Link href="/tutorial" className="text-sm text-secondary hover:text-primary transition-colors">Tutorial</Link>
             </div>
             <div className="flex items-center gap-3">
             {!loading && user ? (
