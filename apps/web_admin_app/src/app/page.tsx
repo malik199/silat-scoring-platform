@@ -446,11 +446,11 @@ export default function LandingPage() {
               </li>
               <li className="flex gap-3">
                 <span className="text-accent font-bold shrink-0">1</span>
-                <span>Device for the Dewan operator (browser — can share the admin laptop)</span>
+                <span>Laptop or tablet for the Dewan operator (browser — can share the same device as admin)</span>
               </li>
               <li className="flex gap-3">
                 <span className="text-accent font-bold shrink-0">1</span>
-                <span>Device for the Timekeeper (browser)</span>
+                <span>Phone for the Timekeeper — Android or iOS</span>
               </li>
             </ul>
           </div>
@@ -467,7 +467,7 @@ export default function LandingPage() {
               </li>
               <li className="flex gap-3">
                 <span className="text-accent font-bold shrink-0">1</span>
-                <span>Dewan operator login</span>
+                <span>Dewan operator login (can share the admin login if needed)</span>
               </li>
               <li className="flex gap-3">
                 <span className="text-accent font-bold shrink-0">1</span>
