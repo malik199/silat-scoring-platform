@@ -426,6 +426,58 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── Requirements ── */}
+      <section className="max-w-4xl mx-auto px-6 pb-20">
+        <div className="text-center mb-10">
+          <h2 className="text-2xl sm:text-3xl font-black mb-2">What you&apos;ll need</h2>
+          <p className="text-secondary text-sm">Everything required to run a tournament</p>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-6">
+          <div className="rounded-2xl border border-border bg-surface p-6">
+            <h3 className="font-bold text-primary mb-4 text-lg">Devices</h3>
+            <ul className="space-y-3 text-sm text-secondary">
+              <li className="flex gap-3">
+                <span className="text-accent font-bold shrink-0">2–3</span>
+                <span>Phones for judges — use your personal Android or iOS devices, no special hardware needed</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="text-accent font-bold shrink-0">1</span>
+                <span>Laptop or tablet for the admin panel (any browser)</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="text-accent font-bold shrink-0">1</span>
+                <span>Device for the Dewan operator (browser — can share the admin laptop)</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="text-accent font-bold shrink-0">1</span>
+                <span>Device for the Timekeeper (browser)</span>
+              </li>
+            </ul>
+          </div>
+          <div className="rounded-2xl border border-border bg-surface p-6">
+            <h3 className="font-bold text-primary mb-4 text-lg">Accounts</h3>
+            <ul className="space-y-3 text-sm text-secondary">
+              <li className="flex gap-3">
+                <span className="text-accent font-bold shrink-0">1</span>
+                <span>Organizer account (admin login)</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="text-accent font-bold shrink-0">2–3</span>
+                <span>Judge logins — one per judge phone, set up before the tournament</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="text-accent font-bold shrink-0">1</span>
+                <span>Dewan operator login</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="text-accent font-bold shrink-0">1</span>
+                <span>Timekeeper login</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
       {/* ── Photo Gallery ── */}
       <section id="gallery" className="max-w-6xl mx-auto px-6 pb-20">
         <div className="text-center mb-10">
