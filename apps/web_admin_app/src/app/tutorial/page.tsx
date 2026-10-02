@@ -23,7 +23,7 @@ export default function TutorialPage() {
         <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
           <iframe
             className="absolute inset-0 w-full h-full rounded-xl border border-border"
-            src="https://www.youtube.com/embed/YVsdq2xJE4Q"
+            src="https://www.youtube.com/embed/hEEpHORzJR8"
             title="Silat Score Tutorial"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen

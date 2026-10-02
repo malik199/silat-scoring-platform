@@ -248,7 +248,7 @@ export default function LandingPage() {
 
       {/* ── Tutorial banner ── */}
       <a
-        href="https://www.youtube.com/watch?v=YVsdq2xJE4Q"
+        href="https://youtu.be/hEEpHORzJR8"
         target="_blank"
         rel="noopener noreferrer"
         className="w-full bg-accent/10 border-b border-accent/20 py-2 px-4 text-center flex justify-center hover:bg-accent/15 transition-colors"
