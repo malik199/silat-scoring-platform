@@ -374,22 +374,23 @@ export default function DewanPage() {
   const [scoreDiffAlert,   setScoreDiffAlert]   = useState<20 | 30 | null>(null);
   const alertedThresholdsRef = useRef<Set<number>>(new Set());
 
-  // Reset alerted thresholds when match or round changes
-  useEffect(() => { alertedThresholdsRef.current = new Set(); }, [match?.id, match?.currentRound]);
+  // Reset alerted thresholds only when a new match starts
+  useEffect(() => { alertedThresholdsRef.current = new Set(); }, [match?.id]);
 
-  // Fire once per threshold when the point gap hits 20 or 30
+  // Fire once per threshold per match when the point gap hits 20 or 30.
+  // Never show a second popup while one is already open.
   useEffect(() => {
-    if (!match) return;
+    if (!match || scoreDiffAlert !== null) return;
     const diff = Math.abs(totalRed - totalBlue);
     for (const threshold of [30, 20] as const) {
       if (diff >= threshold && !alertedThresholdsRef.current.has(threshold)) {
-        alertedThresholdsRef.current.add(20);
         alertedThresholdsRef.current.add(threshold);
+        if (threshold === 30) alertedThresholdsRef.current.add(20);
         setScoreDiffAlert(threshold);
         break;
       }
     }
-  }, [totalRed, totalBlue, match?.id, match?.currentRound]);
+  }, [totalRed, totalBlue, match?.id, scoreDiffAlert]);
 
   async function handleNextRoundConfirmed() {
     if (!match || isLastRound) return;
@@ -1012,7 +1013,7 @@ export default function DewanPage() {
                 onClick={() => { handleTimerStop(); setScoreDiffAlert(null); }}
                 className="flex-1 px-4 py-2.5 rounded-lg bg-warn text-black text-sm font-bold hover:bg-warn/80 transition-colors"
               >
-                Stop the Mat
+                Stop the Match
               </button>
             </div>
           </div>
