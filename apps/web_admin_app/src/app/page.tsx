@@ -247,12 +247,18 @@ export default function LandingPage() {
     <div className="min-h-screen bg-base text-primary" style={{ scrollBehavior: "smooth" }}>
 
       {/* ── Tutorial banner ── */}
-      <div className="w-full bg-accent/10 border-b border-accent/20 py-2 px-4 text-center">
+      <a
+        href="https://www.youtube.com/watch?v=YVsdq2xJE4Q"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="w-full bg-accent/10 border-b border-accent/20 py-2 px-4 text-center flex justify-center hover:bg-accent/15 transition-colors"
+      >
         <span className="inline-flex items-center gap-2 text-xs font-medium text-accent">
           <span>🎬</span>
-          <span>Coming soon — video tutorial of the system</span>
+          <span>Watch the video tutorial — see how the system works</span>
+          <span className="opacity-60">↗</span>
         </span>
-      </div>
+      </a>
 
       {/* ── Nav ── */}
       <nav className="sticky top-0 z-50 border-b border-border/60 bg-base/80 backdrop-blur-md">
