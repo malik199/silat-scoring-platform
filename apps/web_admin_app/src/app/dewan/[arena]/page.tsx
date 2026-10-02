@@ -371,6 +371,25 @@ export default function DewanPage() {
   const [judgeSeatsOpen,   setJudgeSeatsOpen]   = useState(false);
   const [overlayCopied,    setOverlayCopied]    = useState(false);
   const [moreLinkCopied,   setMoreLinkCopied]   = useState(false);
+  const [scoreDiffAlert,   setScoreDiffAlert]   = useState<20 | 30 | null>(null);
+  const alertedThresholdsRef = useRef<Set<number>>(new Set());
+
+  // Reset alerted thresholds when match or round changes
+  useEffect(() => { alertedThresholdsRef.current = new Set(); }, [match?.id, match?.currentRound]);
+
+  // Fire once per threshold when the point gap hits 20 or 30
+  useEffect(() => {
+    if (!match) return;
+    const diff = Math.abs(totalRed - totalBlue);
+    for (const threshold of [30, 20] as const) {
+      if (diff >= threshold && !alertedThresholdsRef.current.has(threshold)) {
+        alertedThresholdsRef.current.add(20);
+        alertedThresholdsRef.current.add(threshold);
+        setScoreDiffAlert(threshold);
+        break;
+      }
+    }
+  }, [totalRed, totalBlue, match?.id, match?.currentRound]);
 
   async function handleNextRoundConfirmed() {
     if (!match || isLastRound) return;
@@ -956,6 +975,44 @@ export default function DewanPage() {
                 className="flex-1 px-4 py-2.5 rounded-lg bg-danger text-white text-sm font-semibold hover:bg-danger/80 transition-colors"
               >
                 End Match
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {scoreDiffAlert && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+          <div className="relative z-10 w-full max-w-sm bg-surface border border-warn/50 rounded-2xl shadow-2xl p-6">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-3xl">⚠️</span>
+              <div>
+                <h3 className="text-lg font-black text-warn">
+                  {scoreDiffAlert}-Point Gap
+                </h3>
+                <p className="text-xs text-muted">
+                  {totalRed > totalBlue ? "Red" : "Blue"} leads by {Math.abs(totalRed - totalBlue)} points
+                </p>
+              </div>
+            </div>
+            <p className="text-sm text-secondary mb-5">
+              The score difference has reached {scoreDiffAlert} points. You may stop the mat or continue.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setScoreDiffAlert(null)}
+                className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-secondary hover:text-primary hover:bg-elevated transition-colors"
+              >
+                Ignore / Continue
+              </button>
+              <button
+                type="button"
+                onClick={() => { handleTimerStop(); setScoreDiffAlert(null); }}
+                className="flex-1 px-4 py-2.5 rounded-lg bg-warn text-black text-sm font-bold hover:bg-warn/80 transition-colors"
+              >
+                Stop the Mat
               </button>
             </div>
           </div>
