@@ -22,7 +22,7 @@ function RequirementsModal({ onClose }: { onClose: () => void }) {
             <span className="text-2xl shrink-0">📱</span>
             <div>
               <p className="text-sm font-semibold text-primary">
-                4 mobile devices <span className="font-normal text-muted">(3 minimum)</span>
+                4 mobile devices <span className="font-normal text-muted">(2 minimum)</span>
               </p>
               <p className="text-xs text-secondary mt-0.5">
                 Android or iOS with internet connection — 3 for judges, 1 for the timekeeper. Your personal phones work fine.
