@@ -9,12 +9,56 @@ import { subscribeActiveTournament, type Tournament } from "@/lib/tournaments";
 import { subscribeCompetitors } from "@/lib/competitors";
 import { subscribeMatches, type Match } from "@/lib/matches";
 
+function RequirementsModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-md bg-surface border border-border rounded-2xl shadow-2xl p-6">
+        <h2 className="text-lg font-black text-primary mb-1">What you need to run the system</h2>
+        <p className="text-xs text-muted mb-5">Make sure you have these ready before your tournament</p>
+
+        <ul className="space-y-4 mb-6">
+          <li className="flex items-start gap-4">
+            <span className="text-2xl shrink-0">📱</span>
+            <div>
+              <p className="text-sm font-semibold text-primary">
+                4 mobile devices <span className="font-normal text-muted">(3 minimum)</span>
+              </p>
+              <p className="text-xs text-secondary mt-0.5">
+                Android or iOS with internet connection — 3 for judges, 1 for the timekeeper. Your personal phones work fine.
+              </p>
+            </div>
+          </li>
+          <li className="flex items-start gap-4">
+            <span className="text-2xl shrink-0">💻</span>
+            <div>
+              <p className="text-sm font-semibold text-primary">A laptop or tablet</p>
+              <p className="text-xs text-secondary mt-0.5">
+                For the admin and Dewan panels — any browser with an internet connection.
+              </p>
+            </div>
+          </li>
+        </ul>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-full py-2.5 rounded-xl bg-accent text-black text-sm font-bold hover:bg-accent/80 transition-colors"
+        >
+          Got it
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
 
   const [tournament,      setTournament]      = useState<Tournament | null | undefined>(undefined);
   const [competitorCount, setCompetitorCount] = useState<number | null>(null);
   const [matches,         setMatches]         = useState<Match[] | null>(null);
+  const [showRequirements, setShowRequirements] = useState(true);
 
   useEffect(() => {
     if (!user) return;
@@ -39,6 +83,7 @@ export default function DashboardPage() {
 
   return (
     <Shell title="Dashboard">
+      {showRequirements && <RequirementsModal onClose={() => setShowRequirements(false)} />}
       <ActiveTournamentBanner />
 
       {/* Stat cards */}
