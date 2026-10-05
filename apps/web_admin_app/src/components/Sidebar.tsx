@@ -334,6 +334,8 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
             {dc && <div className="my-1 border-t border-border" />}
             <Link
               href="/superadmin"
+              target="_blank"
+              rel="noopener noreferrer"
               onClick={close}
               title={dc ? "Super Admin" : undefined}
               className={`flex items-center rounded-lg text-sm font-medium transition-colors ${
