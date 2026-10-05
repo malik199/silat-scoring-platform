@@ -58,7 +58,15 @@ export default function DashboardPage() {
   const [tournament,      setTournament]      = useState<Tournament | null | undefined>(undefined);
   const [competitorCount, setCompetitorCount] = useState<number | null>(null);
   const [matches,         setMatches]         = useState<Match[] | null>(null);
-  const [showRequirements, setShowRequirements] = useState(true);
+  const [showRequirements, setShowRequirements] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    try {
+      const seen = localStorage.getItem(`requirements_seen_${user.uid}`);
+      if (!seen) setShowRequirements(true);
+    } catch { /* private browsing or storage blocked */ }
+  }, [user?.uid]);
 
   useEffect(() => {
     if (!user) return;
@@ -83,7 +91,12 @@ export default function DashboardPage() {
 
   return (
     <Shell title="Dashboard">
-      {showRequirements && <RequirementsModal onClose={() => setShowRequirements(false)} />}
+      {showRequirements && (
+        <RequirementsModal onClose={() => {
+          setShowRequirements(false);
+          try { if (user) localStorage.setItem(`requirements_seen_${user.uid}`, "1"); } catch { /* ignore */ }
+        }} />
+      )}
       <ActiveTournamentBanner />
 
       {/* Stat cards */}
