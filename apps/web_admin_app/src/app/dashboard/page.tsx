@@ -19,8 +19,11 @@ function AppDownloadModal({ onClose }: { onClose: () => void }) {
           <h2 className="text-base font-black text-primary mb-1">
             For scores to be calculated, you need at least 2 mobile devices with the SilatScore app installed.
           </h2>
-          <p className="text-xs text-secondary italic mb-4">
+          <p className="text-xs text-secondary italic mb-2">
             Agar skor dapat dihitung, diperlukan setidaknya dua ponsel atau tablet yang telah terinstal aplikasi silatscore.
+          </p>
+          <p className="text-xs font-medium text-accent mb-4">
+            Two judges must agree for the score to be calculated.
           </p>
           <div className="flex flex-col gap-2 mb-5">
             <a

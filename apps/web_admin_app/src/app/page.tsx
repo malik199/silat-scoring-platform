@@ -399,6 +399,40 @@ export default function LandingPage() {
             className="absolute inset-0 w-full h-full"
           />
         </div>
+
+        {/* App download callout */}
+        <div className="mt-10 rounded-2xl border border-border bg-surface overflow-hidden">
+          <img src="/twodevicesneeded.svg" alt="Two devices needed" className="w-full" />
+          <div className="px-6 py-5">
+            <p className="text-sm font-semibold text-primary mb-1">
+              For scores to be calculated, you need at least 2 mobile devices with the SilatScore app installed.
+            </p>
+            <p className="text-xs text-secondary italic mb-1">
+              Agar skor dapat dihitung, diperlukan setidaknya dua ponsel atau tablet yang telah terinstal aplikasi silatscore.
+            </p>
+            <p className="text-xs font-medium text-accent mb-4">
+              Two judges must agree for the score to be calculated.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <a
+                href="https://apps.apple.com/us/app/silat-score/id6477829901"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-border bg-elevated text-sm font-semibold text-primary hover:border-accent/50 transition-colors"
+              >
+                <span>🍎</span> App Store
+              </a>
+              <a
+                href="https://play.google.com/store/apps/details?id=com.visdevelop.silatscore&hl=en_US"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-border bg-elevated text-sm font-semibold text-primary hover:border-accent/50 transition-colors"
+              >
+                <span>🤖</span> Google Play
+              </a>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* ── Features ── */}
