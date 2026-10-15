@@ -400,39 +400,6 @@ export default function LandingPage() {
           />
         </div>
 
-        {/* App download callout */}
-        <div className="mt-10 rounded-2xl border border-border bg-surface overflow-hidden">
-          <img src="/twodevicesneeded.svg" alt="Two devices needed" className="w-full" />
-          <div className="px-6 py-5">
-            <p className="text-sm font-semibold text-primary mb-1">
-              For scores to be calculated, you need at least 2 mobile devices with the SilatScore app installed.
-            </p>
-            <p className="text-xs text-secondary italic mb-1">
-              Agar skor dapat dihitung, diperlukan setidaknya dua ponsel atau tablet yang telah terinstal aplikasi silatscore.
-            </p>
-            <p className="text-xs font-medium text-accent mb-4">
-              Two judges must agree for the score to be calculated.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <a
-                href="https://apps.apple.com/us/app/silat-score/id6477829901"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-border bg-elevated text-sm font-semibold text-primary hover:border-accent/50 transition-colors"
-              >
-                <img src="/apple.svg" alt="Apple" className="w-5 h-5" /> App Store
-              </a>
-              <a
-                href="https://play.google.com/store/apps/details?id=com.visdevelop.silatscore&hl=en_US"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-border bg-elevated text-sm font-semibold text-primary hover:border-accent/50 transition-colors"
-              >
-                <img src="/android.svg" alt="Android" className="w-5 h-5" /> Google Play
-              </a>
-            </div>
-          </div>
-        </div>
       </section>
 
       {/* ── Features ── */}
@@ -508,6 +475,42 @@ export default function LandingPage() {
                 <span>Timekeeper login</span>
               </li>
             </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* ── App download callout ── */}
+      <section className="max-w-4xl mx-auto px-6 pb-20">
+        <div className="rounded-2xl border border-border bg-surface overflow-hidden">
+          <img src="/twodevicesneeded.svg" alt="Two devices needed" className="w-full" />
+          <div className="px-6 py-6 text-center">
+            <p className="text-lg font-bold text-primary mb-2">
+              For scores to be calculated, you need at least 2 mobile devices with the SilatScore app installed.
+            </p>
+            <p className="text-base text-secondary italic mb-2">
+              Agar skor dapat dihitung, diperlukan setidaknya dua ponsel atau tablet yang telah terinstal aplikasi silatscore.
+            </p>
+            <p className="text-base font-semibold text-accent mb-6">
+              Two judges must agree for the score to be calculated.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-sm mx-auto">
+              <a
+                href="https://apps.apple.com/us/app/silat-score/id6477829901"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-border bg-elevated text-sm font-semibold text-primary hover:border-accent/50 transition-colors"
+              >
+                <img src="/apple.svg" alt="Apple" className="w-5 h-5" /> App Store
+              </a>
+              <a
+                href="https://play.google.com/store/apps/details?id=com.visdevelop.silatscore&hl=en_US"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-border bg-elevated text-sm font-semibold text-primary hover:border-accent/50 transition-colors"
+              >
+                <img src="/android.svg" alt="Android" className="w-5 h-5" /> Google Play
+              </a>
+            </div>
           </div>
         </div>
       </section>
