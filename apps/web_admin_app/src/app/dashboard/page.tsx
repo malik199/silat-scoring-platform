@@ -9,6 +9,50 @@ import { subscribeActiveTournament, type Tournament } from "@/lib/tournaments";
 import { subscribeCompetitors } from "@/lib/competitors";
 import { subscribeMatches, type Match } from "@/lib/matches";
 
+function AppDownloadModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-md bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden">
+        <img src="/twodevicesneeded.svg" alt="Two devices needed" className="w-full" />
+        <div className="p-6">
+          <h2 className="text-base font-black text-primary mb-1">
+            For scores to be calculated, you need at least 2 mobile devices with the SilatScore app installed.
+          </h2>
+          <p className="text-xs text-secondary italic mb-4">
+            Agar skor dapat dihitung, diperlukan setidaknya dua ponsel atau tablet yang telah terinstal aplikasi silatscore.
+          </p>
+          <div className="flex flex-col gap-2 mb-5">
+            <a
+              href="https://apps.apple.com/us/app/silat-score/id6477829901"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-border bg-elevated text-sm font-semibold text-primary hover:border-accent/50 transition-colors"
+            >
+              <span>🍎</span> Download on the App Store
+            </a>
+            <a
+              href="https://play.google.com/store/apps/details?id=com.visdevelop.silatscore&hl=en_US"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-border bg-elevated text-sm font-semibold text-primary hover:border-accent/50 transition-colors"
+            >
+              <span>🤖</span> Get it on Google Play
+            </a>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full py-2.5 rounded-xl bg-accent text-black text-sm font-bold hover:bg-accent/80 transition-colors"
+          >
+            Got it
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function RequirementsModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -58,15 +102,32 @@ export default function DashboardPage() {
   const [tournament,      setTournament]      = useState<Tournament | null | undefined>(undefined);
   const [competitorCount, setCompetitorCount] = useState<number | null>(null);
   const [matches,         setMatches]         = useState<Match[] | null>(null);
+  const [showAppDownload,  setShowAppDownload]  = useState(false);
   const [showRequirements, setShowRequirements] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     try {
-      const seen = localStorage.getItem(`requirements_seen_${user.uid}`);
-      if (!seen) setShowRequirements(true);
+      const appSeen = localStorage.getItem(`app_download_seen_${user.uid}`);
+      if (!appSeen) {
+        setShowAppDownload(true);
+      } else {
+        const reqSeen = localStorage.getItem(`requirements_seen_${user.uid}`);
+        if (!reqSeen) setShowRequirements(true);
+      }
     } catch { /* private browsing or storage blocked */ }
   }, [user?.uid]);
+
+  function handleAppDownloadClose() {
+    setShowAppDownload(false);
+    try {
+      if (user) {
+        localStorage.setItem(`app_download_seen_${user.uid}`, "1");
+        const reqSeen = localStorage.getItem(`requirements_seen_${user.uid}`);
+        if (!reqSeen) setShowRequirements(true);
+      }
+    } catch { /* ignore */ }
+  }
 
   useEffect(() => {
     if (!user) return;
@@ -91,6 +152,7 @@ export default function DashboardPage() {
 
   return (
     <Shell title="Dashboard">
+      {showAppDownload && <AppDownloadModal onClose={handleAppDownloadClose} />}
       {showRequirements && (
         <RequirementsModal onClose={() => {
           setShowRequirements(false);
