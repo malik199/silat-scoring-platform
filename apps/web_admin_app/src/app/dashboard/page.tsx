@@ -32,7 +32,7 @@ function AppDownloadModal({ onClose }: { onClose: () => void }) {
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-border bg-elevated text-sm font-semibold text-primary hover:border-accent/50 transition-colors"
             >
-              <span>🍎</span> Download on the App Store
+              <img src="/apple.svg" alt="Apple" className="w-5 h-5" /> Download on the App Store
             </a>
             <a
               href="https://play.google.com/store/apps/details?id=com.visdevelop.silatscore&hl=en_US"
@@ -40,7 +40,7 @@ function AppDownloadModal({ onClose }: { onClose: () => void }) {
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-border bg-elevated text-sm font-semibold text-primary hover:border-accent/50 transition-colors"
             >
-              <span>🤖</span> Get it on Google Play
+              <img src="/android.svg" alt="Android" className="w-5 h-5" /> Get it on Google Play
             </a>
           </div>
           <button

@@ -420,7 +420,7 @@ export default function LandingPage() {
                 rel="noopener noreferrer"
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-border bg-elevated text-sm font-semibold text-primary hover:border-accent/50 transition-colors"
               >
-                <span>🍎</span> App Store
+                <img src="/apple.svg" alt="Apple" className="w-5 h-5" /> App Store
               </a>
               <a
                 href="https://play.google.com/store/apps/details?id=com.visdevelop.silatscore&hl=en_US"
@@ -428,7 +428,7 @@ export default function LandingPage() {
                 rel="noopener noreferrer"
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-border bg-elevated text-sm font-semibold text-primary hover:border-accent/50 transition-colors"
               >
-                <span>🤖</span> Google Play
+                <img src="/android.svg" alt="Android" className="w-5 h-5" /> Google Play
               </a>
             </div>
           </div>
