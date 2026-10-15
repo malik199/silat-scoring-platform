@@ -22,8 +22,11 @@ function AppDownloadModal({ onClose }: { onClose: () => void }) {
           <p className="text-xs text-secondary italic mb-2">
             Agar skor dapat dihitung, diperlukan setidaknya dua ponsel atau tablet yang telah terinstal aplikasi silatscore.
           </p>
-          <p className="text-xs font-medium text-accent mb-4">
+          <p className="text-xs font-medium text-accent mb-0.5">
             Two judges must agree for the score to be calculated.
+          </p>
+          <p className="text-xs font-medium text-accent mb-4">
+            Dua juri harus sepakat agar skor dapat dihitung.
           </p>
           <div className="flex flex-col gap-2 mb-5">
             <a

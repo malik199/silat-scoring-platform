@@ -490,8 +490,11 @@ export default function LandingPage() {
             <p className="text-base text-secondary italic mb-2">
               Agar skor dapat dihitung, diperlukan setidaknya dua ponsel atau tablet yang telah terinstal aplikasi silatscore.
             </p>
-            <p className="text-base font-semibold text-accent mb-6">
+            <p className="text-base font-semibold text-warn mb-1">
               Two judges must agree for the score to be calculated.
+            </p>
+            <p className="text-base font-semibold text-warn mb-6">
+              Dua juri harus sepakat agar skor dapat dihitung.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-sm mx-auto">
               <a
